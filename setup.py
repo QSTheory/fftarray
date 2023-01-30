@@ -20,7 +20,7 @@ setuptools.setup(
     url="",
     packages=["fftarray"],
     include_package_data=True,
-    package_data={"unified_wf": ["py.typed"]},
+    package_data={"matterwave": ["py.typed"]},
     zip_safe=False,
     classifiers=[],
     python_requires=">=3.9",
