@@ -1,0 +1,144 @@
+from __future__ import annotations
+
+from typing import Any, Dict, Literal, Iterable
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from ..fft_array import FFTDimension
+    from ..lazy_state import LazyState
+
+import numpy as np
+
+PrecisionSpec = Literal["default", "fp32", "fp64"]
+
+def precision_from_dtype(dtype) -> PrecisionSpec:
+    if dtype == np.float64 or dtype == np.complex128:
+        return "fp64"
+    elif dtype == np.float32 or dtype == np.complex64:
+        return "fp32"
+    else:
+        raise ValueError(f"Unsupported dtype {dtype}.")
+
+def has_precision(x, target: PrecisionSpec) -> bool:
+    if target == "default":
+        assert x.dtype == np.float32 or x.dtype == np.float64 or x.dtype == np.complex64 or x.dtype == np.complex128, \
+                "Only floating point types are allowed in FFTArrays."
+        return True
+    else:
+        return precision_from_dtype(x.dtype) == target
+
+
+class TensorLib:
+    fftn: Any
+    ifftn: Any
+    numpy_ufuncs: Any
+    array: Any
+
+    def get_values_lazy_factors_applied(
+                self,
+                values,
+                dims: Iterable[FFTDimension],
+                lazy_state: LazyState,
+                precision: PrecisionSpec,
+            ):
+        """
+            This function takes all dims so that it has more freedom to optimize the application over all dimensions.
+        """
+
+        scalar_phase: complex = 0.
+        for dim_idx, dim in enumerate(dims):
+            phase_factors = lazy_state.phase_factors_for_dim(dim.name)
+
+            # TODO: This computation could be optimised by explicitly switching
+            # the data-intensive loop over n with the loop over the powers.
+            phases_to_apply = {}
+            for i, factor in phase_factors.values.items():
+                if factor != 0.:
+                    if i == 0:
+                        # (x**0 is one for all real x, therefore we can compute as a scalar scale.)
+                        scalar_phase += factor
+                    else:
+                        phases_to_apply[i] = factor
+            values = self.apply_phase_factors(values=values, dim_idx=dim_idx, factors=phases_to_apply, precision=precision)
+
+        scale = lazy_state.scale * np.exp(1.j * scalar_phase)
+        if scale != 1.0:
+            values = self.apply_scale(values=values, scale=scale, precision=precision)
+        return values
+
+    def apply_scale(self, values, scale, precision: PrecisionSpec):
+        # values is raw numpy and therefore we need to force scale possibly down to a lower precision.
+        # TODO Why not?
+        # values *= self.as_array_with_precision(scale, dim.precision)
+        # TODO dim is not necessarily defined here. All current callers do that but there is no principal guarantuee.
+        if np.imag(scale) == 0:
+            scale = np.real(scale)
+        scale = self.as_array_with_precision(scale, precision)
+        # Vaslues is potentially aliased here, therefore this would be wrong.
+        # if scale.dtype == values.dtype:
+        #     values *= scale
+        # else:
+        values = values * scale
+        return values
+
+    def apply_phase_factors(self, values, dim_idx: int, factors: Dict[int, complex], precision: PrecisionSpec):
+        if len(factors) == 0:
+            return values
+        factors_list = list(factors.items())
+
+        def _get_phase_arr(factor: complex, n: int, i: int):
+            return self.as_array_with_precision(factor, precision) * (self.numpy_ufuncs.arange(0, values.shape[dim_idx], dtype=self.real_type(precision))**i)
+
+        phase_arr = _get_phase_arr(n=values.shape[dim_idx], i=factors_list[0][0], factor=factors_list[0][1])
+        for i, factor in factors_list[1:]:
+            phase_arr +=  _get_phase_arr(n=values.shape[dim_idx], i=i, factor=factor)
+
+        # Ensure correct broadcasting
+        extended_shape = np.ones(len(values.shape), dtype=int)
+        extended_shape[dim_idx] = -1
+        phase_arr = phase_arr.reshape(extended_shape)
+
+        exponent = np.array(1.j, dtype=self.complex_type(precision)) * phase_arr
+        # TODO This version does not implicitly upcast values from real to complex but would be faster
+        # values *= self.numpy_ufuncs.exp(exponent)
+        # TODO Could optimise exp for purely real and purely complex cases
+        values = values * self.numpy_ufuncs.exp(exponent)
+        return values
+
+
+    def reduce_multiply(self, values) -> float:
+        """
+
+        :meta private:
+        """
+        return self.numpy_ufuncs.multiply.reduce(values)
+
+    def __eq__(self, other) -> bool:
+        return isinstance(other, self.__class__)
+
+    def real_type(self, precision: PrecisionSpec):
+        if precision == "fp32":
+            return np.float32
+        elif precision == "fp64":
+            return np.float64
+        elif precision == "default":
+            return float
+
+        assert False, "Unreachable"
+
+    def complex_type(self, precision: PrecisionSpec):
+        if precision == "fp32":
+            return np.complex64
+        elif precision == "fp64":
+            return np.complex128
+        elif precision == "default":
+            return complex
+
+        assert False, "Unreachable"
+
+    def as_array_with_precision(self, x, precision: PrecisionSpec):
+        if self.numpy_ufuncs.iscomplexobj(x):
+            dtype = self.complex_type(precision)
+        else:
+            assert self.numpy_ufuncs.isrealobj(x)
+            dtype = self.real_type(precision)
+        return self.array(x, dtype = dtype)

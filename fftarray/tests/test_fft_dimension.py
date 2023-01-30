@@ -1,0 +1,108 @@
+import copy
+
+from fftarray import FFTDimension
+import numpy as np
+
+import pytest
+
+import jax
+jax.config.update("jax_enable_x64", True)
+
+from fftarray.backends.jax_backend import JaxTensorLib
+from fftarray.backends.np_backend import NumpyTensorLib
+
+def assert_scalars_almost_equal_nulp(x, y, nulp = 1):
+    np.testing.assert_array_almost_equal_nulp(np.array([x]), np.array([y]), nulp = nulp)
+
+tensor_libs = [NumpyTensorLib(), JaxTensorLib()]
+
+@pytest.mark.parametrize("tensor_lib", tensor_libs)
+def test_fftdim_accessors(tensor_lib):
+    """
+    Test if the accessors of FFTDimension are defined and do not result in a
+    contradiction.
+    """
+    sol = FFTDimension("x",
+        pos_min = 3e-6,
+        pos_max = 200e-6,
+        freq_middle = 0.,
+        n = 16,
+        default_tlib = tensor_lib,
+    )
+    assert np.isclose(sol.d_pos * sol.d_freq * sol.n, 2*np.pi)
+    assert np.isclose(sol.pos_middle, sol.pos_min + sol.d_pos * sol.n/2)
+    assert np.isclose(sol.pos_extent, sol.pos_max - sol.pos_min)
+    assert np.isclose(sol.pos_extent, sol.d_pos * (sol.n - 1.))
+    assert np.isclose(sol.freq_middle, sol.freq_min + sol.d_freq * sol.n/2)
+    assert np.isclose(sol.freq_extent, sol.freq_max - sol.freq_min)
+    assert np.isclose(sol.freq_extent, sol.d_freq * (sol.n - 1.))
+
+@pytest.mark.parametrize("tensor_lib", tensor_libs)
+def test_fftdim_jax(tensor_lib):
+    """
+    Test if the pytree of FFTDimension is correctly defined, i.e., if the
+    flattening and unflattening works accordingly.
+    """
+    @jax.jit
+    def jax_func(fftdim: FFTDimension):
+        return fftdim
+
+    fftdim = FFTDimension("x",
+        pos_min = 3e-6,
+        pos_max = 200e-6,
+        freq_middle = 0.,
+        n = 16,
+        default_tlib = tensor_lib,
+
+    )
+    assert jax_func(fftdim) == fftdim
+
+
+@pytest.mark.parametrize("tensor_lib", tensor_libs)
+def test_arrays(tensor_lib) -> None:
+    """
+    Test that the manual arrays and the performance-optimized kernels create the same values in the supplied direction.
+    """
+
+    n = 16
+
+    fftdim = FFTDimension("x",
+        pos_min = 3e-6,
+        pos_max = 200e-6,
+        freq_middle = 0.,
+        n = n,
+        default_tlib = tensor_lib,
+    )
+
+    pos_grid = np.array(fftdim.pos_array())
+    assert_scalars_almost_equal_nulp(fftdim.pos_min, np.min(pos_grid))
+    assert_scalars_almost_equal_nulp(fftdim.pos_min, pos_grid[0])
+    assert_scalars_almost_equal_nulp(fftdim.pos_max, np.max(pos_grid))
+    assert_scalars_almost_equal_nulp(fftdim.pos_max, pos_grid[-1])
+    assert_scalars_almost_equal_nulp(fftdim.pos_middle, pos_grid[int(n/2)])
+
+    freq_grid = np.array(fftdim.freq_array())
+    assert_scalars_almost_equal_nulp(fftdim.freq_min, np.min(freq_grid))
+    assert_scalars_almost_equal_nulp(fftdim.freq_min, freq_grid[0])
+    assert_scalars_almost_equal_nulp(fftdim.freq_max, np.max(freq_grid))
+    assert_scalars_almost_equal_nulp(fftdim.freq_max, freq_grid[-1])
+
+@pytest.mark.parametrize("tensor_lib", tensor_libs)
+def test_equality(tensor_lib) -> None:
+    dim_1 = FFTDimension("x",
+        pos_min = 3e-6,
+        pos_max = 200e-6,
+        freq_middle = 0.,
+        n = 8,
+        default_tlib = tensor_lib,
+    )
+    dim_2 = FFTDimension("x",
+        pos_min = 2e-6,
+        pos_max = 200e-6,
+        freq_middle = 0.,
+        n = 8,
+        default_tlib = tensor_lib,
+    )
+    assert dim_1 != dim_2
+    assert dim_1 == dim_1
+    assert dim_1 == copy.copy(dim_1)
