@@ -27,15 +27,12 @@ class JaxTensorLib(TensorLib):
         values_jnp: jnp.ndarray = jnp.array(values)
         return jax.lax.reduce(values_jnp, jnp.array(1, dtype = values_jnp.dtype), jnp.multiply, dimensions = range(len(values_jnp.shape)))
 
-
 def make_matched_input(f, input, loop_arg):
-    lowered = jax.jit(f).lower(input, loop_arg)
-
     is_leaf = lambda x: isinstance(x, FFTArray)
     leaves_high_in, tree_def_high_in = jax.tree_util.tree_flatten(input, is_leaf = is_leaf)
-    out_val = lowered.out_tree.unflatten([None]*lowered.out_tree.num_leaves)[0]
+
+    out_val = jax.eval_shape(f, input, loop_arg)[0]
     leaves_high_out, _ = jax.tree_util.tree_flatten(out_val, is_leaf = is_leaf)
-    lowered.in_avals
 
     # This check is intentionally coarse in order to not interfere with the weak-type adjustments of scan.
     assert len(leaves_high_in) == len(leaves_high_out)
