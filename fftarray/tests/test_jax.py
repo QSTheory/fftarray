@@ -1,4 +1,6 @@
-from fftarray.backends.jax_backend import JaxTensorLib, make_matched_input
+import numpy as np
+
+from fftarray.backends.jax_backend import JaxTensorLib, make_matched_input, fft_array_scan
 from fftarray import FFTDimension
 
 def test_input_matching() -> None:
@@ -16,3 +18,15 @@ def test_input_matching() -> None:
     assert type(matched_input["b"]) == type(matched_input_ref["b"])
     assert type(matched_input["c"][0]) == type(matched_input_ref["c"][0]) # type: ignore
     assert type(matched_input["c"][1]) == type(matched_input_ref["c"][1]) # type: ignore
+
+
+def test_fft_array_scan() -> None:
+    state = 0
+    def inner_fun(state, i):
+        return state+i, None
+
+    def outer_fun(state, i):
+        state, _ = fft_array_scan(f=inner_fun, init=state, xs=np.array([5,6]))
+        return state + i, None
+
+    state, _ = fft_array_scan(f=outer_fun, init=state, xs=np.array([1,2]))

@@ -72,6 +72,7 @@ def test_arrays(tensor_lib) -> None:
         freq_middle = 0.,
         n = n,
         default_tlib = tensor_lib,
+        default_force_precision="fp64",
     )
 
     pos_grid = np.array(fftdim.pos_array())
