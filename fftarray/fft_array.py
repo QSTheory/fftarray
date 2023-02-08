@@ -167,9 +167,13 @@ class FFTArray():
     def with_tlib(self: TFFTArray, tlib: TensorLib) -> TFFTArray:
         new_dims = [dim.set_default_tlib(tlib) for dim in self._dims]
         if tlib.numpy_ufuncs.iscomplexobj(self._values):
-            new_arr = tlib.array(self._values, dtype=tlib.complex_type)
+            # The extra np.array masks incompatibilities between torch and jax.
+            # We are copying these values around via the CPU anyways.
+            new_arr = tlib.array(np.array(self._values), dtype=tlib.complex_type)
         else:
-            new_arr = tlib.array(self._values, dtype=tlib.real_type)
+            # The extra np.array masks incompatibilities between torch and jax.
+            # We are copying these values around via the CPU anyways.
+            new_arr = tlib.array(np.array(self._values), dtype=tlib.real_type)
         new_arr = self.__class__(values = new_arr, dims = new_dims, eager = self.is_eager)
         new_arr._lazy_state = self._lazy_state
         return new_arr
