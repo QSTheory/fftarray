@@ -10,11 +10,12 @@ jax.config.update("jax_enable_x64", True)
 
 from fftarray.backends.jax_backend import JaxTensorLib
 from fftarray.backends.np_backend import NumpyTensorLib
+from fftarray.backends.pyfftw_backend import PyFFTWTensorLib
 
 def assert_scalars_almost_equal_nulp(x, y, nulp = 1):
     np.testing.assert_array_almost_equal_nulp(np.array([x]), np.array([y]), nulp = nulp)
 
-tensor_libs = [NumpyTensorLib(precision="fp64"), JaxTensorLib(precision="fp64")]
+tensor_libs = [NumpyTensorLib(precision="fp64"), JaxTensorLib(precision="fp64"), PyFFTWTensorLib(precision="fp64")]
 
 @pytest.mark.parametrize("tensor_lib", tensor_libs)
 def test_fftdim_accessors(tensor_lib):

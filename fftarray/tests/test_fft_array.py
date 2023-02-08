@@ -9,13 +9,14 @@ import numpy as np
 
 from fftarray.backends.jax_backend import JaxTensorLib
 from fftarray.backends.np_backend import NumpyTensorLib
+from fftarray.backends.pyfftw_backend import PyFFTWTensorLib
 from fftarray.backends.tensor_lib import TensorLib
 from fftarray.xr_helpers import as_xr_pos
 
 def assert_scalars_almost_equal_nulp(x, y, nulp = 1):
     np.testing.assert_array_almost_equal_nulp(np.array([x]), np.array([y]), nulp = nulp)
 
-tensor_libs = [NumpyTensorLib, JaxTensorLib]
+tensor_libs = [NumpyTensorLib, JaxTensorLib, PyFFTWTensorLib]
 
 @pytest.mark.parametrize("tlib", tensor_libs)
 @pytest.mark.parametrize("do_jit", [False, True])

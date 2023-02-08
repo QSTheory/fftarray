@@ -19,7 +19,7 @@ class TensorLib:
 
     def __init__(
                     self,
-                    precision: PrecisionSpec = "default"
+                    precision: PrecisionSpec,
                 ):
 
         self.precision = precision
