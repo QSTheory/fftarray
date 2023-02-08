@@ -35,6 +35,7 @@ class TensorLib:
             ):
         """
             This function takes all dims so that it has more freedom to optimize the application over all dimensions.
+            # TODO Get the aliasing and copy story for values straight.
         """
 
         scalar_phase: complex = 0.

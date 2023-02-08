@@ -9,7 +9,13 @@ from functools import reduce
 # TODO Should this still be a dataclass?
 @dataclass
 class PhaseFactors:
-    # The n-th value (counting from zero) is the scale a_n in the expression np.exp(1.j * a_n * (i**n)) for index i.
+    """
+        n: positive integer including zero
+        a_n: float or complex
+        i: index in array and dimension this instance belongs to.
+        Stores "phase-factors" that are evaluated by multiplying `np.exp(1.j * a_n * (i**n))` to the values they belong to.
+    """
+    # Dict[n: a_n]
     values: Dict[int, Union[float, complex]]
 
     def __init__(self, values: Dict[int, Union[float, complex]]):
@@ -20,6 +26,9 @@ class PhaseFactors:
             assert isinstance(value, complex)
 
     def __add__(self, other: PhaseFactors) -> PhaseFactors:
+        """
+            Works like multiplying the phase_factors of self and other.
+        """
         assert isinstance(other, PhaseFactors)
         result = copy(self.values)
         for i, phase in other.values.items():
@@ -31,6 +40,9 @@ class PhaseFactors:
         return PhaseFactors(result)
 
     def __sub__(self, other) -> PhaseFactors:
+        """
+            Works like dividing the phase_factors of self and other.
+        """
         assert isinstance(other, PhaseFactors)
         result = copy(self.values)
         for i, phase in other.values.items():
@@ -42,14 +54,22 @@ class PhaseFactors:
         return PhaseFactors(result)
 
 def _get_phase_factor_change(existing: Dict[str, PhaseFactors], target: Dict[str, PhaseFactors]) -> Dict[str, PhaseFactors]:
-        factor_names = set(existing.keys()).union(set(target.keys()))
-        # If our existing phase factor should not exist in the target we need to apply.
-        # If we want to add a new phase factor we need to apply its inverse.
-        return {name: existing.get(name, PhaseFactors({})) - target.get(name, PhaseFactors({}))
-            for name in factor_names
-        }
+    """
+        Return the phase factors I need to apply in order to change from the `existing` to the `target` PhaseFactors state.
+        Used in `get_lazy_state_to_apply`.
+    """
+    factor_names = set(existing.keys()).union(set(target.keys()))
+    # If our existing phase factor should not exist in the target we need to apply.
+    # If we want to add a new phase factor we need to apply its inverse.
+    return {name: existing.get(name, PhaseFactors({})) - target.get(name, PhaseFactors({}))
+        for name in factor_names
+    }
 
 def get_lazy_state_to_apply(existing: LazyState, target: LazyState) -> LazyState:
+    """
+        Return the phase `LazyState` I need to apply in order to change from the `existing` to the `target` LazyState.
+        Used in `FFTArray._set_lazy_state`.
+    """
     # Iterate over dims
     phases_to_apply = {dim:
         _get_phase_factor_change(
@@ -65,6 +85,14 @@ def get_lazy_state_to_apply(existing: LazyState, target: LazyState) -> LazyState
 
 
 class LazyState:
+    """
+        Represents the lazy state of a whole FFTArray.
+
+        Phase factors are stored per dimension under specific names
+        in order to allow guarantueed cancelling in the presence of floating point rounding errors.
+
+        Scale is just one complex or float number for all dimensions.
+    """
     # There is one dict per dimension.
     _phases_per_dim: Dict[Hashable, Dict[str, PhaseFactors]]
     # TODO Currently we only have one use for that so it is less general.
@@ -110,6 +138,11 @@ class LazyState:
         return reduce(lambda a,b: a+b, self._phases_per_dim.get(dim_name, {}).values(), PhaseFactors({}))
 
     def __add__(self, other: LazyState) -> LazyState:
+        """
+            Combine two lazy states into one.
+            The combined results in the same thing as applying both
+            one after the other up to rounding errors.
+        """
         assert isinstance(other, LazyState)
         result = deepcopy(self)
         for dim_name, phase_factors in other._phases_per_dim.items():
