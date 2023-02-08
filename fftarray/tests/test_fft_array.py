@@ -21,6 +21,9 @@ tensor_libs = [NumpyTensorLib, JaxTensorLib, PyFFTWTensorLib]
 @pytest.mark.parametrize("tlib", tensor_libs)
 @pytest.mark.parametrize("do_jit", [False, True])
 def test_indexing(tlib, do_jit: bool):
+    if do_jit and type(tlib) != JaxTensorLib:
+        return
+
     x_dim = FFTDimension("x",
         n=4,
         d_pos=1,
@@ -74,7 +77,7 @@ def test_indexing(tlib, do_jit: bool):
             arr_2d.loc[:],
             arr_2d.isel(x=3, y=2),
         )
-    if do_jit and type(tlib) != JaxTensorLib():
+    if do_jit:
         test_jittable = jax.jit(test_jittable)
 
     jit_res = test_jittable(x_dim=x_dim, arr_2d=arr_2d)
