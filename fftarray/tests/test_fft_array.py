@@ -10,7 +10,6 @@ import numpy as np
 from fftarray.backends.jax_backend import JaxTensorLib
 from fftarray.backends.np_backend import NumpyTensorLib
 from fftarray.backends.pyfftw_backend import PyFFTWTensorLib
-from fftarray.backends.tensor_lib import TensorLib
 from fftarray.xr_helpers import as_xr_pos
 
 def assert_scalars_almost_equal_nulp(x, y, nulp = 1):
