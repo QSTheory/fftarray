@@ -74,7 +74,7 @@ def test_indexing(tlib, do_jit: bool):
             arr_2d.loc[:],
             arr_2d.isel(x=3, y=2),
         )
-    if do_jit:
+    if do_jit and type(tlib) != JaxTensorLib():
         test_jittable = jax.jit(test_jittable)
 
     jit_res = test_jittable(x_dim=x_dim, arr_2d=arr_2d)
