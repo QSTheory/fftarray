@@ -98,7 +98,6 @@ class LazyState:
     # TODO Currently we only have one use for that so it is less general.
     _scale: complex
 
-
     def __init__(self, scale: complex = 1.):
         self._phases_per_dim = {}
         self._scale = complex(scale)
