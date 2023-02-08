@@ -19,6 +19,9 @@ from .helpers import reduce_equal, UniformValue
 from dataclasses import dataclass
 
 TFFTArray = TypeVar("TFFTArray", bound="FFTArray")
+T = TypeVar("T")
+
+Space = Literal["pos", "freq"]
 
 def _get_tensor_lib(dims: Iterable[FFTDimension]) -> TensorLib:
     return reduce_equal(map(lambda dim: dim._default_tlib, dims), "Tried to join arrays with different tensor-libs or precision settings.")
@@ -39,14 +42,14 @@ def _unary_ufunc(op):
     return fun
 
 @dataclass
-class LocFFTArrayIndexer:
+class LocFFTArrayIndexer(Generic[T]):
     """
         `wf.loc` allows indexing by dim index but by coordinate position.
         In order to support the indexing operator on a property
         we need this indexable helper class to be returned by the property `loc`.
     """
     arr: FFTArray
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> FFTArray:
         if isinstance(item, slice):
             assert item == slice(None, None, None)
             return self.arr.values
@@ -127,9 +130,34 @@ class FFTArray():
     # Selection
     #--------------------
 
-    def __getitem__(self, item):
-        # Just pass through to the underlying array, no smarts.
-        return self.values.__getitem__(item)
+    def __getitem__(self: TFFTArray, item) -> TFFTArray:
+        new_dims = []
+        if isinstance(item, slice):
+            item = [item]
+        for index, dimension in zip(item, self._dims):
+            if not isinstance(index, slice):
+                new_dim = dimension._dim_from_start_and_n(start=index, n=1, space=self.space)
+                index = slice(index, index+1, None)
+            elif index == slice(None, None, None):
+                # No selection, just keep the old dim.
+                new_dim = dimension
+            else:
+                new_dim = dimension._dim_from_slice(index, self.space)
+
+            new_dims.append(new_dim)
+
+        selected_values = self.values.__getitem__(item)
+        # Dimensions with the length 1 are dropped in numpy indexing.
+        # We decided against this and keeping even dimensions of length 1.
+        # So we have to reintroduce those dropped dimensions via reshape.
+        selected_values = selected_values.reshape(tuple(dim.n for dim in new_dims))
+
+        return self.__class__(
+            values = selected_values,
+            dims = new_dims,
+            eager = self._lazy_state is None
+        )
+
 
     @property
     def loc(self):
@@ -343,7 +371,7 @@ class FFTArray():
 
     @property
     @abstractmethod
-    def space(self) -> Literal["pos", "freq"]:
+    def space(self) -> Space:
         """
             Enables automatically and easily detecting in which space a generic FFTArray curently is.
         """
@@ -488,7 +516,7 @@ def _freq_scale_factor(dims: Iterable[FFTDimension]) -> float:
 
 def _pack_values(
             values,
-            space: Literal["pos", "freq"],
+            space: Space,
             dims: List[FFTDimension],
             lazy_state: Optional[LazyState],
         ) -> FFTArray:
@@ -595,7 +623,7 @@ class UnpackedValues:
     # Currently unused
     is_scalar: List[bool]
     # Space in whcih all values were
-    space: Literal["pos", "freq"]
+    space: Space
     # LazyState not yet applied to the values in total.
     # Makes only sense when either only having a single FFTArray or the operation between them is multiply.
     lazy_state: Optional[LazyState]
@@ -618,7 +646,7 @@ def _unpack_fft_arrays(
     array_indices = []
     unpacked_values: List[Optional[Union[Number, Any]]] = []
     is_scalar: List[bool] = []
-    space: Optional[Literal["pos", "freq"]] = None
+    space: Optional[Space] = None
     lazy_state = LazyState()
     is_eager: UniformValue[bool] = UniformValue()
 
@@ -987,7 +1015,49 @@ class FFTDimension:
             eager = self._default_eager,
         )
 
-    def _index_from_coord(self, x, method: Optional[Literal["nearest", "min", "max"]], space: Literal["pos", "freq"]):
+    def _dim_from_slice(self, range: slice, space: Space) -> FFTDimension:
+        """
+            Get a new FFTDimension for a interval selection in a given space.
+            Does not support steps!=1.
+        """
+        if not(range.step is None or range.step == 1):
+            raise ValueError("Substepping is not supported because it is not \
+                well defined how to cut frequency space with an arbitrary offset."
+            )
+        start = range.start
+        if range.stop is None:
+            stop = start+1
+        else:
+            stop = range.stop
+
+        n = stop - start
+        assert n >= 1
+        return self._dim_from_start_and_n(start=start, n=n, space=space)
+
+    def _dim_from_start_and_n(self, start: int, n: int, space: Space) -> FFTDimension:
+        new = self.__class__.__new__(self.__class__)
+        new._name = self.name
+        new._default_tlib = self._default_tlib
+        new._default_eager = self._default_eager
+        new._n = n
+
+        # d_freq * d_pos * n == 2*np.pi,
+        if space == "pos":
+            new._pos_min = self.pos_min + start*self.d_pos
+            new._freq_min = self.freq_min
+            new._d_pos = self.d_pos
+            new._d_freq = 2*np.pi/(self.d_pos*n)
+        elif space == "freq":
+            new._pos_min = self.pos_min
+            new._freq_min = self.freq_min + start*self.d_freq
+            new._d_pos = 2*np.pi/(self.d_freq*n)
+            new._d_freq = self.d_freq
+        else:
+            assert False, "Unreachable"
+        return new
+
+
+    def _index_from_coord(self, x, method: Optional[Literal["nearest", "min", "max"]], space: Space):
         """
             Compute index from given coordinate `x`.
         """
