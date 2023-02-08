@@ -45,7 +45,7 @@ def test_indexing(tlib, do_jit: bool):
     assert x_dim._index_from_coord(2.6, method = "nearest", space="pos") == 2
 
 
-    assert np.array_equal(arr_2d[0:3:2,:], xr_arr[0:3:2,:])
+    assert np.array_equal(arr_2d.values[0:3:2,:], xr_arr.values[0:3:2,:])
     assert np.array_equal(
         arr_2d.isel(x=1,y=slice(0,2,None)),
         xr_arr.isel(x=1,y=slice(0,2,None))
