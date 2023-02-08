@@ -14,7 +14,7 @@ from fftarray.backends.np_backend import NumpyTensorLib
 def assert_scalars_almost_equal_nulp(x, y, nulp = 1):
     np.testing.assert_array_almost_equal_nulp(np.array([x]), np.array([y]), nulp = nulp)
 
-tensor_libs = [NumpyTensorLib(), JaxTensorLib()]
+tensor_libs = [NumpyTensorLib(precision="fp64"), JaxTensorLib(precision="fp64")]
 
 @pytest.mark.parametrize("tensor_lib", tensor_libs)
 def test_fftdim_accessors(tensor_lib):
@@ -72,7 +72,6 @@ def test_arrays(tensor_lib) -> None:
         freq_middle = 0.,
         n = n,
         default_tlib = tensor_lib,
-        default_force_precision="fp64",
     )
 
     pos_grid = np.array(fftdim.pos_array())

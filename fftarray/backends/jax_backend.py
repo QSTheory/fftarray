@@ -13,7 +13,8 @@ from jax.tree_util import tree_unflatten, register_pytree_node
 import jax.numpy as jnp
 
 class JaxTensorLib(TensorLib):
-    def __init__(self):
+    def __init__(self, precision: PrecisionSpec = "default"):
+        TensorLib.__init__(self, precision = precision)
         self.fftn = lambda values, precision: jax.numpy.fft.fftn(values)
         self.ifftn = lambda values, precision: jax.numpy.fft.ifftn(values)
         self.numpy_ufuncs = jax.numpy
@@ -77,14 +78,14 @@ def fft_array_scan(f: Callable[[Carry, X], Tuple[Carry, Y]],
     return jax.lax.scan(f, init=matched_input, xs=xs, length=length, reverse=reverse, unroll=unroll)
 
 
-def fftarray_flatten(arr: FFTArray) -> Tuple[Tuple[Any], Tuple[Tuple[FFTDimension, ...], Optional[LazyState], TensorLib, PrecisionSpec]]:
+def fftarray_flatten(arr: FFTArray) -> Tuple[Tuple[Any], Tuple[Tuple[FFTDimension, ...], Optional[LazyState], TensorLib]]:
     children = (arr._values,)
-    aux_data = (arr._dims, arr._lazy_state, arr._tlib, arr._force_precision)
+    aux_data = (arr._dims, arr._lazy_state, arr._tlib)
     return (children, aux_data)
 
 def fftarray_unflatten(aux_data, children, cls):
     (values,) = children
-    (dims, lazy_phase_factors, tensor_lib, force_precision) = aux_data
+    (dims, lazy_phase_factors, tensor_lib) = aux_data
     # We explicitly do not want to call the constructor here.
     # The consistency check fails (needlessly) for PyTreeArrays and other special "tricks".
     self = cls.__new__(cls)
@@ -92,7 +93,6 @@ def fftarray_unflatten(aux_data, children, cls):
     self._dims = dims
     self._lazy_state = lazy_phase_factors
     self._tlib = tensor_lib
-    self._force_precision = force_precision
     return self
 
 register_pytree_node(
@@ -131,7 +131,6 @@ def fft_dimension_flatten(v: FFTDimension) -> Tuple[List[Any], List[Any]]:
         v._n,
         v._name,
         v._default_tlib,
-        v._default_force_precision,
         v._default_eager,
         v._pos_min,
         v._freq_min,
@@ -167,12 +166,11 @@ def fft_dimension_unflatten(aux_data, children) -> FFTDimension:
     fftdim._n = aux_data[0]
     fftdim._name = aux_data[1]
     fftdim._default_tlib = aux_data[2]
-    fftdim._default_force_precision = aux_data[3]
-    fftdim._default_eager = aux_data[4]
-    fftdim._pos_min = aux_data[5]
-    fftdim._freq_min = aux_data[6]
-    fftdim._d_pos = aux_data[7]
-    fftdim._d_freq = aux_data[8]
+    fftdim._default_eager = aux_data[3]
+    fftdim._pos_min = aux_data[4]
+    fftdim._freq_min = aux_data[5]
+    fftdim._d_pos = aux_data[6]
+    fftdim._d_freq = aux_data[7]
     return fftdim
 
 from jax.tree_util import register_pytree_node

@@ -12,7 +12,7 @@ from functools import reduce
 
 from .fft_constraint_solver import _z3_constraint_solver
 from .lazy_state import PhaseFactors, LazyState, get_lazy_state_to_apply
-from .backends.tensor_lib import TensorLib, PrecisionSpec, has_precision
+from .backends.tensor_lib import TensorLib, PrecisionSpec
 from .backends.np_backend import NumpyTensorLib
 # from dbg_tools import dbg # type: ignore
 
@@ -33,10 +33,7 @@ def _reduce_equal(objects: Iterable[T], error_msg: str) -> T:
     return reduce(join_equal, objects)
 
 def _get_tensor_lib(dims: Iterable[FFTDimension]) -> TensorLib:
-    return _reduce_equal(map(lambda dim: dim._default_tlib, dims), "Tried to join arrays with different tensor-libs.")
-
-def _get_precision(dims: Iterable[FFTDimension]) -> PrecisionSpec:
-    return _reduce_equal(map(lambda dim: dim._default_force_precision, dims), "Tried to join arrays with different precision-settings.")
+    return _reduce_equal(map(lambda dim: dim._default_tlib, dims), "Tried to join arrays with different tensor-libs or precision settings.")
 
 def _binary_ufuncs(op):
     def fun(self: TFFTArray, other) -> TFFTArray:
@@ -72,7 +69,6 @@ class FFTArray():
     _values: Any
     _lazy_state: Optional[LazyState]
     _tlib: TensorLib
-    _force_precision: PrecisionSpec
 
     def __init__(self,
         values,
@@ -87,7 +83,6 @@ class FFTArray():
             self._lazy_state = LazyState()
 
         self._tlib = _get_tensor_lib(self._dims)
-        self._force_precision = _get_precision(self.dims)
         self._check_consistency()
 
     #--------------------
@@ -174,23 +169,9 @@ class FFTArray():
     def with_tlib(self: TFFTArray, tlib: TensorLib) -> TFFTArray:
         new_dims = [dim.set_default_tlib(tlib) for dim in self._dims]
         if tlib.numpy_ufuncs.iscomplexobj(self._values):
-            new_arr = tlib.array(self._values, dtype=tlib.complex_type(self._force_precision))
+            new_arr = tlib.array(self._values, dtype=tlib.complex_type)
         else:
-            new_arr = tlib.array(self._values, dtype=tlib.real_type(self._force_precision))
-        new_arr = self.__class__(values = new_arr, dims = new_dims, eager = self.is_eager)
-        new_arr._lazy_state = self._lazy_state
-        return new_arr
-
-    @property
-    def force_precision(self) -> PrecisionSpec:
-        return self._force_precision
-
-    def with_force_precision(self: TFFTArray, precision: PrecisionSpec) -> TFFTArray:
-        new_dims = [dim.set_default_precision(precision) for dim in self._dims]
-        if self._tlib.numpy_ufuncs.iscomplexobj(self._values):
-            new_arr = self._tlib.array(self._values, dtype=self._tlib.complex_type(precision))
-        else:
-            new_arr = self._tlib.array(self._values, dtype=self._tlib.real_type(precision))
+            new_arr = tlib.array(self._values, dtype=tlib.real_type)
         new_arr = self.__class__(values = new_arr, dims = new_dims, eager = self.is_eager)
         new_arr._lazy_state = self._lazy_state
         return new_arr
@@ -239,7 +220,6 @@ class FFTArray():
                 self._values,
                 self._dims,
                 self._lazy_state,
-                precision = self._force_precision,
             )
 
     def _set_lazy_state(self: TFFTArray, target_state: LazyState) -> TFFTArray:
@@ -250,7 +230,6 @@ class FFTArray():
             self._values,
             self._dims,
             to_apply,
-            precision = self._force_precision,
         )
         # Relies on immutability
         new_arr = self.__class__(values = new_values, dims = self.dims, eager = self.is_eager)
@@ -268,7 +247,6 @@ class FFTArray():
                 values=self._values,
                 dim_idx=dim_idx,
                 factors=phase_factors.values,
-                precision=self.force_precision,
             )
         else:
             new_arr._lazy_state = self._lazy_state.add_phase_factor(dim=dim_name, factor_name=factor_name, phase_factors=phase_factors)
@@ -278,7 +256,7 @@ class FFTArray():
         # Relies on immutability of values and dims
         new_arr = self.__class__(values = self._values, dims = self._dims, eager = self.is_eager)
         if self._lazy_state is None:
-            new_arr._values = self.tlib.apply_scale(new_arr.values, scale=scale, precision=self.force_precision)
+            new_arr._values = self.tlib.apply_scale(new_arr.values, scale=scale)
         else:
             new_arr._lazy_state = self._lazy_state.add_scale(scale=scale)
         return new_arr
@@ -316,12 +294,10 @@ class FFTArray():
         transposed_arr._lazy_state = self._lazy_state
         return transposed_arr
 
-    def _apply_optional_transforms(self: TFFTArray, tlib: Optional[TensorLib] = None, precision: Optional[PrecisionSpec] = None) -> TFFTArray:
+    def _apply_optional_transforms(self: TFFTArray, tlib: Optional[TensorLib] = None) -> TFFTArray:
         res = self
         if tlib:
             res = res.with_tlib(tlib)
-        if precision:
-            res = res.with_force_precision(precision)
         return res
 
     #--------------------
@@ -399,7 +375,7 @@ class FFTArray():
 
 class PosArray(FFTArray):
     def pos_array(self, tlib: Optional[TensorLib] = None, precision: Optional[PrecisionSpec] = None) -> PosArray:
-        return self._apply_optional_transforms(tlib, precision)
+        return self._apply_optional_transforms(tlib)
 
     def freq_array(self,
                 tlib: Optional[TensorLib] = None,
@@ -415,7 +391,7 @@ class PosArray(FFTArray):
 
         res_freq = FreqArray(
             dims=self.dims,
-            values=self._tlib.fftn(res_pos.values, precision = self._dims[0].precision),
+            values=self._tlib.fftn(res_pos.values, precision = self._dims[0].default_tlib.precision),
             eager=self.is_eager
         )
 
@@ -426,7 +402,7 @@ class PosArray(FFTArray):
             )
         res_freq = res_freq.add_scale(_freq_scale_factor(self._dims))
 
-        return res_freq._apply_optional_transforms(tlib, precision)
+        return res_freq._apply_optional_transforms(tlib)
 
     @property
     def space(self) -> Literal["pos"]:
@@ -451,7 +427,7 @@ class FreqArray(FFTArray):
         res_pos = PosArray(
             dims=self.dims,
             # TODO: Generic backend selection
-            values=self._tlib.ifftn(res_freq.values, precision = self._dims[0].precision),
+            values=self._tlib.ifftn(res_freq.values, precision = self._dims[0].default_tlib.precision),
             eager=self.is_eager
         )
         for dim in self._dims:
@@ -460,10 +436,10 @@ class FreqArray(FFTArray):
                 "fft_shift_pos", PhaseFactors({1: dim.freq_min*dim.d_pos}),
             )
 
-        return res_pos._apply_optional_transforms(tlib, precision)
+        return res_pos._apply_optional_transforms(tlib)
 
     def freq_array(self, tlib: Optional[TensorLib] = None, precision: Optional[PrecisionSpec] = None) -> FreqArray:
-        return self._apply_optional_transforms(tlib, precision)
+        return self._apply_optional_transforms(tlib)
 
     @property
     def space(self) -> Literal["freq"]:
@@ -479,10 +455,10 @@ def _pack_values(
             values,
             space: Literal["pos", "freq"],
             dims: List[FFTDimension],
-            precision: PrecisionSpec,
             lazy_state: Optional[LazyState],
         ) -> FFTArray:
-    assert has_precision(values, precision)
+    tlib = _get_tensor_lib(dims)
+    assert tlib.has_precision(values, tlib.precision)
     # eager does not matter here because it is overwritten with a concrete lazy_state
     if space == "pos":
         arr: FFTArray = PosArray(values, dims = dims, eager=True)
@@ -529,7 +505,6 @@ def _array_ufunc(self, ufunc, method, inputs, kwargs):
             values,
             unpacked_inputs.space,
             unpacked_inputs.dims,
-            unpacked_inputs.precision,
             # For abs we need to drop the phases without ever applying them
             # since they would have evaluated to one.
             LazyState(scale=unpacked_inputs.lazy_state._scale),
@@ -552,7 +527,6 @@ def _array_ufunc(self, ufunc, method, inputs, kwargs):
             values,
             unpacked_inputs.space,
             unpacked_inputs.dims,
-            unpacked_inputs.precision,
             unpacked_inputs.lazy_state,
         )
     # conj?
@@ -565,7 +539,6 @@ def _array_ufunc(self, ufunc, method, inputs, kwargs):
             values,
             unpacked_inputs.space,
             unpacked_inputs.dims,
-            unpacked_inputs.precision,
             unpacked_inputs.lazy_state,
         )
 
@@ -577,7 +550,6 @@ class UnpackedValues:
     space: Literal["pos", "freq"]
     lazy_state: Optional[LazyState]
     tlib: TensorLib
-    precision: PrecisionSpec
 
 class UniformValue(Generic[T]):
     is_set: bool
@@ -663,11 +635,10 @@ def _unpack_fft_arrays(
         unpacked_values[idx] = arr
 
     dims_list = [dims[dim_name] for dim_name in dim_names]
-    precision = _get_precision(dims_list)
     tlib = _get_tensor_lib(dims_list)
 
     for i in range(len(unpacked_values)):
-        unpacked_values[i] = tlib.as_array_with_precision(unpacked_values[i], precision)
+        unpacked_values[i] = tlib.as_array(unpacked_values[i])
 
     assert space is not None
     for value in unpacked_values:
@@ -685,7 +656,6 @@ def _unpack_fft_arrays(
         space = space,
         lazy_state = ret_lazy,
         tlib = tlib,
-        precision = precision
     )
 
 
@@ -820,7 +790,6 @@ class FFTDimension:
     _n:                       int
     _name:                    Hashable
     _default_tlib:            TensorLib
-    _default_force_precision: PrecisionSpec
     _default_eager:           bool
 
     def __init__(self, name: str, *,
@@ -837,12 +806,10 @@ class FFTDimension:
         freq_middle:             Optional[float] = None,
         loose_params:            Optional[Union[str, List[str]]] = None,
         default_tlib:            TensorLib = NumpyTensorLib(),
-        default_force_precision: PrecisionSpec = "default",
         default_eager:           bool = False,
 	):
         self._name = name
         self._default_tlib = default_tlib
-        self._default_force_precision = default_force_precision
         self._default_eager = default_eager
 
         if isinstance(loose_params, str):
@@ -882,15 +849,6 @@ class FFTDimension:
     @property
     def default_tlib(self) -> TensorLib:
         return self._default_tlib
-
-    @property
-    def precision(self) -> PrecisionSpec:
-        return self._default_force_precision
-
-    def set_default_precision(self, precision: PrecisionSpec) -> FFTDimension:
-        dim = copy(self)
-        dim._default_force_precision = precision
-        return dim
 
     @property
     def n(self: FFTDimension) -> int:
@@ -973,7 +931,7 @@ class FFTDimension:
         """
         return (self.n - 1) * self.d_pos
 
-    def pos_array(self: FFTDimension, tlib: Optional[TensorLib] = None, precision: Optional[PrecisionSpec] = None) -> PosArray:
+    def pos_array(self: FFTDimension, tlib: Optional[TensorLib] = None) -> PosArray:
         """..
 
         Returns
@@ -984,14 +942,8 @@ class FFTDimension:
         dim = self
         if tlib is not None:
             dim = dim.set_default_tlib(tlib)
-        if precision is not None:
-            dim = dim.set_default_precision(precision)
 
-        if dim._default_force_precision:
-            indices = dim.default_tlib.numpy_ufuncs.arange(0, dim.n,
-                dtype = dim.default_tlib.real_type(dim._default_force_precision))
-        else:
-            indices = dim.default_tlib.numpy_ufuncs.arange(0, dim.n)
+        indices = dim.default_tlib.numpy_ufuncs.arange(0, dim.n, dtype = dim.default_tlib.real_type)
 
         return PosArray(
             values = indices * dim.d_pos + dim.pos_min,
@@ -1100,7 +1052,7 @@ class FFTDimension:
         """
         return (self.n - 1) * self.d_freq
 
-    def freq_array(self: FFTDimension, tlib: Optional[TensorLib] = None, precision: Optional[PrecisionSpec] = None) -> FreqArray:
+    def freq_array(self: FFTDimension, tlib: Optional[TensorLib] = None) -> FreqArray:
         """..
 
         Returns
@@ -1111,14 +1063,8 @@ class FFTDimension:
         dim = self
         if tlib is not None:
             dim = dim.set_default_tlib(tlib)
-        if precision is not None:
-            dim = dim.set_default_precision(precision)
 
-        if dim._default_force_precision:
-            indices = dim.default_tlib.numpy_ufuncs.arange(0, dim.n,
-                dtype = dim.default_tlib.real_type(dim._default_force_precision))
-        else:
-            indices = dim.default_tlib.numpy_ufuncs.arange(0, dim.n)
+        indices = dim.default_tlib.numpy_ufuncs.arange(0, dim.n, dtype = dim.default_tlib.real_type)
 
         return FreqArray(
             values = indices * dim.d_freq + dim.freq_min,

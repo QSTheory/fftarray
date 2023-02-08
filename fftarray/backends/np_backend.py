@@ -5,9 +5,11 @@ import warnings
 
 
 class NumpyTensorLib(TensorLib):
-    def __init__(self):
+    def __init__(self, precision: PrecisionSpec = "default"):
+        TensorLib.__init__(self, precision=precision)
         self.numpy_ufuncs = np
         self.array = np.array
+
 
     def fftn(self, values, precision: PrecisionSpec):
         transformed = np.fft.fftn(values)
