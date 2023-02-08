@@ -135,27 +135,28 @@ class FFTArray():
         if isinstance(item, slice):
             item = [item]
         for index, dimension in zip(item, self._dims):
-            if isinstance(index, slice):
-                if index == slice(None, None, None):
-                    # No selection, just keep the old dim.
-                    new_dims.append(dimension)
-                else:
-                    new_dim = dimension._dim_from_range(index, self.space)
-                    new_dims.append(new_dim)
+            if not isinstance(index, slice):
+                new_dim = dimension._dim_from_start_and_n(start=index, n=1, space=self.space)
+                index = slice(index, index+1, None)
+            elif index == slice(None, None, None):
+                # No selection, just keep the old dim.
+                new_dim = dimension
             else:
-                # Drop dim since it is also dropped from values.
-                pass
+                new_dim = dimension._dim_from_slice(index, self.space)
 
-        if len(new_dims) == 0:
-            # TODO destroys type signature and continuity.
-            # We would need a fallback to xarray
-            return self.values.__getitem__(item)
-        else:
-            return self.__class__(
-                values = self.values.__getitem__(item),
-                dims = new_dims,
-                eager = self._lazy_state is None
-            )
+            new_dims.append(new_dim)
+
+        selected_values = self.values.__getitem__(item)
+        # Dimensions with the length 1 are dropped in numpy indexing.
+        # We decided against this and keeping even dimensions of length 1.
+        # So we have to reintroduce those dropped dimensions via reshape.
+        selected_values = selected_values.reshape(tuple(dim.n for dim in new_dims))
+
+        return self.__class__(
+            values = selected_values,
+            dims = new_dims,
+            eager = self._lazy_state is None
+        )
 
 
     @property
@@ -1008,7 +1009,7 @@ class FFTDimension:
             eager = self._default_eager,
         )
 
-    def _dim_from_range(self, range: slice, space: Space) -> FFTDimension:
+    def _dim_from_slice(self, range: slice, space: Space) -> FFTDimension:
         """
             Get a new FFTDimension for a interval selection in a given space.
             Does not support steps!=1.
@@ -1023,13 +1024,15 @@ class FFTDimension:
         else:
             stop = range.stop
 
+        n = stop - start
+        assert n >= 1
+        return self._dim_from_start_and_n(start=start, n=n, space=space)
+
+    def _dim_from_start_and_n(self, start: int, n: int, space: Space) -> FFTDimension:
         new = self.__class__.__new__(self.__class__)
         new._name = self.name
         new._default_tlib = self._default_tlib
         new._default_eager = self._default_eager
-
-        n = stop - start
-        assert n >= 1
         new._n = n
 
         # d_freq * d_pos * n == 2*np.pi,
