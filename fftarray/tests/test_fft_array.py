@@ -47,24 +47,29 @@ def test_indexing(tlib, do_jit: bool):
     assert x_dim._index_from_coord(2.6, method = "nearest", space="pos") == 2
 
 
-    assert np.array_equal(arr_2d[0:3:2,:], xr_arr[0:3:2,:])
+    assert np.array_equal(arr_2d.values[0:3:2,:], xr_arr.values[0:3:2,:])
     assert np.array_equal(
-        arr_2d.isel(x=1,y=slice(0,2,None)),
-        xr_arr.isel(x=1,y=slice(0,2,None))
+        arr_2d.isel(x=1,y=slice(0,2,None)).transpose("x", "y"),
+        xr_arr.isel(x=1,y=slice(0,2,None)).expand_dims({"x": 1}).transpose("x", "y")
     )
     assert np.array_equal(
-        arr_2d.sel(x=(1,3),y=3.4, method="nearest"),
+        arr_2d.sel(x=(1,3),y=3.4, method="nearest").transpose("x", "y"),
         xr_arr.sel(y=3.4, method="nearest")
             .where(xr_arr.x > 1, drop=True)
             .where(xr_arr.x < 3, drop=True)
+            .expand_dims({"y": 1}).transpose("x", "y")
     )
 
-    assert np.array_equal(arr_2d.loc[:, 0], xr_arr.loc[:,0])
     assert np.array_equal(
-        arr_2d.loc[(1,3), 2],
+        arr_2d.loc[:, 0].transpose("x", "y").values,
+        xr_arr.loc[:,0].expand_dims({"y": 1}).transpose("x", "y")
+    )
+    assert np.array_equal(
+        arr_2d.loc[(1,3), 2].transpose("x", "y").values,
         xr_arr.sel(y=2)
             .where(xr_arr.x > 1, drop=True)
             .where(xr_arr.x < 3, drop=True)
+            .expand_dims({"y": 1}).transpose("x", "y")
     )
 
     def test_jittable(x_dim, arr_2d):
@@ -82,10 +87,10 @@ def test_indexing(tlib, do_jit: bool):
     jit_res = test_jittable(x_dim=x_dim, arr_2d=arr_2d)
     assert jit_res[0] == 0
     assert jit_res[1] == 2
-    assert np.array_equal(jit_res[2], xr_arr.sel(x=1,y=3.4, method="nearest"))
-    assert np.array_equal(jit_res[3], xr_arr.sel(x=-100,y=3.4, method="nearest"))
+    assert np.array_equal(jit_res[2], xr_arr.sel(x=1,y=3.4, method="nearest").expand_dims({"x": 1, "y": 1}))
+    assert np.array_equal(jit_res[3], xr_arr.sel(x=-100,y=3.4, method="nearest").expand_dims({"x": 1, "y": 1}))
     assert np.array_equal(jit_res[4], xr_arr.loc[:])
-    assert np.array_equal(jit_res[5], xr_arr.isel(x=3, y=2))
+    assert np.array_equal(jit_res[5], xr_arr.isel(x=3, y=2).expand_dims({"x": 1, "y": 1}))
 
 
 @pytest.mark.filterwarnings("ignore")
