@@ -4,7 +4,7 @@ from dataclasses import dataclass
 #-------------------
 # TODO This is copied from abstraction but then quite significantly modified
 #-------------------
-def align_named_arrays(arrays: Sequence[Tuple[Sequence[Hashable], Any]]) -> Tuple[Sequence[Hashable], List[Any]]:
+def align_named_arrays(arrays: Sequence[Tuple[Sequence[Hashable], Any]], tlib) -> Tuple[Sequence[Hashable], List[Any]]:
     """
         The arrays may have longer shapes than there are named dims.
         Those are always kept as the last dims.
@@ -32,7 +32,7 @@ def align_named_arrays(arrays: Sequence[Tuple[Sequence[Hashable], Any]]) -> Tupl
                 arr = arr.reshape(-1, *arr.shape)
                 dim_names.insert(0, target_dim)
         # TODO the list conversion of keys should not be necessary but is needed for mypy
-        arr = transpose_array(arr, dim_names, list(target_shape.keys()))
+        arr = transpose_array(arr, old_dims=dim_names, new_dims=list(target_shape.keys()), tlib=tlib)
         aligned_arrays.append(arr)
     return list(target_indices.keys()), aligned_arrays
 
@@ -43,7 +43,7 @@ class FillDim:
     def __hash__(self):
         return hash(self.index)
 
-def transpose_array(array: Any, old_dims: Sequence[Hashable], new_dims: Sequence[Hashable]) -> Any:
+def transpose_array(array: Any, tlib, old_dims: Sequence[Hashable], new_dims: Sequence[Hashable]) -> Any:
     """
         `old_dims` and `new_dims` must be a transpose of one another.
         They may be shorter than array.shape. The last dims are left untouched.
@@ -58,5 +58,5 @@ def transpose_array(array: Any, old_dims: Sequence[Hashable], new_dims: Sequence
 
     axes_transpose = [dim_index_lut[target_dim] for target_dim in new_dims]
     axes_transpose = [*axes_transpose, *range(len(axes_transpose), len(array.shape))]
-    array = array.transpose(axes_transpose)
+    array = tlib.numpy_ufuncs.transpose(array, tuple(axes_transpose))
     return array

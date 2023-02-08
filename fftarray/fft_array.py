@@ -307,6 +307,7 @@ class FFTArray():
 
         transposed_values = transpose_array(
             self._values,
+            tlib = self.tlib,
             old_dims = old_dim_names,
             new_dims = new_dim_names,
         )
@@ -659,13 +660,14 @@ def _unpack_fft_arrays(
 
             arrays_to_align.append((elem_dim_names, raw_arr))
 
+    tlib = _get_tensor_lib(dims.values())
+
     # Broadcasting
-    dim_names, aligned_arrs = align_named_arrays(arrays_to_align)
+    dim_names, aligned_arrs = align_named_arrays(arrays_to_align, tlib=tlib)
     for idx, arr in zip(array_indices, aligned_arrs):
         unpacked_values[idx] = arr
 
     dims_list = [dims[dim_name] for dim_name in dim_names]
-    tlib = _get_tensor_lib(dims_list)
 
     for i in range(len(unpacked_values)):
         unpacked_values[i] = tlib.as_array(unpacked_values[i])
