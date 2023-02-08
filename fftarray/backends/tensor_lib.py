@@ -10,35 +10,28 @@ import numpy as np
 
 PrecisionSpec = Literal["default", "fp32", "fp64"]
 
-def precision_from_dtype(dtype) -> PrecisionSpec:
-    if dtype == np.float64 or dtype == np.complex128:
-        return "fp64"
-    elif dtype == np.float32 or dtype == np.complex64:
-        return "fp32"
-    else:
-        raise ValueError(f"Unsupported dtype {dtype}.")
-
-def has_precision(x, target: PrecisionSpec) -> bool:
-    if target == "default":
-        assert x.dtype == np.float32 or x.dtype == np.float64 or x.dtype == np.complex64 or x.dtype == np.complex128, \
-                "Only floating point types are allowed in FFTArrays."
-        return True
-    else:
-        return precision_from_dtype(x.dtype) == target
-
-
 class TensorLib:
     fftn: Any
     ifftn: Any
     numpy_ufuncs: Any
     array: Any
+    precision: PrecisionSpec
+
+    def __init__(
+                    self,
+                    precision: PrecisionSpec = "default"
+                ):
+
+        self.precision = precision
+
+    def __eq__(self, other) -> bool:
+        return isinstance(other, self.__class__) and self.precision == other.precision
 
     def get_values_lazy_factors_applied(
                 self,
                 values,
                 dims: Iterable[FFTDimension],
                 lazy_state: LazyState,
-                precision: PrecisionSpec,
             ):
         """
             This function takes all dims so that it has more freedom to optimize the application over all dimensions.
@@ -58,21 +51,21 @@ class TensorLib:
                         scalar_phase += factor
                     else:
                         phases_to_apply[i] = factor
-            values = self.apply_phase_factors(values=values, dim_idx=dim_idx, factors=phases_to_apply, precision=precision)
+            values = self.apply_phase_factors(values=values, dim_idx=dim_idx, factors=phases_to_apply)
 
         scale = lazy_state.scale * np.exp(1.j * scalar_phase)
         if scale != 1.0:
-            values = self.apply_scale(values=values, scale=scale, precision=precision)
+            values = self.apply_scale(values=values, scale=scale)
         return values
 
-    def apply_scale(self, values, scale, precision: PrecisionSpec):
+    def apply_scale(self, values, scale):
         # values is raw numpy and therefore we need to force scale possibly down to a lower precision.
         # TODO Why not?
         # values *= self.as_array_with_precision(scale, dim.precision)
         # TODO dim is not necessarily defined here. All current callers do that but there is no principal guarantuee.
         if np.imag(scale) == 0:
             scale = np.real(scale)
-        scale = self.as_array_with_precision(scale, precision)
+        scale = self.as_array(scale)
         # Vaslues is potentially aliased here, therefore this would be wrong.
         # if scale.dtype == values.dtype:
         #     values *= scale
@@ -80,13 +73,13 @@ class TensorLib:
         values = values * scale
         return values
 
-    def apply_phase_factors(self, values, dim_idx: int, factors: Dict[int, complex], precision: PrecisionSpec):
+    def apply_phase_factors(self, values, dim_idx: int, factors: Dict[int, complex]):
         if len(factors) == 0:
             return values
         factors_list = list(factors.items())
 
         def _get_phase_arr(factor: complex, n: int, i: int):
-            return self.as_array_with_precision(factor, precision) * (self.numpy_ufuncs.arange(0, values.shape[dim_idx], dtype=self.real_type(precision))**i)
+            return self.as_array(factor) * (self.numpy_ufuncs.arange(0, values.shape[dim_idx], dtype=self.real_type)**i)
 
         phase_arr = _get_phase_arr(n=values.shape[dim_idx], i=factors_list[0][0], factor=factors_list[0][1])
         for i, factor in factors_list[1:]:
@@ -97,7 +90,7 @@ class TensorLib:
         extended_shape[dim_idx] = -1
         phase_arr = phase_arr.reshape(extended_shape)
 
-        exponent = np.array(1.j, dtype=self.complex_type(precision)) * phase_arr
+        exponent = np.array(1.j, dtype=self.complex_type) * phase_arr
         # TODO This version does not implicitly upcast values from real to complex but would be faster
         # values *= self.numpy_ufuncs.exp(exponent)
         # TODO Could optimise exp for purely real and purely complex cases
@@ -112,33 +105,50 @@ class TensorLib:
         """
         return self.numpy_ufuncs.multiply.reduce(values)
 
-    def __eq__(self, other) -> bool:
-        return isinstance(other, self.__class__)
-
-    def real_type(self, precision: PrecisionSpec):
-        if precision == "fp32":
+    @property
+    def real_type(self):
+        if self.precision == "fp32":
             return np.float32
-        elif precision == "fp64":
+        elif self.precision == "fp64":
             return np.float64
-        elif precision == "default":
+        elif self.precision == "default":
             return float
 
         assert False, "Unreachable"
 
-    def complex_type(self, precision: PrecisionSpec):
-        if precision == "fp32":
+    @property
+    def complex_type(self):
+        if self.precision == "fp32":
             return np.complex64
-        elif precision == "fp64":
+        elif self.precision == "fp64":
             return np.complex128
-        elif precision == "default":
+        elif self.precision == "default":
             return complex
 
         assert False, "Unreachable"
 
-    def as_array_with_precision(self, x, precision: PrecisionSpec):
+    def as_array(self, x):
         if self.numpy_ufuncs.iscomplexobj(x):
-            dtype = self.complex_type(precision)
+            dtype = self.complex_type
         else:
             assert self.numpy_ufuncs.isrealobj(x)
-            dtype = self.real_type(precision)
+            dtype = self.real_type
         return self.array(x, dtype = dtype)
+
+    def has_precision(self, x, target: PrecisionSpec) -> bool:
+        if target == "default":
+            assert x.dtype == np.float32 or x.dtype == np.float64 or x.dtype == np.complex64 or x.dtype == np.complex128, \
+                    "Only floating point types are allowed in FFTArrays."
+            return True
+        else:
+            return self.precision_from_dtype(x.dtype) == target
+
+    def precision_from_dtype(self, dtype) -> PrecisionSpec:
+        if dtype == np.float64 or dtype == np.complex128:
+            return "fp64"
+        elif dtype == np.float32 or dtype == np.complex64:
+            return "fp32"
+        else:
+            raise ValueError(f"Unsupported dtype {dtype}.")
+
+
