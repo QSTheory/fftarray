@@ -89,9 +89,9 @@ class TensorLib:
         # Ensure correct broadcasting
         extended_shape = np.ones(len(values.shape), dtype=int)
         extended_shape[dim_idx] = -1
-        phase_arr = phase_arr.reshape(extended_shape)
+        phase_arr = phase_arr.reshape(tuple(extended_shape))
 
-        exponent = np.array(1.j, dtype=self.complex_type) * phase_arr
+        exponent = self.array(1.j, dtype=self.complex_type) * phase_arr
         # TODO This version does not implicitly upcast values from real to complex but would be faster
         # values *= self.numpy_ufuncs.exp(exponent)
         # TODO Could optimise exp for purely real and purely complex cases
