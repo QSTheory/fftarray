@@ -81,7 +81,7 @@ def test_overconstrained_grid_spacing_1():
 def test_overconstrained_grid_spacing_2():
     user_constraints = dict(
         n=4,
-        d_freq = 2*np.pi/10,
+        d_freq = 1./10.,
         d_pos = 1,
         pos_middle = 0,
         freq_middle = 0
@@ -101,7 +101,7 @@ def test_overconstrained_grid_spacing_2():
 def test_missing_loose_param_1():
     user_constraints = dict(
         n="power_of_two",
-        d_freq = 2*np.pi/10,
+        d_freq = 1./10.,
         d_pos = 1,
         pos_middle = 0,
         freq_middle = 0
@@ -122,7 +122,7 @@ def test_missing_loose_param_2():
     user_constraints = dict(
         n="power_of_two",
         d_pos = 1,
-        freq_extent = 2*np.pi * 1e-3,
+        freq_extent = 1. * 1e-3,
         pos_min = 0,
         freq_middle = 0
     )

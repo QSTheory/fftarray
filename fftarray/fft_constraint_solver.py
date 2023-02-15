@@ -132,7 +132,7 @@ def _get_constraints(
 
     # Define general FFT constraint system which applies to even and odd n
     all_constraints: List[BoolRef] = [
-        z3_vars["d_freq"] * z3_vars["d_pos"] * z3_vars["n"] == 2*np.pi,
+        z3_vars["d_freq"] * z3_vars["d_pos"] * z3_vars["n"] == 1,
         z3_vars["n"] >= 1,
         z3_vars["pos_extent"] == z3_vars["pos_max"] - z3_vars["pos_min"],
         z3_vars["pos_extent"] == z3_vars["d_pos"] * (z3_vars["n"] - 1.),
@@ -142,17 +142,6 @@ def _get_constraints(
         z3_vars["d_freq"] > 0,
         z3_vars["pos_extent"] >= 0,
         z3_vars["freq_extent"] >= 0,
-        # TODO Would using df mean  z3_vars["d_freq"] * z3_vars["d_pos"] * z3_vars["n"] == 1? k = 2pi*f?
-        # z3_vars["d_freq"] * z3_vars["d_pos"] * z3_vars["n"] == 2*np.pi,
-        # z3_vars["n"] >= 1,
-        # z3_vars["pos_extent"] == z3_vars["pos_max"] + z3_vars["d_pos"] - z3_vars["pos_min"],
-        # z3_vars["pos_extent"] == z3_vars["d_pos"] * z3_vars["n"],
-        # z3_vars["freq_extent"] == z3_vars["freq_max"] + z3_vars["d_freq"] - z3_vars["freq_min"],
-        # z3_vars["freq_extent"] == z3_vars["d_freq"] * z3_vars["n"],
-        # z3_vars["d_pos"] > 0,
-        # z3_vars["d_freq"] > 0,
-        # z3_vars["pos_extent"] > 0,
-        # z3_vars["freq_extent"] > 0,
     ]
 
     user_constraints = user_constraints.copy()
