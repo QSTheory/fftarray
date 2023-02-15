@@ -445,7 +445,7 @@ class PosArray(FFTArray):
         for dim in self._dims:
             res_pos = res_pos.add_phase_factor(
                 dim.name,
-                "fft_shift_pos", PhaseFactors({1: -dim.freq_min*dim.d_pos}),
+                "fft_shift_pos", PhaseFactors({1: -2*np.pi*dim.freq_min*dim.d_pos}),
             )
 
         res_freq = FreqArray(
@@ -457,8 +457,9 @@ class PosArray(FFTArray):
         for dim in self._dims:
             res_freq = res_freq.add_phase_factor(
                 dim.name,
-                "fft_phase_freq", PhaseFactors({0: -dim.pos_min*dim.freq_min, 1: -dim.pos_min*dim.d_freq}),
+                "fft_phase_freq", PhaseFactors({0: -2*np.pi*dim.pos_min*dim.freq_min, 1: -2*np.pi*dim.pos_min*dim.d_freq}),
             )
+
         res_freq = res_freq.add_scale(_freq_scale_factor(self._dims))
 
         return res_freq._set_tlib(tlib)
@@ -476,7 +477,7 @@ class FreqArray(FFTArray):
         for dim in self._dims:
             res_freq = res_freq.add_phase_factor(
                 dim.name,
-                "fft_phase_freq", PhaseFactors({0: dim.pos_min*dim.freq_min, 1: dim.pos_min*dim.d_freq}),
+                "fft_phase_freq", PhaseFactors({0: 2*np.pi*dim.pos_min*dim.freq_min, 1: 2*np.pi*dim.pos_min*dim.d_freq}),
             )
 
         # The scale is here intentionally before the call to ifftn in order to symmetrically cancel
@@ -492,7 +493,7 @@ class FreqArray(FFTArray):
         for dim in self._dims:
             res_pos = res_pos.add_phase_factor(
                 dim.name,
-                "fft_shift_pos", PhaseFactors({1: dim.freq_min*dim.d_pos}),
+                "fft_shift_pos", PhaseFactors({1: 2*np.pi*dim.freq_min*dim.d_pos}),
             )
 
         return res_pos._set_tlib(tlib)
@@ -505,9 +506,12 @@ class FreqArray(FFTArray):
         return "freq"
 
 def _freq_scale_factor(dims: Iterable[FFTDimension]) -> float:
+    """
+        Returns the product of $\delta x = 1/(\delta f * N)$ for all dimensions.
+    """
     scale_factor = 1.
     for dim in dims:
-        scale_factor *= (np.sqrt(2.*np.pi)/(dim.d_freq * dim.n))
+        scale_factor *= (1./(dim.d_freq * dim.n))
     return scale_factor
 
 def _pack_values(
@@ -829,7 +833,7 @@ class FFTDimension:
     Individual array coordinates::
 
         pos = np.arange(0, n) * d_pos + pos_min
-        freq = 2*np.pi * np.fft.fftfreq(n = n, d = d_pos) + freq_middle
+        freq = np.fft.fftfreq(n = n, d = d_pos) + freq_middle
 
     .. highlight:: none
 
@@ -1037,16 +1041,16 @@ class FFTDimension:
         new._default_eager = self._default_eager
         new._n = n
 
-        # d_freq * d_pos * n == 2*np.pi,
+        # d_freq * d_pos * n == 1,
         if space == "pos":
             new._pos_min = self.pos_min + start*self.d_pos
             new._freq_min = self.freq_min
             new._d_pos = self.d_pos
-            new._d_freq = 2*np.pi/(self.d_pos*n)
+            new._d_freq = 1./(self.d_pos*n)
         elif space == "freq":
             new._pos_min = self.pos_min
             new._freq_min = self.freq_min + start*self.d_freq
-            new._d_pos = 2*np.pi/(self.d_freq*n)
+            new._d_pos = 1./(self.d_freq*n)
             new._d_freq = self.d_freq
         else:
             assert False, "Unreachable"

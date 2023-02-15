@@ -38,7 +38,7 @@ def test_symmetric_space_even_n_with_freq_middle():
 
     pos_extent = user_constraints['pos_max'] - user_constraints['pos_min']
     d_pos = pos_extent / (user_constraints['n'] - 1)
-    d_freq = 2*np.pi / (d_pos * user_constraints['n'])
+    d_freq: float = 1. / (d_pos * user_constraints['n'])
     freq_extent = d_freq * (user_constraints['n'] - 1)
     freq_min = user_constraints['freq_middle'] - user_constraints['n'] / 2 * d_freq
     freq_max = user_constraints['freq_middle'] + (user_constraints['n'] / 2 - 1) * d_freq
@@ -76,7 +76,7 @@ def test_symmetric_space_even_n_with_freq_middle_numerical_stability():
 
     pos_extent = user_constraints['pos_max'] - user_constraints['pos_min']
     d_pos = pos_extent / (user_constraints['n'] - 1)
-    d_freq = 2*np.pi / (d_pos * user_constraints['n'])
+    d_freq = 1. / (d_pos * user_constraints['n'])
     freq_extent = d_freq * (user_constraints['n'] - 1)
     freq_min = user_constraints['freq_middle'] - user_constraints['n'] / 2 * d_freq
     freq_max = user_constraints['freq_middle'] + (user_constraints['n'] / 2 - 1) * d_freq
@@ -114,7 +114,7 @@ def test_symmetric_space_odd_n_with_freq_middle():
 
     pos_extent = user_constraints['pos_max'] - user_constraints['pos_min']
     d_pos = pos_extent / (user_constraints['n'] - 1)
-    d_freq = 2*np.pi / (d_pos * user_constraints['n'])
+    d_freq = 1. / (d_pos * user_constraints['n'])
     freq_extent = d_freq * (user_constraints['n'] - 1)
     freq_min = user_constraints['freq_middle'] - (user_constraints['n'] - 1) / 2 * d_freq
     freq_max = user_constraints['freq_middle'] + (user_constraints['n'] - 1) / 2 * d_freq
@@ -153,7 +153,7 @@ def test_matching_implicit_even_n_without_loose_params():
 
     pos_extent = user_constraints['pos_max'] - user_constraints['pos_min']
     n = pos_extent / user_constraints['d_pos'] + 1
-    d_freq = 2*np.pi / (user_constraints['d_pos'] * n)
+    d_freq = 1. / (user_constraints['d_pos'] * n)
     pos_middle = user_constraints["pos_min"] + n/2 * user_constraints['d_pos']
     freq_extent = d_freq * (n - 1)
     freq_min = user_constraints['freq_middle'] - n / 2 * d_freq
@@ -199,7 +199,7 @@ def test_matching_implicit_power_of_two_n_without_loose_params():
     pos_extent = user_constraints['pos_max'] - user_constraints['pos_min']
     user_constraints['d_pos'] = pos_extent / 7
     n = pos_extent / user_constraints['d_pos'] + 1
-    d_freq = 2*np.pi / (user_constraints['d_pos'] * n)
+    d_freq = 1. / (user_constraints['d_pos'] * n)
     pos_middle = user_constraints["pos_min"] + n/2 * user_constraints['d_pos']
     freq_extent = d_freq * (n - 1)
     freq_min = user_constraints['freq_middle'] - n / 2 * d_freq
@@ -241,7 +241,7 @@ def test_exception_implicit_odd_n_without_loose_params():
 def test_n_widening_odd_to_even_with_two_loose_params():
     user_constraints = dict(
         d_pos = 1,
-        d_freq = 2*np.pi / 5,
+        d_freq = 1. / 5,
         pos_min = -2*np.pi,
         freq_middle = 0,
         n="even"
@@ -262,7 +262,7 @@ def test_n_widening_odd_to_even_with_two_loose_params():
 def test_n_widening_odd_to_power_of_two_with_two_loose_params():
     user_constraints = dict(
         d_pos = 1,
-        d_freq = 2*np.pi / 5,
+        d_freq = 1./5.,
         pos_min = -2*np.pi,
         freq_middle = 0,
         n="power_of_two"
@@ -283,7 +283,7 @@ def test_n_widening_odd_to_power_of_two_with_two_loose_params():
 def test_n_widening_even_to_power_of_two_with_two_loose_params():
     user_constraints = dict(
         d_pos = 1,
-        d_freq = 2*np.pi / 6,
+        d_freq = 1./6.,
         pos_min = -2*np.pi,
         freq_middle = 0,
         n="power_of_two"
@@ -304,7 +304,7 @@ def test_n_widening_even_to_power_of_two_with_two_loose_params():
 def test_matching_implicit_n_with_two_loose_params():
     user_constraints = dict(
         d_pos = 1,
-        d_freq = 2*np.pi / 8,
+        d_freq = 1./8.,
         pos_min = -2*np.pi,
         freq_middle = 0,
         n="power_of_two"
@@ -334,7 +334,7 @@ def test_asymmetric_space_even_n_with_freq_middle():
 
     pos_extent = user_constraints['pos_max'] - user_constraints['pos_min']
     d_pos = pos_extent / (user_constraints['n'] - 1)
-    d_freq = 2*np.pi / (d_pos * user_constraints['n'])
+    d_freq = 1. / (d_pos * user_constraints['n'])
     pos_middle = user_constraints["pos_min"] + user_constraints["n"]/2 * d_pos
     freq_extent = d_freq * (user_constraints['n'] - 1)
     freq_min = user_constraints['freq_middle'] - user_constraints['n'] / 2 * d_freq
@@ -372,7 +372,7 @@ def test_symmetric_freqs_even_n_with_pos_min():
 
     freq_extent = user_constraints['freq_max'] - user_constraints['freq_min']
     d_freq = freq_extent / (user_constraints['n'] - 1)
-    d_pos = 2.*np.pi / (d_freq * user_constraints['n'])
+    d_pos = 1. / (d_freq * user_constraints['n'])
     freq_middle = user_constraints["freq_min"] + user_constraints["n"]/2 * d_freq
     pos_extent = d_pos * (user_constraints['n'] - 1)
     pos_max = user_constraints['pos_min'] + pos_extent
@@ -410,7 +410,7 @@ def test_symmetric_freqs_even_n_with_freq_middle_and_freq_max_and_pos_min():
 
     d_freq = user_constraints['freq_max'] - user_constraints['freq_middle'] / (user_constraints["n"] / 2 - 1)
     freq_extent = (user_constraints['n'] - 1) * d_freq
-    d_pos = 2*np.pi / (d_freq * user_constraints['n'])
+    d_pos = 1. / (d_freq * user_constraints['n'])
     freq_min = user_constraints['freq_middle'] - user_constraints['n'] / 2 * d_freq
     pos_extent = d_pos * (user_constraints['n'] - 1)
     pos_max = user_constraints['pos_min'] + pos_extent
@@ -449,7 +449,7 @@ def test_symmetric_space_even_n_with_freq_middle_and_pos_middle():
     d_pos = user_constraints['pos_extent'] / (user_constraints['n'] - 1)
     pos_min = user_constraints['pos_middle'] - user_constraints['n']/2 * d_pos
     pos_max = user_constraints['pos_middle'] + (user_constraints['n']/2 - 1) * d_pos
-    d_freq = 2*np.pi / (d_pos * user_constraints['n'])
+    d_freq = 1. / (d_pos * user_constraints['n'])
     freq_extent = d_freq * (user_constraints['n'] - 1)
     freq_min = user_constraints['freq_middle'] - user_constraints['n'] / 2 * d_freq
     freq_max = user_constraints['freq_middle'] + (user_constraints['n'] / 2 - 1) * d_freq
@@ -487,7 +487,7 @@ def test_symmetric_space_even_n_with_freq_middle_and_pos_middle_and_pos_min():
     pos_extent = (user_constraints['pos_middle'] - user_constraints['pos_min']) / (user_constraints['n']/2) * (user_constraints['n']-1)
     d_pos = pos_extent / (user_constraints['n'] - 1)
     pos_max = user_constraints['pos_middle'] + (user_constraints['n']/2 - 1) * d_pos
-    d_freq = 2*np.pi / (d_pos * user_constraints['n'])
+    d_freq = 1. / (d_pos * user_constraints['n'])
     freq_extent = d_freq * (user_constraints['n'] - 1)
     freq_min = user_constraints['freq_middle'] - user_constraints['n'] / 2 * d_freq
     freq_max = user_constraints['freq_middle'] + (user_constraints['n'] / 2 - 1) * d_freq
@@ -525,7 +525,7 @@ def test_symmetric_space_even_n_with_freq_middle_and_pos_middle_and_pos_max():
     pos_extent = (user_constraints['pos_max'] - user_constraints['pos_middle']) * (user_constraints["n"]-1) / (user_constraints["n"] / 2 - 1)
     d_pos = pos_extent / (user_constraints['n'] - 1)
     pos_min = user_constraints['pos_middle'] - user_constraints['n'] / 2 * d_pos
-    d_freq = 2*np.pi / (d_pos * user_constraints['n'])
+    d_freq = 1. / (d_pos * user_constraints['n'])
     freq_extent = d_freq * (user_constraints['n'] - 1)
     freq_min = user_constraints['freq_middle'] - user_constraints['n'] / 2 * d_freq
     freq_max = user_constraints['freq_middle'] + (user_constraints['n'] / 2 - 1) * d_freq
@@ -590,7 +590,7 @@ def test_exception_n_rounding_mode_odd():
         pos_middle = 0,
         freq_middle = 3.,
         d_pos = 1,
-        d_freq = 2*np.pi/9,
+        d_freq = 1./9,
         n='odd'
     )
 
@@ -691,8 +691,8 @@ def test_non_unique_constraints_1():
     user_constraints = dict(
         n = "even",
         freq_middle = 0.,
-        freq_extent = 5*np.pi,
-        d_freq = np.pi
+        freq_extent = 2.5,
+        d_freq = 0.5
     )
 
     with pytest.raises(NoUniqueSolutionError):
@@ -753,8 +753,8 @@ def test_overconstrained_2():
     user_constraints = dict(
         n = "even",
         freq_middle = 0.,
-        freq_extent = 5*np.pi,
-        d_pos = np.pi
+        freq_extent = 2.5,
+        d_pos = 0.5,
     )
 
     with pytest.raises(NoSolutionFoundError):

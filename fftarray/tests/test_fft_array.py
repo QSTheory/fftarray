@@ -239,39 +239,40 @@ def test_lazy(eager: bool) -> None:
 def gauss_pos(x, a, sigma):
     return (a * np.exp(-(x**2/(2.* sigma**2))))/(np.sqrt(2 * np.pi) * sigma)
 
-def gauss_freq(k, a, sigma):
-    return (a * np.exp(-(1/2)*k**2*sigma**2))/np.sqrt(2*np.pi)
+def gauss_freq(f, a, sigma):
+    return (a * np.exp(-(1/2)*(2*np.pi*f)**2*sigma**2))
 
 def test_fourier() -> None:
     dim = FFTDimension("x",
         pos_middle=1.,
         pos_extent = 10.,
-        freq_middle = 2.5,
-        freq_extent = 20.,
+        freq_middle = 2.5/(2*np.pi),
+        freq_extent = 20./(2*np.pi),
         loose_params=["pos_extent", "freq_extent"]
     )
 
     x = dim.pos_array()
-    k = dim.freq_array()
+    f = dim.freq_array()
 
     gauss_from_pos = gauss_pos(a = 1.2, x = x, sigma = 0.7)
-    gauss_from_freq = gauss_freq(a = 1.2, k = k, sigma = 0.7)
+    gauss_from_freq = gauss_freq(a = 1.2, f = f, sigma = 0.7)
 
     np.testing.assert_array_almost_equal(gauss_from_pos, gauss_from_freq.pos_array())
     np.testing.assert_array_almost_equal(gauss_from_freq, gauss_from_pos.freq_array())
 
     gauss_from_pos = shift_frequency(gauss_pos(a = 1.2, x = x, sigma = 0.7), {"x": 0.9})
-    gauss_from_freq = gauss_freq(a = 1.2, k = k - 0.9, sigma = 0.7)
+    gauss_from_freq = gauss_freq(a = 1.2, f = f - 0.9, sigma = 0.7)
 
     np.testing.assert_array_almost_equal(gauss_from_pos, gauss_from_freq.pos_array())
     np.testing.assert_array_almost_equal(gauss_from_freq, gauss_from_pos.freq_array())
 
     gauss_from_pos = gauss_pos(a = 1.2, x = x - 0.9, sigma = 0.7)
-    gauss_from_freq = shift_position(gauss_freq(a = 1.2, k = k, sigma = 0.7), {"x": 0.9})
+    gauss_from_freq = shift_position(gauss_freq(a = 1.2, f = f, sigma = 0.7), {"x": 0.9})
 
     np.testing.assert_array_almost_equal(gauss_from_pos, gauss_from_freq.pos_array())
     np.testing.assert_array_almost_equal(gauss_from_freq, gauss_from_pos.freq_array())
 
+    # from dbg_lib import dbg
     # from bokeh.plotting import figure, show
     # p = figure(width=400, height=400)
     # p.line(np.array(x), np.real(np.array(gauss_from_pos.pos_array())), line_width=2, color = "firebrick", legend_label = "ref real")
@@ -283,9 +284,9 @@ def test_fourier() -> None:
 
 
     # p = figure(width=400, height=400)
-    # p.line(np.array(k), np.real(np.array(gauss_from_freq.freq_array())), line_width=2, color = "firebrick", legend_label = "ref real")
-    # p.line(np.array(k), np.imag(np.array(gauss_from_freq.freq_array())), line_width=2, color = "firebrick", legend_label = "ref imag")
-    # p.line(np.array(k), np.real(np.array(gauss_from_pos.freq_array())), line_width=2, color = "navy", legend_label = "real")
-    # p.line(np.array(k), np.imag(np.array(gauss_from_pos.freq_array())), line_width=2, legend_label = "imag")
+    # p.line(np.array(f), np.real(np.array(gauss_from_freq.freq_array())), line_width=2, color = "firebrick", legend_label = "ref real")
+    # p.line(np.array(f), np.imag(np.array(gauss_from_freq.freq_array())), line_width=2, color = "firebrick", legend_label = "ref imag")
+    # p.line(np.array(f), np.real(np.array(gauss_from_pos.freq_array())), line_width=2, color = "navy", legend_label = "real")
+    # p.line(np.array(f), np.imag(np.array(gauss_from_pos.freq_array())), line_width=2, legend_label = "imag")
     # p.legend.click_policy="hide"
     # dbg(p)

@@ -30,7 +30,7 @@ def test_fftdim_accessors(tensor_lib):
         n = 16,
         default_tlib = tensor_lib,
     )
-    assert np.isclose(sol.d_pos * sol.d_freq * sol.n, 2*np.pi)
+    assert np.isclose(sol.d_pos * sol.d_freq * sol.n, 1.)
     assert np.isclose(sol.pos_middle, sol.pos_min + sol.d_pos * sol.n/2)
     assert np.isclose(sol.pos_extent, sol.pos_max - sol.pos_min)
     assert np.isclose(sol.pos_extent, sol.d_pos * (sol.n - 1.))
