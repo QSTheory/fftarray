@@ -4,7 +4,6 @@ import jax
 jax.config.update("jax_enable_x64", True)
 
 from fftarray.fft_array import FFTDimension, LazyState, PhaseFactors
-from fftarray.tools import shift_frequency, shift_position
 import numpy as np
 
 from fftarray.backends.jax_backend import JaxTensorLib
