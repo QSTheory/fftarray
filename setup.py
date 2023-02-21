@@ -28,7 +28,7 @@ setuptools.setup(
         "numpy>=1.21",
         "jax>=0.4.2",
         "jaxlib",
-        "z3-solver==4.8.10.0",
+        "z3-solver",
     ],
     extras_require={
         "dev": [
