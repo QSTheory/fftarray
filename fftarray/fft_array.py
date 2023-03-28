@@ -434,13 +434,11 @@ class FFTArray():
                 assert dim.name in self._lazy_state._phases_per_dim
 
 class PosArray(FFTArray):
-    def pos_array(self, tlib: Optional[TensorLib] = None, precision: Optional[PrecisionSpec] = None) -> PosArray:
+    
+    def pos_array(self, tlib: Optional[TensorLib] = None) -> PosArray:
         return self._set_tlib(tlib)
 
-    def freq_array(self,
-                tlib: Optional[TensorLib] = None,
-                precision: Optional[PrecisionSpec] = None,
-            ) -> FreqArray:
+    def freq_array(self, tlib: Optional[TensorLib] = None) -> FreqArray:
         res_pos = self
         for dim in self._dims:
             res_pos = res_pos.add_phase_factor(
@@ -469,10 +467,8 @@ class PosArray(FFTArray):
         return "pos"
 
 class FreqArray(FFTArray):
-    def pos_array(self,
-                tlib: Optional[TensorLib] = None,
-                precision: Optional[PrecisionSpec] = None,
-            ) -> PosArray:
+    
+    def pos_array(self, tlib: Optional[TensorLib] = None) -> PosArray:
         res_freq = self
         for dim in self._dims:
             res_freq = res_freq.add_phase_factor(
@@ -498,7 +494,7 @@ class FreqArray(FFTArray):
 
         return res_pos._set_tlib(tlib)
 
-    def freq_array(self, tlib: Optional[TensorLib] = None, precision: Optional[PrecisionSpec] = None) -> FreqArray:
+    def freq_array(self, tlib: Optional[TensorLib] = None) -> FreqArray:
         return self._set_tlib(tlib)
 
     @property
