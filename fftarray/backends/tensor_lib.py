@@ -11,31 +11,28 @@ import numpy as np
 PrecisionSpec = Literal["default", "fp32", "fp64"]
 
 class TensorLib:
+    
     fftn: Any
     ifftn: Any
     numpy_ufuncs: Any
     array: Any
     precision: PrecisionSpec
 
-    def __init__(
-                    self,
-                    precision: PrecisionSpec,
-                ):
-
+    def __init__(self, precision: PrecisionSpec):
         self.precision = precision
 
     def __eq__(self, other) -> bool:
         return isinstance(other, self.__class__) and self.precision == other.precision
 
     def get_values_lazy_factors_applied(
-                self,
-                values,
-                dims: Iterable[FFTDimension],
-                lazy_state: LazyState,
-            ):
-        """
-            This function takes all dims so that it has more freedom to optimize the application over all dimensions.
-            # TODO Get the aliasing and copy story for values straight.
+            self,
+            values,
+            dims: Iterable[FFTDimension],
+            lazy_state: LazyState,
+        ):
+        """This function takes all dims so that it has more freedom to optimize 
+        the application over all dimensions.
+        # TODO Get the aliasing and copy story for values straight.
         """
 
         scalar_phase: complex = 0.
@@ -95,8 +92,7 @@ class TensorLib:
         # TODO This version does not implicitly upcast values from real to complex but would be faster
         # values *= self.numpy_ufuncs.exp(exponent)
         # TODO Could optimise exp for purely real and purely complex cases
-        values = values * self.numpy_ufuncs.exp(exponent)
-        return values
+        return values * self.numpy_ufuncs.exp(exponent)
 
 
     def reduce_multiply(self, values) -> float:
@@ -110,23 +106,21 @@ class TensorLib:
     def real_type(self):
         if self.precision == "fp32":
             return np.float32
-        elif self.precision == "fp64":
+        if self.precision == "fp64":
             return np.float64
-        elif self.precision == "default":
+        if self.precision == "default":
             return float
-
-        assert False, "Unreachable"
+        raise ValueError("Precision must be either 'fp32', 'fp64' or 'default'.")
 
     @property
     def complex_type(self):
         if self.precision == "fp32":
             return np.complex64
-        elif self.precision == "fp64":
+        if self.precision == "fp64":
             return np.complex128
-        elif self.precision == "default":
+        if self.precision == "default":
             return complex
-
-        assert False, "Unreachable"
+        raise ValueError("Precision must be either 'fp32', 'fp64' or 'default'.")
 
     def as_array(self, x):
         if self.numpy_ufuncs.iscomplexobj(x):
@@ -147,9 +141,7 @@ class TensorLib:
     def precision_from_dtype(self, dtype) -> PrecisionSpec:
         if dtype == np.float64 or dtype == np.complex128:
             return "fp64"
-        elif dtype == np.float32 or dtype == np.complex64:
+        if dtype == np.float32 or dtype == np.complex64:
             return "fp32"
-        else:
-            raise ValueError(f"Unsupported dtype {dtype}.")
-
+        raise ValueError(f"Unsupported dtype {dtype}.")
 
