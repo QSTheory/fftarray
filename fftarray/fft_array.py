@@ -594,7 +594,7 @@ class UnpackedValues:
     # Flag for each value in values whether it is a scalar.
     # Currently unused
     is_scalar: List[bool]
-    # Space in whcih all values were
+    # Space in which all values were
     space: Space
     # LazyState not yet applied to the values in total.
     # Makes only sense when either only having a single FFTArray or the operation between them is multiply.
