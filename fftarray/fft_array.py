@@ -40,7 +40,10 @@ def _unary_ufunc(op):
         return op(self)
     return fun
 
-@dataclass
+# NOTE: Why is this a dataclass? __eq__ implementation doesn't make sense
+# because (I except) it fails on the FFTArray level as it has no __eq__
+# implemented. Note sure about the use case for __repr__.
+@dataclass(eq=False)
 class LocFFTArrayIndexer(Generic[T]):
     """`wf.loc` allows indexing by dim index but by coordinate position. In 
     order to support the indexing operator on a property we need this indexable 
@@ -690,7 +693,8 @@ def _unpack_fft_arrays(
         tlib = tlib,
     )
 
-
+# NOTE: we might want to overwrite the __repr__ property created by dataclass
+# to also include the additional properties to the fields.
 @dataclass
 class FFTDimension:
     """Properties of an FFTWave grid for one dimension.

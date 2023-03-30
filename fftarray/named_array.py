@@ -36,6 +36,8 @@ def align_named_arrays(arrays: Sequence[Tuple[Sequence[Hashable], Any]], tlib) -
         aligned_arrays.append(arr)
     return list(target_indices.keys()), aligned_arrays
 
+# NOTE: Is this class only required for line 58 to provide a hashable key?
+# If yes, this is not required because int has __hash__ impemented anyway
 @dataclass
 class FillDim:
     index: int

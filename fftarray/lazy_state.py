@@ -6,7 +6,7 @@ from copy import copy, deepcopy
 from functools import reduce
 
 
-# TODO Should this still be a dataclass?
+# TODO Should this still be a dataclass? -> Yes why not? Eq. and printing implementations make sense.
 @dataclass
 class PhaseFactors:
     """
