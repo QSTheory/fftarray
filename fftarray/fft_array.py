@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 from typing import Optional, Union, List, Any, Tuple, Dict, Hashable, Literal, TypeVar, Iterable, Set, Generic
 from copy import copy, deepcopy
-from abc import abstractmethod
+from abc import ABCMeta, abstractmethod
 import numpy.lib.mixins
 from numbers import Number
 from .named_array import align_named_arrays, transpose_array
@@ -64,8 +64,9 @@ class LocFFTArrayIndexer(Generic[T]):
                 slices.append(dim._index_from_coord(dim_item, method=None, space=self.arr.space))
         return self.arr.__getitem__(tuple(slices))
 
-
-class FFTArray():
+# NOTE: I think we have to initialize with ABCMeta, otherwise the decorator
+# abstractmethod has no impact, see https://docs.python.org/3/library/abc.html#abc.abstractmethod
+class FFTArray(metaclass=ABCMeta):
     """The base class of `PosArray` and `FreqArray` that implements all shared 
     behavior.
     """
@@ -415,6 +416,9 @@ class FFTArray():
 
 
 class PosArray(FFTArray):
+
+    # def __repr__(self):
+    #     return '_'.join([str(dim) for dim in self._dims])
     
     def pos_array(self, tlib: Optional[TensorLib] = None) -> PosArray:
         return self._set_tlib(tlib)
