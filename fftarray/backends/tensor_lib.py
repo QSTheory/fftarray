@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Literal, Iterable
+from abc import ABCMeta, abstractmethod
+from typing import Any, Callable, Dict, Literal, Iterable, Union
+from types import ModuleType
+from numpy.typing import ArrayLike
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ..fft_array import FFTDimension
@@ -10,12 +13,8 @@ import numpy as np
 
 PrecisionSpec = Literal["default", "fp32", "fp64"]
 
-class TensorLib:
+class TensorLib(metaclass=ABCMeta):
     
-    fftn: Any
-    ifftn: Any
-    numpy_ufuncs: Any
-    array: Any
     precision: PrecisionSpec
 
     def __init__(self, precision: PrecisionSpec):
@@ -23,6 +22,24 @@ class TensorLib:
 
     def __eq__(self, other) -> bool:
         return isinstance(other, self.__class__) and self.precision == other.precision
+    
+    @abstractmethod
+    def fftn(self, values, precision: Union[int, str]) -> ArrayLike:
+        pass
+    
+    @abstractmethod
+    def ifftn(self, values, precision: Union[int, str]) -> ArrayLike:
+        pass
+
+    @property
+    @abstractmethod
+    def numpy_ufuncs(self) -> ModuleType:
+        pass
+
+    @property
+    @abstractmethod
+    def array(self) -> Callable[..., ArrayLike]:
+        pass
 
     def get_values_lazy_factors_applied(
             self,

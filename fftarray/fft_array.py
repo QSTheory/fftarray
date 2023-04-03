@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
+from numpy.typing import NDArray
 from typing import Optional, Union, List, Any, Tuple, Dict, Hashable, Literal, TypeVar, Iterable, Set, Generic
 from copy import copy, deepcopy
 from abc import ABCMeta, abstractmethod
@@ -45,7 +46,7 @@ def _unary_ufunc(op):
 # implemented. Note sure about the use case for __repr__.
 @dataclass(eq=False)
 class LocFFTArrayIndexer(Generic[T]):
-    """`wf.loc` allows indexing by dim index but by coordinate position. In 
+    """`wf.loc` allows indexing by dim index and by coordinate position. In 
     order to support the indexing operator on a property we need this indexable 
     helper class to be returned by the property `loc`.
     """
@@ -71,8 +72,8 @@ class FFTArray(metaclass=ABCMeta):
     behavior.
     """
 
-    # _dims are stored as a sequence and not by name because their ofder needs 
-    # to match the order of dimensions in _values.
+    # _dims are stored as a sequence and not by name because their order needs 
+    # to match the order of the dimensions in _values.
     _dims: Tuple[FFTDimension, ...]
     # Contains an array instance of _tlib with _lazy_state not yet applied.
     _values: Any
@@ -105,12 +106,12 @@ class FFTArray(metaclass=ABCMeta):
     #--------------------
 
     # Support numpy ufuncs like np.sin, np.cos, etc.
-    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs) -> Any:
         return _array_ufunc(self, ufunc, method, inputs, kwargs)
 
     # Support numpy array protocol.
     # Many libraries use this to coerce special types to plain numpy array e.g. via np.array(fftarray)
-    def __array__(self):
+    def __array__(self) -> NDArray:
         return np.array(self.values)
 
     # Implement binary operations between FFTArray and also e.g. 1+wf and wf+1
@@ -160,12 +161,12 @@ class FFTArray(metaclass=ABCMeta):
         )
 
     @property
-    def loc(self):
+    def loc(self) -> LocFFTArrayIndexer:
         """Attribute for location based indexing. Only supports __getitem__, and
         only when the key is a dict of the form {dim: labels}."""
         return LocFFTArrayIndexer(self)
 
-    def isel(self, **kwargs):
+    def isel(self, **kwargs) -> TFFTArray:
         """Returns a FFTArray indexed along the specific dimensions."""
         slices = []
         for dim in self.dims:
@@ -175,7 +176,7 @@ class FFTArray(metaclass=ABCMeta):
                 slices.append(slice(None, None, None))
         return self.__getitem__(tuple(slices))
 
-    def sel(self, method: Optional[Literal["nearest"]] = None, **kwargs):
+    def sel(self, method: Optional[Literal["nearest"]] = None, **kwargs) -> TFFTArray:
         """Returns a FFTArray indexed along the specific dimensions. In contrast
         to FFTArray.isel, indexers for this method should use labels instead of 
         integers. Supports in addition to its xarray-counterpart tuples for 
@@ -219,15 +220,20 @@ class FFTArray(metaclass=ABCMeta):
     @property
     def dims_dict(self) -> Dict[Hashable, FFTDimension]:
         """Returns dimensions as dictionary with their names as keys."""
-        # TODO Ordered Mapping?
+        # TODO Ordered Mapping? -> Use sortedcontainers.SortedDict?
+        # NOTE: Why do we not use self.dims instead of self._dims here?
         return {dim.name: dim for dim in self._dims}
 
     @property
     def sizes(self) -> Dict[Hashable, int]:
-        """Returns dictionary of the form `{dim.name: dim.n}`."""
+        """Returns dimension sizes (dim.n) as dictionary with their names as
+        keys.
+        """
         # TODO Ordered Mapping?
         return {dim.name: dim.n for dim in self._dims}
 
+    # NOTE: why do we need to apply tuple here again?
+    # It should be guaranteed that we have a tuple here by __init__
     @property
     def dims(self) -> Tuple[FFTDimension, ...]:
         """Returns the FFTDimensions."""
@@ -699,6 +705,9 @@ def _unpack_fft_arrays(
 
 # NOTE: we might want to overwrite the __repr__ property created by dataclass
 # to also include the additional properties to the fields.
+# NOTE: we should decide between the types Hashable or str for nam
+# -> accordingly we should also use this for the dims_dict type for example,
+# I would tend to use str for simplicity
 @dataclass
 class FFTDimension:
     """Properties of an FFTWave grid for one dimension.
@@ -831,7 +840,9 @@ class FFTDimension:
     _default_tlib: TensorLib
     _default_eager: bool
 
-    def __init__(self, name: str, *,
+    def __init__(self,
+        name: str,
+        *,
         n: Union[int, Literal["power_of_two", "even"]] = "power_of_two",
         d_pos: Optional[float] = None,
         d_freq: Optional[float] = None,
