@@ -6,7 +6,6 @@ from copy import copy, deepcopy
 from functools import reduce
 
 
-# TODO Should this still be a dataclass?
 @dataclass
 class PhaseFactors:
     """

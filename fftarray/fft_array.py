@@ -16,8 +16,6 @@ from .backends.np_backend import NumpyTensorLib
 # from dbg_tools import dbg # type: ignore
 from .helpers import reduce_equal, UniformValue
 
-from dataclasses import dataclass
-
 TFFTArray = TypeVar("TFFTArray", bound="FFTArray")
 T = TypeVar("T")
 
@@ -41,14 +39,20 @@ def _unary_ufunc(op):
         return op(self)
     return fun
 
-@dataclass
 class LocFFTArrayIndexer(Generic[T]):
     """
         `wf.loc` allows indexing by dim index but by coordinate position.
         In order to support the indexing operator on a property
         we need this indexable helper class to be returned by the property `loc`.
     """
-    arr: FFTArray
+
+    def __init__(
+            self,
+            arr: FFTArray,
+        ) -> None:
+        
+        self.arr = arr
+
     def __getitem__(self, item) -> FFTArray:
         if isinstance(item, slice):
             assert item == slice(None, None, None)
@@ -904,6 +908,10 @@ class FFTDimension:
         self._d_pos = params["d_pos"]
         self._d_freq = params["d_freq"]
         self._n = int(params["n"])
+
+    def __repr__(self) -> str:
+        # TODO: Show all interesting parameters, not only the minimum amount
+        raise NotImplementedError
 
     def set_default_tlib(self, tlib: TensorLib) -> FFTDimension:
         dim = copy(self)
