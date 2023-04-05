@@ -14,14 +14,15 @@ def reduce_equal(objects: Iterable[T], error_msg: str) -> T:
     def join_equal(a, b):
         if a == b:
             return a
-        else:
-            raise ValueError(error_msg)
+        raise ValueError(error_msg)
     return reduce(join_equal, objects)
+
 
 class UniformValue(Generic[T]):
     """
         Allows the same reduciton as "_reduce_equal" but when running through a loop.
     """
+    
     is_set: bool
     value: Any
 
@@ -32,13 +33,11 @@ class UniformValue(Generic[T]):
     def val(self) -> T:
         if self.is_set is False:
             raise ValueError("Value has never ben set.")
-        else:
-            return self.value
+        return self.value
 
     @val.setter
     def val(self, value: T):
         if self.is_set:
             assert self.value == value
-        else:
-            self.value = value
+        self.value = value
         self.is_set = True
