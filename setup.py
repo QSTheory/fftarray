@@ -40,7 +40,14 @@ setuptools.setup(
             "sphinx_rtd_theme",
             "myst_parser",
             "mistune==0.8.4",
-            "m2r2"
+            "m2r2",
+            'ipython',
+            'nbformat',
+            "bokeh",
+            "pyFFTW"
+        ],
+        "examples": [
+            "bokeh"
         ],
     }
 )
