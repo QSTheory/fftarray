@@ -50,7 +50,7 @@ class LocFFTArrayIndexer(Generic[T]):
             self,
             arr: FFTArray,
         ) -> None:
-        
+
         self.arr = arr
 
     def __getitem__(self, item) -> FFTArray:
