@@ -12,7 +12,9 @@ import jax
 from jax.tree_util import tree_unflatten, register_pytree_node
 import jax.numpy as jnp
 
+
 class JaxTensorLib(TensorLib):
+    
     def __init__(self, precision: PrecisionSpec = "default"):
         TensorLib.__init__(self, precision = precision)
         self.fftn = lambda values, precision: jax.numpy.fft.fftn(values)
@@ -26,7 +28,13 @@ class JaxTensorLib(TensorLib):
         :meta private:
         """
         values_jnp: jnp.ndarray = jnp.array(values)
-        return jax.lax.reduce(values_jnp, jnp.array(1, dtype = values_jnp.dtype), jnp.multiply, dimensions = range(len(values_jnp.shape)))
+        return jax.lax.reduce(
+            values_jnp, 
+            jnp.array(1, dtype = values_jnp.dtype), 
+            jnp.multiply, 
+            dimensions = range(len(values_jnp.shape))
+        )
+
 
 def make_matched_input(f, input, loop_arg):
     is_leaf = lambda x: isinstance(x, FFTArray)
@@ -35,7 +43,8 @@ def make_matched_input(f, input, loop_arg):
     out_val = jax.eval_shape(f, input, loop_arg)[0]
     leaves_high_out, _ = jax.tree_util.tree_flatten(out_val, is_leaf = is_leaf)
 
-    # This check is intentionally coarse in order to not interfere with the weak-type adjustments of scan.
+    # This check is intentionally coarse in order to not interfere with the 
+    # weak-type adjustments of scan.
     assert len(leaves_high_in) == len(leaves_high_out)
 
     new_leaves = []
@@ -56,8 +65,10 @@ def make_matched_input(f, input, loop_arg):
     matched_input = tree_unflatten(tree_def_high_in, new_leaves)
     return matched_input
 
+
 X = TypeVar('X')
 Y = TypeVar('Y')
+
 
 Carry = TypeVar('Carry')
 def fft_array_scan(f: Callable[[Carry, X], Tuple[Carry, Y]],
@@ -75,7 +86,14 @@ def fft_array_scan(f: Callable[[Carry, X], Tuple[Carry, Y]],
         first_x = xs[0] #type: ignore
 
     matched_input = make_matched_input(f, input = init, loop_arg = first_x)
-    return jax.lax.scan(f, init=matched_input, xs=xs, length=length, reverse=reverse, unroll=unroll)
+    return jax.lax.scan(
+        f, 
+        init=matched_input, 
+        xs=xs, 
+        length=length, 
+        reverse=reverse, 
+        unroll=unroll
+    )
 
 
 def fftarray_flatten(arr: FFTArray) -> Tuple[Tuple[Any], Tuple[Tuple[FFTDimension, ...], Optional[LazyState], TensorLib]]:
@@ -190,7 +208,8 @@ def unflatten_lazy_state(aux_data, children):
     # () = children
     (phase,scale) = aux_data
     # We explicitly do not want to call the constructor here.
-    # The consistency check fails (needlessly) for PyTreeArrays and other special "tricks".
+    # The consistency check fails (needlessly) for PyTreeArrays and other 
+    # special "tricks".
     self = LazyState.__new__(LazyState)
     self._phases_per_dim = phase
     self._scale = scale
