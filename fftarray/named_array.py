@@ -4,16 +4,19 @@ from dataclasses import dataclass
 #-------------------
 # TODO This is copied from abstraction but then quite significantly modified
 #-------------------
-def align_named_arrays(arrays: Sequence[Tuple[Sequence[Hashable], Any]], tlib) -> Tuple[Sequence[Hashable], List[Any]]:
+def align_named_arrays(
+        arrays: Sequence[Tuple[Sequence[Hashable], Any]], 
+        tlib
+    ) -> Tuple[Sequence[Hashable], List[Any]]:
     """
-        The arrays may have longer shapes than there are named dims.
-        Those are always kept as the last dims.
-        Reorders and expands dimensions so that all arrays have the same dim-names and shapes.
+    The arrays may have longer shapes than there are named dims.
+    Those are always kept as the last dims.
+    Reorders and expands dimensions so that all arrays have the same dim-names and shapes.
 
-        Unnamed shapes may differ!
-        This allows aligning all named dimensions of differently typed trees.
+    Unnamed shapes may differ!
+    This allows aligning all named dimensions of differently typed trees.
 
-        Returns the new dim-names and the list of aligned arrays.
+    Returns the new dim-names and the list of aligned arrays.
     """
     target_shape: Dict[Hashable, int] = {}
     for dims, arr in arrays:
@@ -27,7 +30,7 @@ def align_named_arrays(arrays: Sequence[Tuple[Sequence[Hashable], Any]], tlib) -
     aligned_arrays = []
     for dims, arr in arrays:
         dim_names = [*dims]
-        for target_dim, target_length in target_shape.items():
+        for target_dim in target_shape.keys():
             if not target_dim in dims:
                 arr = arr.reshape(-1, *arr.shape)
                 dim_names.insert(0, target_dim)
@@ -40,15 +43,22 @@ def align_named_arrays(arrays: Sequence[Tuple[Sequence[Hashable], Any]], tlib) -
 # If yes, this is not required because int has __hash__ impemented anyway
 @dataclass
 class FillDim:
+    
     index: int
 
     def __hash__(self):
         return hash(self.index)
 
-def transpose_array(array: Any, tlib, old_dims: Sequence[Hashable], new_dims: Sequence[Hashable]) -> Any:
+
+def transpose_array(
+        array: Any, 
+        tlib, 
+        old_dims: Sequence[Hashable], 
+        new_dims: Sequence[Hashable]
+    ) -> Any:
     """
-        `old_dims` and `new_dims` must be a transpose of one another.
-        They may be shorter than array.shape. The last dims are left untouched.
+    `old_dims` and `new_dims` must be a transpose of one another.
+    They may be shorter than array.shape. The last dims are left untouched.
     """
     assert len(old_dims) == len(new_dims)
     dim_index_lut = {dim: i for i, dim in enumerate(old_dims)}
