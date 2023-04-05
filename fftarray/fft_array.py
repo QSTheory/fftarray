@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 from typing import Optional, Union, List, Any, Tuple, Dict, Hashable, Literal, TypeVar, Iterable, Set, Generic
 from copy import copy, deepcopy
-from abc import abstractmethod
+from abc import ABCMeta, abstractmethod
 import numpy.lib.mixins
 from numbers import Number
 from .named_array import align_named_arrays, transpose_array
@@ -63,7 +63,7 @@ class LocFFTArrayIndexer(Generic[T]):
         return self.arr.__getitem__(tuple(slices))
 
 
-class FFTArray():
+class FFTArray(metaclass=ABCMeta):
     """
         The base class of `PosArray` and `FreqArray` that implements all shared behavior.
     """
