@@ -23,34 +23,49 @@ class PhaseFactors:
         # Can also just check real uand imag part at kernel launch and simplify that here.
         self.values = {index: complex(value) for index, value in values.items()}
         for value in self.values.values():
-            assert isinstance(value, complex)
+            if not isinstance(value, complex):
+                raise TypeError(
+                    f"Values must be all complex but contain type ({type(value)})"
+                )
 
     def __add__(self, other: PhaseFactors) -> PhaseFactors:
         """
             Works like multiplying the phase_factors of self and other.
         """
-        assert isinstance(other, PhaseFactors)
+        if not isinstance(other, PhaseFactors):
+            raise TypeError(
+                "`PhaseFactors` can only be added to another `PhaseFactors`."
+            )
         result = copy(self.values)
         for i, phase in other.values.items():
             if i in result:
                 result[i] += phase
             else:
                 result[i] = phase
-            assert isinstance(result[i], complex)
+            if not isinstance(result[i], complex):
+                raise TypeError(
+                    "Addition of phases did not result in a complex number."
+                )
         return PhaseFactors(result)
 
     def __sub__(self, other) -> PhaseFactors:
         """
             Works like dividing the phase_factors of self and other.
         """
-        assert isinstance(other, PhaseFactors)
+        if not isinstance(other, PhaseFactors):
+            raise TypeError(
+                "`PhaseFactors` can only be subtracted from another `PhaseFactors`."
+            )
         result = copy(self.values)
         for i, phase in other.values.items():
             if i in result:
                 result[i] -= phase
             else:
                 result[i] = phase
-            assert isinstance(result[i], complex)
+            if not isinstance(result[i], complex):
+                raise TypeError(
+                    "Subtraction of phases did not result in a complex number."
+                )
         return PhaseFactors(result)
 
 def _get_phase_factor_change(existing: Dict[str, PhaseFactors], target: Dict[str, PhaseFactors]) -> Dict[str, PhaseFactors]:
@@ -109,7 +124,10 @@ class LazyState:
 
     @property
     def scale(self) -> complex:
-        assert isinstance(self._scale, complex)
+        if not isinstance(self._scale, complex):
+            raise TypeError(
+                f"scale is not complex but of type {type(self._scale)}."
+            )
         return self._scale
 
     def add_phase_factor(self, dim: Hashable, factor_name: str, phase_factors: PhaseFactors) -> LazyState:
@@ -124,13 +142,19 @@ class LazyState:
             new_lazy._phases_per_dim[dim][factor_name] = new_lazy._phases_per_dim[dim][factor_name] + phase_factors
         else:
             new_lazy._phases_per_dim[dim][factor_name] = phase_factors
-        assert isinstance(new_lazy._scale, complex)
+        if not isinstance(new_lazy._scale, complex):
+            raise TypeError(
+                f"scale is not complex but of type {type(new_lazy._scale)}."
+            )
         return new_lazy
 
     def add_scale(self, scale: complex) -> LazyState:
         new_lazy_state = deepcopy(self)
         new_lazy_state._scale = new_lazy_state._scale * complex(scale)
-        assert isinstance(new_lazy_state._scale, complex)
+        if not isinstance(new_lazy_state._scale, complex):
+            raise TypeError(
+                f"scale is not complex but of type {type(new_lazy_state._scale)}."
+            )
         return new_lazy_state
 
     def phase_factors_for_dim(self, dim_name: Hashable) -> PhaseFactors:
@@ -142,7 +166,10 @@ class LazyState:
             The combined results in the same thing as applying both
             one after the other up to rounding errors.
         """
-        assert isinstance(other, LazyState)
+        if not isinstance(other, LazyState):
+            raise TypeError(
+                "`LasyState` can only be added to another `LazyState`."
+            )
         result = deepcopy(self)
         for dim_name, phase_factors in other._phases_per_dim.items():
             if not dim_name in result._phases_per_dim:
