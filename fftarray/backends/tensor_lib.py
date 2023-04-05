@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Literal, Iterable
+from typing import Any, Dict, Literal, Iterable, TypeVar
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ..fft_array import FFTDimension
@@ -9,6 +9,7 @@ if TYPE_CHECKING:
 import numpy as np
 
 PrecisionSpec = Literal["default", "fp32", "fp64"]
+T = TypeVar("T")
 
 class TensorLib:
     fftn: Any
@@ -29,10 +30,10 @@ class TensorLib:
 
     def get_values_lazy_factors_applied(
                 self,
-                values,
+                values: T,
                 dims: Iterable[FFTDimension],
                 lazy_state: LazyState,
-            ):
+            ) -> T:
         """
             This function takes all dims so that it has more freedom to optimize the application over all dimensions.
             # TODO Get the aliasing and copy story for values straight.

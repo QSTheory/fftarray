@@ -1,4 +1,5 @@
 from typing import Sequence, Tuple, Hashable, Any, List, Dict
+from numpy.typing import ArrayLike
 from dataclasses import dataclass
 
 #-------------------
@@ -43,7 +44,7 @@ class FillDim:
     def __hash__(self):
         return hash(self.index)
 
-def transpose_array(array: Any, tlib, old_dims: Sequence[Hashable], new_dims: Sequence[Hashable]) -> Any:
+def transpose_array(array: ArrayLike, tlib, old_dims: Sequence[Hashable], new_dims: Sequence[Hashable]) -> ArrayLike:
     """
         `old_dims` and `new_dims` must be a transpose of one another.
         They may be shorter than array.shape. The last dims are left untouched.

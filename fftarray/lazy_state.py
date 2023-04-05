@@ -25,7 +25,7 @@ class PhaseFactors:
         for value in self.values.values():
             assert isinstance(value, complex)
 
-    def __add__(self, other: PhaseFactors) -> PhaseFactors:
+    def __add__(self: PhaseFactors, other: PhaseFactors) -> PhaseFactors:
         """
             Works like multiplying the phase_factors of self and other.
         """
@@ -39,7 +39,7 @@ class PhaseFactors:
             assert isinstance(result[i], complex)
         return PhaseFactors(result)
 
-    def __sub__(self, other) -> PhaseFactors:
+    def __sub__(self: PhaseFactors, other) -> PhaseFactors:
         """
             Works like dividing the phase_factors of self and other.
         """
@@ -102,17 +102,17 @@ class LazyState:
         self._phases_per_dim = {}
         self._scale = complex(scale)
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self: LazyState, other) -> bool:
         if type(self) != type(other):
             return False
         return self._scale == other._scale and self._phases_per_dim == other._phases_per_dim
 
     @property
-    def scale(self) -> complex:
+    def scale(self: LazyState) -> complex:
         assert isinstance(self._scale, complex)
         return self._scale
 
-    def add_phase_factor(self, dim: Hashable, factor_name: str, phase_factors: PhaseFactors) -> LazyState:
+    def add_phase_factor(self: LazyState, dim: Hashable, factor_name: str, phase_factors: PhaseFactors) -> LazyState:
         new_lazy = deepcopy(self)
         # If you copy a concrete traced jax-array it becomes a symbolic value.
         # Reassigning fixes that.
@@ -127,16 +127,16 @@ class LazyState:
         assert isinstance(new_lazy._scale, complex)
         return new_lazy
 
-    def add_scale(self, scale: complex) -> LazyState:
+    def add_scale(self: LazyState, scale: complex) -> LazyState:
         new_lazy_state = deepcopy(self)
         new_lazy_state._scale = new_lazy_state._scale * complex(scale)
         assert isinstance(new_lazy_state._scale, complex)
         return new_lazy_state
 
-    def phase_factors_for_dim(self, dim_name: Hashable) -> PhaseFactors:
+    def phase_factors_for_dim(self: LazyState, dim_name: Hashable) -> PhaseFactors:
         return reduce(lambda a,b: a+b, self._phases_per_dim.get(dim_name, {}).values(), PhaseFactors({}))
 
-    def __add__(self, other: LazyState) -> LazyState:
+    def __add__(self: LazyState, other: LazyState) -> LazyState:
         """
             Combine two lazy states into one.
             The combined results in the same thing as applying both
