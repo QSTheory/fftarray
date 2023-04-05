@@ -43,7 +43,8 @@ setuptools.setup(
             "m2r2",
             'ipython',
             'nbformat',
-            "bokeh"
+            "bokeh",
+            "pyFFTW"
         ],
         "examples": [
             "bokeh"
