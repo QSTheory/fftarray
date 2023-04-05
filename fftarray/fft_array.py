@@ -259,7 +259,8 @@ class FFTArray():
             Modifies the values such that the internal lazy state matches the given target state.
             Used for making the input math the output of scan-loops.
         """
-        assert self._lazy_state is not None, "Cannot call _set_lazy_state on an eager FFTArray."
+        if self._lazy_state is None:
+            raise ValueError("Cannot call _set_lazy_state on an eager FFTArray.")
         to_apply = get_lazy_state_to_apply(self._lazy_state, target_state)
         # Use the raw _values since we apply only the delta between existing and target.
         new_values = self._tlib.get_values_lazy_factors_applied(
@@ -331,7 +332,12 @@ class FFTArray():
             new_dim_names = copy(old_dim_names)
             new_dim_names.reverse()
         else:
-            assert len(new_dim_names) == len(self._dims)
+            if len(new_dim_names) != len(self._dims):
+                raise ValueError(
+                    f"Number of supplied dimensions ({len(new_dim_names)}) " + \
+                    "do not match the number of dimension of the FFTArray " + \
+                    f"({len(self._dims)})."
+                )
 
         transposed_values = transpose_array(
             self._values,
@@ -421,17 +427,33 @@ class FFTArray():
         """
             Check some invariants of FFTArray.
         """
-        assert len(self._dims) == len(self._values.shape)
+        if len(self._dims) != len(self._values.shape):
+            raise ValueError(
+                "The dimension of the supplied values " + \
+                f"({len(self._values.shape)}) do not match the supplied " + \
+                f"dimensions ({len(self._dims)})"
+            )
         dim_names: Set[Hashable] = set()
         for n, dim in zip(self._values.shape, self._dims):
-            assert dim.n == n, "Passed in inconsistent n from FFTDimension and values."
-            assert dim.name not in dim_names, f"Passed in FFTDimension of name {dim.name} twice!"
+            if dim.n != n:
+                raise ValueError(
+                    f"Dimension with name {dim.name} does not match the " + \
+                    "length of the corresponding values ({n})."
+                )
+            if dim.name in dim_names:
+                raise ValueError(f"Duplicate FFTDimension names ({dim.name}).")
             dim_names.add(dim.name)
 
         if self._lazy_state is not None:
             for dim, phase_factors in zip(self._dims, self._lazy_state._phases_per_dim):
-                assert isinstance(phase_factors, dict)
-                assert dim.name in self._lazy_state._phases_per_dim
+                if not isinstance(phase_factors, dict):
+                    raise TypeError("The phase factors of the lazy state \
+                        should be of type dict.")
+                if not dim.name in self._lazy_state._phases_per_dim:
+                    raise ValueError(
+                        f"Dimension {dim.name} not found in `phases_per_dim` " + \
+                        "of the lazy state."
+                    )
 
 class PosArray(FFTArray):
     def pos_array(self, tlib: Optional[TensorLib] = None, precision: Optional[PrecisionSpec] = None) -> PosArray:
@@ -525,13 +547,17 @@ def _pack_values(
         Internally it is more parametrized and this puts it back together.
     """
     tlib = _get_tensor_lib(dims)
-    assert tlib.has_precision(values, tlib.precision)
+    if not tlib.has_precision(values, tlib.precision):
+        raise AttributeError("No precision specified for TensorLib.")
     # eager does not matter here because it is overwritten with a concrete lazy_state
     if space == "pos":
         arr: FFTArray = PosArray(values, dims = dims, eager=True)
-    else:
-        assert space == "freq"
+    elif space == "freq":
         arr = FreqArray(values, dims = dims, eager=True)
+    else: 
+        raise ValueError(
+            f'space should be either "pos" or "freq" but {space} was given.'
+        )
     arr._lazy_state = lazy_state
     return arr
 
@@ -1031,7 +1057,8 @@ class FFTDimension:
             stop = range.stop
 
         n = stop - start
-        assert n >= 1
+        if n < 1:
+            raise ValueError(f"stop ({stop}) must be larger than start ({start})")
         return self._dim_from_start_and_n(start=start, n=n, space=space)
 
     def _dim_from_start_and_n(self, start: int, n: int, space: Space) -> FFTDimension:
@@ -1053,7 +1080,9 @@ class FFTDimension:
             new._d_pos = 1./(self.d_freq*n)
             new._d_freq = self.d_freq
         else:
-            assert False, "Unreachable"
+            raise ValueError(
+                f'space must be either "pos" or "freq" but {space} was given.'
+            )
         return new
 
 
