@@ -45,26 +45,27 @@ class LocFFTArrayIndexer(Generic[T]):
         In order to support the indexing operator on a property
         we need this indexable helper class to be returned by the property `loc`.
     """
+    _arr: FFTArray
 
     def __init__(
             self,
             arr: FFTArray,
         ) -> None:
 
-        self.arr = arr
+        self._arr = arr
 
     def __getitem__(self, item) -> FFTArray:
         if isinstance(item, slice):
             assert item == slice(None, None, None)
-            return self.arr.values
+            return self._arr.values
         else:
             slices = []
-            for dim, dim_item in zip(self.arr.dims, item):
+            for dim, dim_item in zip(self._arr.dims, item):
                 if isinstance(dim_item, slice):
                     slices.append(dim_item)
                 else:
-                    slices.append(dim._index_from_coord(dim_item, method=None, space=self.arr.space))
-        return self.arr.__getitem__(tuple(slices))
+                    slices.append(dim._index_from_coord(dim_item, method=None, space=self._arr.space))
+        return self._arr.__getitem__(tuple(slices))
 
 
 class FFTArray():
@@ -913,10 +914,16 @@ class FFTDimension:
         evaluated = 'eagerly' if self._default_eager else 'lazily'
         properties = (
             f"\t Number of grid points n: {self.n} \n\t " +
-            f"Position space: min={self.pos_min}, middle={self.pos_middle}, max={self.pos_max}, extent={self.pos_extent}, d_pos={self.d_pos} \n\t " +
-            f"Frequency space: min={self.freq_min}, middle={self.freq_middle}, max={self.freq_max}, extent={self.freq_extent}, d_freq={self.d_freq}"
+            f"Position space: min={self.pos_min}, middle={self.pos_middle}, " +
+            f"max={self.pos_max}, extent={self.pos_extent}, d_pos={self.d_pos} \n\t " +
+            f"Frequency space: min={self.freq_min}, middle={self.freq_middle}, " +
+            f"max={self.freq_max}, extent={self.freq_extent}, d_freq={self.d_freq}"
         )
-        return f"FFTDimension with name '{self.name}' on backend '{self.default_tlib}' evaluated {evaluated} with the following properties:\n{properties}"
+        return (
+            f"FFTDimension with name '{self.name}' on backend " +
+            f"'{self.default_tlib}' evaluated {evaluated} with the " +
+            f"following properties:\n{properties}"
+        )
 
     def set_default_tlib(self, tlib: TensorLib) -> FFTDimension:
         dim = copy(self)
