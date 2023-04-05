@@ -100,7 +100,9 @@ def get_lazy_state_to_apply(existing: LazyState, target: LazyState) -> LazyState
 
 
 class LazyState:
-    """Represents the lazy state of a whole FFTArray.
+    """Represents the lazy state of a whole FFTArray. It allows the lazy 
+    evaluation of scale factors before broadcasted to each value of the 
+    FFTArray.
 
     Phase factors are stored per dimension under specific names in order to 
     allow guarantueed cancelling in the presence of floating point rounding 
