@@ -914,7 +914,7 @@ class FFTDimension:
         properties = (
             f"\t Number of grid points n: {self.n} \n\t " +
             f"Position space: min={self.pos_min}, middle={self.pos_middle}, max={self.pos_max}, extent={self.pos_extent}, d_pos={self.d_pos} \n\t " +
-            f"Frequency space: min={self.freq_min}, middle={self.freq_middle}, max={self.freq_max}, extent={self.freq_extent}, d_pos={self.d_freq}"
+            f"Frequency space: min={self.freq_min}, middle={self.freq_middle}, max={self.freq_max}, extent={self.freq_extent}, d_freq={self.d_freq}"
         )
         return f"FFTDimension with name '{self.name}' on backend '{self.default_tlib}' evaluated {evaluated} with the following properties:\n{properties}"
 
