@@ -33,11 +33,10 @@ class TensorLib:
                 dims: Iterable[FFTDimension],
                 lazy_state: LazyState,
             ):
+        """This function takes all dims so that it has more freedom to optimize 
+        the application over all dimensions.
+        # TODO Get the aliasing and copy story for values straight.
         """
-            This function takes all dims so that it has more freedom to optimize the application over all dimensions.
-            # TODO Get the aliasing and copy story for values straight.
-        """
-
         scalar_phase: complex = 0.
         for dim_idx, dim in enumerate(dims):
             phase_factors = lazy_state.phase_factors_for_dim(dim.name)

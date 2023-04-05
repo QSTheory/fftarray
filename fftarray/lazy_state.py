@@ -9,11 +9,12 @@ from functools import reduce
 # TODO Should this still be a dataclass?
 @dataclass
 class PhaseFactors:
-    """
-        n: positive integer including zero
-        a_n: float or complex
-        i: index in array and dimension this instance belongs to.
-        Stores "phase-factors" that are evaluated by multiplying `np.exp(1.j * a_n * (i**n))` to the values they belong to.
+    """Dataclass containing information about the phase factors. The values are 
+    ofthe form `{n: a_n}` where `n` is a positive integer including zero and 
+    `a_n` is a float or complex number.
+    Stores "phase-factors" that are evaluated by multiplying 
+    `np.exp(1.j * a_n * (i**n))` to the values they belong to (here `i` denotes 
+    the index in the array and dimension this instance belongs to).
     """
     # Dict[n: a_n]
     values: Dict[int, Union[float, complex]]
@@ -26,8 +27,8 @@ class PhaseFactors:
             assert isinstance(value, complex)
 
     def __add__(self, other: PhaseFactors) -> PhaseFactors:
-        """
-            Works like multiplying the phase_factors of self and other.
+        """Adding the phase_factors of self and other.
+        Multiplying two exponentials is equivalent to adding their arguments.
         """
         assert isinstance(other, PhaseFactors)
         result = copy(self.values)
@@ -40,8 +41,8 @@ class PhaseFactors:
         return PhaseFactors(result)
 
     def __sub__(self, other) -> PhaseFactors:
-        """
-            Works like dividing the phase_factors of self and other.
+        """Substracting the phase_factors of self and other.
+        Dividing two exponentials is equivalent to substracting their arguments.
         """
         assert isinstance(other, PhaseFactors)
         result = copy(self.values)
@@ -54,9 +55,9 @@ class PhaseFactors:
         return PhaseFactors(result)
 
 def _get_phase_factor_change(existing: Dict[str, PhaseFactors], target: Dict[str, PhaseFactors]) -> Dict[str, PhaseFactors]:
-    """
-        Return the phase factors I need to apply in order to change from the `existing` to the `target` PhaseFactors state.
-        Used in `get_lazy_state_to_apply`.
+    """Return the phase factors I need to apply in order to change from the 
+    `existing` to the `target` PhaseFactors state.
+    Used in `get_lazy_state_to_apply`.
     """
     factor_names = set(existing.keys()).union(set(target.keys()))
     # If our existing phase factor should not exist in the target we need to apply.
@@ -66,9 +67,22 @@ def _get_phase_factor_change(existing: Dict[str, PhaseFactors], target: Dict[str
     }
 
 def get_lazy_state_to_apply(existing: LazyState, target: LazyState) -> LazyState:
-    """
-        Return the phase `LazyState` I need to apply in order to change from the `existing` to the `target` LazyState.
-        Used in `FFTArray._set_lazy_state`.
+    """Returns the phase `LazyState` that needs to be applied to change the 
+    `existing` to the `target` LazyState.
+    
+    Used in `FFTArray._set_lazy_state`.
+
+    Parameters
+    ----------
+    existing : LazyState
+        The current LazyState.
+    target : LazyState
+        The target LazyState.
+    
+    Returns
+    -------
+    LazyState
+        LazyState defining the transition from `existing` to `target`.
     """
     # Iterate over dims
     phases_to_apply = {dim:
@@ -85,13 +99,15 @@ def get_lazy_state_to_apply(existing: LazyState, target: LazyState) -> LazyState
 
 
 class LazyState:
-    """
-        Represents the lazy state of a whole FFTArray.
-
-        Phase factors are stored per dimension under specific names
-        in order to allow guarantueed cancelling in the presence of floating point rounding errors.
-
-        Scale is just one complex or float number for all dimensions.
+    """Represents the lazy state of a whole FFTArray. It allows the lazy 
+    evaluation of scale factors before broadcasted to each value of the 
+    FFTArray.
+    
+    Phase factors are stored per dimension under specific names in order to 
+    allow guarantueed cancelling in the presence of floating point rounding 
+    errors.
+    
+    Scale is just one complex number for all dimensions.
     """
     # There is one dict per dimension.
     _phases_per_dim: Dict[Hashable, Dict[str, PhaseFactors]]
@@ -109,10 +125,27 @@ class LazyState:
 
     @property
     def scale(self) -> complex:
+        """Returns the scale factor (one complex number for all dimensions)"""
         assert isinstance(self._scale, complex)
         return self._scale
 
     def add_phase_factor(self, dim: Hashable, factor_name: str, phase_factors: PhaseFactors) -> LazyState:
+        """Add the `phase_factors` to the phase factors of `self`.
+
+        Parameters
+        ----------
+        dim : Hashable
+            The dimension associated to the phase factor that should be added.
+        factor_name : str
+            Name of the phase factor.
+        phase_factors : PhaseFactors
+            The phase factor that should be added.
+        
+        Returns
+        -------
+        LazyState
+            LazyState with combined phase factors.
+        """
         new_lazy = deepcopy(self)
         # If you copy a concrete traced jax-array it becomes a symbolic value.
         # Reassigning fixes that.
@@ -128,19 +161,33 @@ class LazyState:
         return new_lazy
 
     def add_scale(self, scale: complex) -> LazyState:
+        """Combine the scales of `self` with `scale` (they are multiplied 
+        together).
+
+        Parameters
+        ----------
+        scale : complex
+            Scale factor that is multiplied on top of `self.scale`.
+        
+        Returns
+        -------
+        LazyState
+            LazyState with combined scale factors.
+        """
         new_lazy_state = deepcopy(self)
         new_lazy_state._scale = new_lazy_state._scale * complex(scale)
         assert isinstance(new_lazy_state._scale, complex)
         return new_lazy_state
 
     def phase_factors_for_dim(self, dim_name: Hashable) -> PhaseFactors:
+        """Returns the sum of the phase factors associated to `dim_name`."""
         return reduce(lambda a,b: a+b, self._phases_per_dim.get(dim_name, {}).values(), PhaseFactors({}))
 
     def __add__(self, other: LazyState) -> LazyState:
-        """
-            Combine two lazy states into one.
-            The combined results in the same thing as applying both
-            one after the other up to rounding errors.
+        """Combine two lazy states into one (the new LazyState containes the sum 
+        of the phase factors and the product of the scales).
+        The combined results in the same thing as applying both one after the 
+        other up to rounding errors.
         """
         assert isinstance(other, LazyState)
         result = deepcopy(self)

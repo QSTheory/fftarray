@@ -43,10 +43,9 @@ def _unary_ufunc(op):
 
 @dataclass
 class LocFFTArrayIndexer(Generic[T]):
-    """
-        `wf.loc` allows indexing by dim index but by coordinate position.
-        In order to support the indexing operator on a property
-        we need this indexable helper class to be returned by the property `loc`.
+    """`wf.loc` allows indexing by dim index and by coordinate position. In 
+    order to support the indexing operator on a property we need this indexable 
+    helper class to be returned by the property `loc`.
     """
     arr: FFTArray
     def __getitem__(self, item) -> FFTArray:
@@ -64,8 +63,8 @@ class LocFFTArrayIndexer(Generic[T]):
 
 
 class FFTArray():
-    """
-        The base class of `PosArray` and `FreqArray` that implements all shared behavior.
+    """The base class of `PosArray` and `FreqArray` that implements all shared 
+    behavior.
     """
 
     # _dims are stored as a sequence and not by name because their oder needs to match the order of dimensions in _values.
@@ -83,10 +82,9 @@ class FFTArray():
         dims: Iterable[FFTDimension],
         eager: bool,
     ):
-        """
-            This constructor should only be used internally.
-            This class initself cannot even do ffts.
-            Construct new values via the `pos_array()` and `freq_array()` functions of FFTDimension.
+        """This constructor should only be used internally. This class initself
+        does not implement FFTs. Construct new values via the `pos_array()`
+        and `freq_array()` functions of FFTDimension.
         """
         self._dims = tuple(dims)
         self._values = values
@@ -161,9 +159,12 @@ class FFTArray():
 
     @property
     def loc(self):
+        """Attribute for location based indexing. Only supports __getitem__, and
+        only when the key is a dict of the form {dim: labels}."""
         return LocFFTArrayIndexer(self)
 
     def isel(self, **kwargs):
+        """Returns a FFTArray indexed along the specified dimensions."""
         slices = []
         for dim in self.dims:
             if dim.name in kwargs:
@@ -173,8 +174,10 @@ class FFTArray():
         return self.__getitem__(tuple(slices))
 
     def sel(self, method: Optional[Literal["nearest"]] = None, **kwargs):
-        """
-            Supports in addition to its xarray-counterpart tuples for ranges.
+        """Returns a FFTArray indexed along the specified dimensions. In 
+        contrast to FFTArray.isel, indexers for this method should use labels 
+        instead of integers. Supports in addition to its xarray-counterpart 
+        tuples for ranges.
         """
         slices = []
         for dim in self.dims:
@@ -190,9 +193,11 @@ class FFTArray():
     #--------------------
     @property
     def tlib(self) -> TensorLib:
+        """Returns the TensorLib used for operations."""
         return self._tlib
 
     def with_tlib(self: TFFTArray, tlib: TensorLib) -> TFFTArray:
+        """Returns copy of self with updated TensorLib."""
         new_dims = [dim.set_default_tlib(tlib) for dim in self._dims]
         if tlib.numpy_ufuncs.iscomplexobj(self._values):
             new_arr = tlib.array(self._values, dtype=tlib.complex_type)
@@ -203,9 +208,7 @@ class FFTArray():
         return new_arr
 
     def set_eager(self: TFFTArray, eager: bool) -> TFFTArray:
-        """
-            Forces evaluation of current lazy state
-        """
+        """Forces evaluation of current lazy state."""
         if self.is_eager == eager:
             return self
         else:
@@ -213,36 +216,34 @@ class FFTArray():
 
     @property
     def dims_dict(self) -> Dict[Hashable, FFTDimension]:
+        """Returns dimensions as dictionary with their names as keys."""
         # TODO Ordered Mapping?
         return {dim.name: dim for dim in self._dims}
 
     @property
     def sizes(self) -> Dict[Hashable, int]:
+        """Returns dimension sizes (dim.n) as dictionary with their names as
+        keys.
+        """
         # TODO Ordered Mapping?
         return {dim.name: dim.n for dim in self._dims}
 
     @property
     def dims(self) -> Tuple[FFTDimension, ...]:
+        """Returns the FFTDimensions."""
         return tuple(self._dims)
 
     @property
     def shape(self: FFTArray) -> Tuple[int, ...]:
-        """..
-
-        Returns
-        -------
-        Tuple[int, ...]
-            Shape of the wavefunction's values.
-        """
+        """Returns the shape of the wavefunction's values."""
         return self._values.shape
 
     @property
     def values(self) -> Any:
-        """
-            Return the values with all lazy state applied.
-            Does not mutate self.
-            Therefore each call evaluates its lazy state again.
-            Use `evaluate_lazy_state` if you want to evaluate it once and reuse it multiple times.
+        """Return the values with all lazy state applied. Does not mutate self. 
+        Therefore each call evaluates its lazy state again. Use 
+        `evaluate_lazy_state` if you want to evaluate it once and reuse it 
+        multiple times.
         """
         if self._lazy_state is None:
             # TODO There is no defensive copy here for the Numpy Backend
@@ -255,9 +256,9 @@ class FFTArray():
             )
 
     def _set_lazy_state(self: TFFTArray, target_state: LazyState) -> TFFTArray:
-        """
-            Modifies the values such that the internal lazy state matches the given target state.
-            Used for making the input math the output of scan-loops.
+        """Modifies the values such that the internal lazy state matches the 
+        given target state. Used for making the input match the output of 
+        scan-loops.
         """
         assert self._lazy_state is not None, "Cannot call _set_lazy_state on an eager FFTArray."
         to_apply = get_lazy_state_to_apply(self._lazy_state, target_state)
@@ -274,9 +275,7 @@ class FFTArray():
 
 
     def add_phase_factor(self: TFFTArray, dim_name: Hashable, factor_name: str, phase_factors: PhaseFactors) -> TFFTArray:
-        """
-            Add a phase factor lazily or eagerly (depending on the setting).
-        """
+        """Add a phase factor lazily or eagerly (depending on the setting)."""
         # Relies on immutability of values and dims
         # TODO values is only immutable in the jax-backend.
         new_arr = self.__class__(values = self._values, dims = self._dims, eager = self.is_eager)
@@ -292,9 +291,7 @@ class FFTArray():
         return new_arr
 
     def add_scale(self: TFFTArray, scale: complex) -> TFFTArray:
-        """
-            Add a scale lazily or eagerly (depending on the setting).
-        """
+        """Add a scale lazily or eagerly (depending on the setting)."""
         # Relies on immutability of values and dims
         new_arr = self.__class__(values = self._values, dims = self._dims, eager = self.is_eager)
         if self._lazy_state is None:
@@ -305,15 +302,16 @@ class FFTArray():
 
     @property
     def is_eager(self) -> bool:
+        """Returns boolean if the FFTArray is eager, i.e., is not evaluated 
+        lazily."""
         if self._lazy_state is None:
             return True
         else:
             return False
 
     def evaluate_lazy_state(self: TFFTArray) -> TFFTArray:
-        """
-            Return the same object from view of the public API.
-            But if the `values`-accessor is used multiple times this improives performance.
+        """Return the same object from view of the public API. But if the 
+        `values`-accessor is used multiple times this improives performance.
         """
         if self.is_eager:
             return self
@@ -321,9 +319,7 @@ class FFTArray():
             return self._set_lazy_state(LazyState())
 
     def transpose(self: TFFTArray, *dims: Hashable) -> TFFTArray:
-        """
-            Transpose with dimension names.
-        """
+        """Transpose with dimension names."""
         new_dim_names = list(dims)
         old_dim_names = [dim.name for dim in self._dims]
         dims_dict = self.dims_dict
@@ -345,9 +341,8 @@ class FFTArray():
         return transposed_arr
 
     def _set_tlib(self: TFFTArray, tlib: Optional[TensorLib] = None) -> TFFTArray:
-        """
-            Set tlib if it is not None.
-            Collects just a bit of code from all `pos_array` and `freq_array` implementations.
+        """Set tlib if it is not None. Collects just a bit of code from all 
+        `pos_array` and `freq_array` implementations.
         """
         res = self
         if tlib:
@@ -359,17 +354,21 @@ class FFTArray():
     #--------------------
     @abstractmethod
     def pos_array(self, tlib: Optional[TensorLib] = None, precision: Optional[PrecisionSpec] = None) -> PosArray:
+        """Returns the position space representation of the wave function. 
+        Performs the FFT is necessary."""
         ...
 
     @abstractmethod
     def freq_array(self, tlib: Optional[TensorLib] = None, precision: Optional[PrecisionSpec] = None) -> FreqArray:
+        """Returns the frequency space representation of the wave function. 
+        Performs the FFT is necessary."""
         ...
 
     @property
     @abstractmethod
     def space(self) -> Space:
-        """
-            Enables automatically and easily detecting in which space a generic FFTArray curently is.
+        """Enables automatically and easily detecting in which space a generic 
+        FFTArray curently is.
         """
         ...
 
@@ -397,30 +396,16 @@ class FFTArray():
     #--------------------
     @property
     def d_freq(self) -> float:
-        """..
-
-        Returns
-        -------
-        float
-            The product of the `d_freq` of all active dimensions.
-        """
+        """Returns the product of the `d_freq` of all active dimensions."""
         return self._tlib.reduce_multiply(self._tlib.array([fft_dim.d_freq for fft_dim in self._dims]))
 
     @property
     def d_pos(self) -> float:
-        """..
-
-        Returns
-        -------
-        float
-            The product of the `d_pos` of all active dimensions.
-        """
+        """Returns the product of the `d_pos` of all active dimensions."""
         return self._tlib.reduce_multiply(self._tlib.array([fft_dim.d_pos for fft_dim in self._dims]))
 
     def _check_consistency(self) -> None:
-        """
-            Check some invariants of FFTArray.
-        """
+        """Check some invariants of FFTArray."""
         assert len(self._dims) == len(self._values.shape)
         dim_names: Set[Hashable] = set()
         for n, dim in zip(self._values.shape, self._dims):
@@ -506,9 +491,7 @@ class FreqArray(FFTArray):
         return "freq"
 
 def _freq_scale_factor(dims: Iterable[FFTDimension]) -> float:
-    """
-        Returns the product of $\delta x = 1/(\delta f * N)$ for all dimensions.
-    """
+    """Returns the product of $\delta x = 1/(\delta f * N)$ for all dimensions."""
     scale_factor = 1.
     for dim in dims:
         scale_factor *= (1./(dim.d_freq * dim.n))
@@ -520,9 +503,8 @@ def _pack_values(
             dims: List[FFTDimension],
             lazy_state: Optional[LazyState],
         ) -> FFTArray:
-    """
-        Finish up a value after a ufunc.
-        Internally it is more parametrized and this puts it back together.
+    """Finish up a value after a ufunc. Internally it is more parametrized and 
+    this puts it back together.
     """
     tlib = _get_tensor_lib(dims)
     assert tlib.has_precision(values, tlib.precision)
@@ -636,10 +618,9 @@ def _unpack_fft_arrays(
             values: List[Union[Number, FFTArray, Any]],
             keep_lazy: bool,
         ) -> UnpackedValues:
-    """
-        This handles all "alignment" of input values.
-        Align dimensions, unify them, unpack all operands to a simple list of values.
-        May collect all lazy_state or just apply it before storing the values as plain values.
+    """This handles all "alignment" of input values. Align dimensions, unify 
+    them, unpack all operands to a simple list of values. May collect all 
+    lazy_state or just apply it before storing the values as plain values.
     """
     dims: Dict[Hashable, FFTDimension] = {}
     arrays_to_align: List[Tuple[List[Hashable], Any]] = []
@@ -916,92 +897,60 @@ class FFTDimension:
 
     @property
     def n(self: FFTDimension) -> int:
-        """..
-
-        Returns
-        -------
-        float
-            The number of grid points.
-        """
+        """The number of grid points."""
         return self._n
 
     @property
     def name(self: FFTDimension) -> Hashable:
-        """..
-
-        Returns
-        -------
-        float
-            The name of his FFTDimension.
-        """
+        """The name of his FFTDimension."""
         return self._name
 
     # ---------------------------- Position Space ---------------------------- #
 
     @property
     def d_pos(self: FFTDimension) -> float:
-        """..
-
-        Returns
-        -------
-        float
-            The distance between two neighboring position grid points.
-        """
+        """The distance between two neighboring position grid points."""
         return self._d_pos
 
     @property
     def pos_min(self: FFTDimension) -> float:
-        """..
-
-        Returns
-        -------
-        float
-            The smallest position grid point.
-        """
+        """The smallest position grid point."""
         return self._pos_min
 
     @property
     def pos_max(self: FFTDimension) -> float:
-        """..
-
-        Returns
-        -------
-        float
-            The largest position grid point.
-        """
+        """The largest position grid point."""
         return (self.n - 1) * self.d_pos + self.pos_min
 
     @property
     def pos_middle(self: FFTDimension) -> float:
-        """..
-
-        Returns
-        -------
-        float
-            The middle of the position grid.
-            If n is even, it is defined as the (n/2+1)'th position grid point.
+        """The middle of the position grid. 
+        If n is even, it is defined as the (n/2+1)'th position grid point.
         """
         return self.pos_min + self.n//2 * self.d_pos
 
     @property
     def pos_extent(self: FFTDimension) -> float:
-        """..
-
-        Returns
-        -------
-        float
-            The length of the position grid.
-            It is defined as `pos_max - pos_min`.
+        """The length of the position grid.
+        It is defined as `pos_max - pos_min`.
         """
         return (self.n - 1) * self.d_pos
 
     def pos_array(self: FFTDimension, tlib: Optional[TensorLib] = None) -> PosArray:
-        """..
-
+        """Returns an instance of PosArray (FFTArray in position space).
+        
+        Parameters
+        ----------
+        self : FFTDimension
+            Defines the grid.
+        tlib : Optional[TensorLib], optional
+            Overwrite the tensorlib supplied by FFTDimension, by default None
+        
         Returns
         -------
-        jax.numpy.ndarray
-            The position grid coordinates.
+        PosArray
+            FFTArray in position space whose values are given by the grid 
+            points defined by the FFTDimension.
         """
         dim = self
         if tlib is not None:
@@ -1016,9 +965,8 @@ class FFTDimension:
         )
 
     def _dim_from_slice(self, range: slice, space: Space) -> FFTDimension:
-        """
-            Get a new FFTDimension for a interval selection in a given space.
-            Does not support steps!=1.
+        """Get a new FFTDimension for a interval selection in a given space.
+        Does not support steps!=1.
         """
         if not(range.step is None or range.step == 1):
             raise ValueError("Substepping is not supported because it is not \
@@ -1058,9 +1006,7 @@ class FFTDimension:
 
 
     def _index_from_coord(self, x, method: Optional[Literal["nearest", "min", "max"]], space: Space):
-        """
-            Compute index from given coordinate `x`.
-        """
+        """Compute index from given coordinate `x`."""
         if isinstance(x, tuple):
             sel_min, sel_max = x
             idx_min = self._index_from_coord(sel_min, method="min", space=space)
@@ -1105,69 +1051,48 @@ class FFTDimension:
 
     @property
     def d_freq(self: FFTDimension) -> float:
-        """..
-
-        Returns
-        -------
-        float
-            The distance between frequency grid points.
-        """
+        """The distance between frequency grid points."""
         return self._d_freq
 
     @property
     def freq_min(self: FFTDimension) -> float:
-        """..
-
-        Returns
-        -------
-        float
-            The smallest frequency grid point.
-
-        """
+        """The smallest frequency grid point."""
         return self._freq_min
 
     @property
     def freq_middle(self: FFTDimension) -> float:
-        """..
-
-        Returns
-        -------
-        float
-            The middle of the frequency grid.
-            If n is even, it is defined as the (n/2+1)'th frequency grid point.
+        """The middle of the frequency grid.
+        If n is even, it is defined as the (n/2+1)'th frequency grid point.
         """
         return self.freq_min + self.n//2 * self.d_freq
 
     @property
     def freq_max(self: FFTDimension) -> float:
-        """..
-
-        Returns
-        -------
-        float
-            The largest frequency grid point.
-        """
+        """The largest frequency grid point."""
         return (self.n - 1) * self.d_freq + self.freq_min
 
     @property
     def freq_extent(self: FFTDimension) -> float:
-        """..
-
-        Returns
-        -------
-        float
-            The length of the frequency grid.
-            It is defined as `freq_max - freq_min`.
+        """The length of the frequency grid.
+        It is defined as `freq_max - freq_min`.
         """
         return (self.n - 1) * self.d_freq
 
     def freq_array(self: FFTDimension, tlib: Optional[TensorLib] = None) -> FreqArray:
-        """..
+        """Returns an instance of FreqArray.
 
+        Parameters
+        ----------
+        self : FFTDimension
+            Defines the grid.
+        tlib : Optional[TensorLib], optional
+            Overwrite the tensorlib supplied by FFTDimension, by default None
+        
         Returns
         -------
-        jax.numpy.ndarray
-            The frequency grid coordinates.
+        FreqArray
+            FFTArray in frequency space whose values are given by the grid 
+            points defined by the FFTDimension.
         """
         dim = self
         if tlib is not None:
