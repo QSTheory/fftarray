@@ -1,9 +1,7 @@
-from typing import Callable, Optional, TypeVar, Tuple, Any, List
-from numpy.typing import NDArray
+from typing import Callable, Optional, TypeVar, Tuple, Any, List, Union
+from types import ModuleType
 
 from functools import partial
-
-import numpy as np
 
 from ..fft_array import FFTDimension, FFTArray, PosArray, FreqArray, LazyState
 from .tensor_lib import TensorLib, PrecisionSpec
@@ -11,14 +9,25 @@ from .tensor_lib import TensorLib, PrecisionSpec
 import jax
 from jax.tree_util import tree_unflatten, register_pytree_node
 import jax.numpy as jnp
+from jax.typing import ArrayLike
 
 class JaxTensorLib(TensorLib):
     def __init__(self, precision: PrecisionSpec = "default"):
         TensorLib.__init__(self, precision = precision)
-        self.fftn = lambda values, precision: jax.numpy.fft.fftn(values)
-        self.ifftn = lambda values, precision: jax.numpy.fft.ifftn(values)
-        self.numpy_ufuncs = jax.numpy
-        self.array = jnp.array
+
+    def fftn(self, values: ArrayLike) -> jax.Array:
+        return jax.numpy.fft.fftn(values)
+    
+    def ifftn(self, values: ArrayLike) -> jax.Array:
+        return jax.numpy.fft.ifftn(values)
+    
+    @property
+    def numpy_ufuncs(self) -> ModuleType:
+        return jax.numpy
+
+    @property
+    def array(self) -> Callable[..., jax.Array]:
+        return jnp.array
 
     def reduce_multiply(self, values) -> Any:
         """Based on :func:`jax.lax.reduce`.

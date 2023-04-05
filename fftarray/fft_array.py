@@ -450,7 +450,7 @@ class PosArray(FFTArray):
 
         res_freq = FreqArray(
             dims=self.dims,
-            values=self._tlib.fftn(res_pos.values, precision = self._dims[0].default_tlib.precision),
+            values=self._tlib.fftn(res_pos.values),
             eager=self.is_eager
         )
 
@@ -487,7 +487,7 @@ class FreqArray(FFTArray):
         res_pos = PosArray(
             dims=self.dims,
             # TODO: Generic backend selection
-            values=self._tlib.ifftn(res_freq.values, precision = self._dims[0].default_tlib.precision),
+            values=self._tlib.ifftn(res_freq.values),
             eager=self.is_eager
         )
         for dim in self._dims:
