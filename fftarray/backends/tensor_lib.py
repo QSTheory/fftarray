@@ -26,6 +26,9 @@ class TensorLib:
 
     def __eq__(self, other) -> bool:
         return isinstance(other, self.__class__) and self.precision == other.precision
+    
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(precision={self.precision})"
 
     def get_values_lazy_factors_applied(
                 self,
