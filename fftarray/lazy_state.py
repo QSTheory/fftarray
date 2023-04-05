@@ -83,6 +83,7 @@ def get_lazy_state_to_apply(existing: LazyState, target: LazyState) -> LazyState
     return result
 
 
+@dataclass
 class LazyState:
     """
         Represents the lazy state of a whole FFTArray.
@@ -100,11 +101,6 @@ class LazyState:
     def __init__(self, scale: complex = 1.):
         self._phases_per_dim = {}
         self._scale = complex(scale)
-
-    def __eq__(self, other) -> bool:
-        if type(self) != type(other):
-            return False
-        return self._scale == other._scale and self._phases_per_dim == other._phases_per_dim
 
     @property
     def scale(self) -> complex:
