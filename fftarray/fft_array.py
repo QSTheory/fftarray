@@ -52,7 +52,7 @@ class LocFFTArrayIndexer(Generic[T]):
     
     arr: FFTArray
     
-    def __getitem__(self, item) -> FFTArray:
+    def __getitem__(self: LocFFTArrayIndexer, item) -> FFTArray:
         if isinstance(item, slice):
             assert item == slice(None, None, None)
             return self.arr.values
@@ -82,8 +82,8 @@ class FFTArray(metaclass=ABCMeta):
     # Contains the array backend, precision and device to be used for operations.
     _tlib: TensorLib
 
-    def __init__(self,
-            values,
+    def __init__(self: TFFTArray,
+            values: Any,
             dims: Iterable[FFTDimension],
             eager: bool,
         ):
@@ -160,13 +160,13 @@ class FFTArray(metaclass=ABCMeta):
         )
 
     @property
-    def loc(self):
+    def loc(self: TFFTArray):
         """Attribute for location based indexing. Only supports __getitem__, and
         only when the key is a dict of the form {dim: labels}."""
         return LocFFTArrayIndexer(self)
 
-    def isel(self, **kwargs):
-        """Returns a FFTArray indexed along the specific dimensions."""
+    def isel(self: TFFTArray, **kwargs):
+        """Returns a FFTArray indexed along the specified dimensions."""
         slices = []
         for dim in self.dims:
             if dim.name in kwargs:
@@ -175,11 +175,11 @@ class FFTArray(metaclass=ABCMeta):
                 slices.append(slice(None, None, None))
         return self.__getitem__(tuple(slices))
 
-    def sel(self, method: Optional[Literal["nearest"]] = None, **kwargs):
-        """Returns a FFTArray indexed along the specific dimensions. In contrast
-        to FFTArray.isel, indexers for this method should use labels instead of 
-        integers. Supports in addition to its xarray-counterpart tuples for 
-        ranges.
+    def sel(self: TFFTArray, method: Optional[Literal["nearest"]] = None, **kwargs):
+        """Returns a FFTArray indexed along the specified dimensions. In 
+        contrast to FFTArray.isel, indexers for this method should use labels 
+        instead of integers. Supports in addition to its xarray-counterpart 
+        tuples for ranges.
         """
         slices = []
         for dim in self.dims:
@@ -194,7 +194,7 @@ class FFTArray(metaclass=ABCMeta):
     # Shared Interface
     #--------------------
     @property
-    def tlib(self) -> TensorLib:
+    def tlib(self: TFFTArray) -> TensorLib:
         """Returns the TensorLib used for operations."""
         return self._tlib
 
@@ -213,33 +213,32 @@ class FFTArray(metaclass=ABCMeta):
         """Forces evaluation of current lazy state."""
         if self.is_eager == eager:
             return self
-        else:
-            return self.__class__(values = self.values, dims = self._dims, eager = eager)
+        return self.__class__(values = self.values, dims = self._dims, eager = eager)
 
     @property
-    def dims_dict(self) -> Dict[Hashable, FFTDimension]:
+    def dims_dict(self: TFFTArray) -> Dict[Hashable, FFTDimension]:
         """Returns dimensions as dictionary with their names as keys."""
         # TODO Ordered Mapping?
         return {dim.name: dim for dim in self._dims}
 
     @property
-    def sizes(self) -> Dict[Hashable, int]:
+    def sizes(self: TFFTArray) -> Dict[Hashable, int]:
         """Returns dictionary of the form `{dim.name: dim.n}`."""
         # TODO Ordered Mapping?
         return {dim.name: dim.n for dim in self._dims}
 
     @property
-    def dims(self) -> Tuple[FFTDimension, ...]:
+    def dims(self: TFFTArray) -> Tuple[FFTDimension, ...]:
         """Returns the FFTDimensions."""
         return tuple(self._dims)
 
     @property
-    def shape(self: FFTArray) -> Tuple[int, ...]:
+    def shape(self: TFFTArray) -> Tuple[int, ...]:
         """Returns the shape of the wavefunction's values."""
         return self._values.shape
 
     @property
-    def values(self) -> Any:
+    def values(self: TFFTArray) -> Any:
         """Return the values with all lazy state applied. Does not mutate self. 
         Therefore each call evaluates its lazy state again. Use 
         `evaluate_lazy_state` if you want to evaluate it once and reuse it 
@@ -305,7 +304,9 @@ class FFTArray(metaclass=ABCMeta):
         return new_arr
 
     @property
-    def is_eager(self) -> bool:
+    def is_eager(self: TFFTArray) -> bool:
+        """Returns boolean if the FFTArray is eager, i.e., is not evaluated 
+        lazily."""
         return self._lazy_state is None
 
     def evaluate_lazy_state(self: TFFTArray) -> TFFTArray:
@@ -352,10 +353,14 @@ class FFTArray(metaclass=ABCMeta):
     #--------------------
     @abstractmethod
     def pos_array(self, tlib: Optional[TensorLib] = None) -> PosArray:
+        """Returns the position space representation of the wave function. 
+        Performs the FFT is necessary."""
         ...
 
     @abstractmethod
     def freq_array(self, tlib: Optional[TensorLib] = None) -> FreqArray:
+        """Returns the frequency space representation of the wave function. 
+        Performs the FFT is necessary."""
         ...
 
     @property
@@ -399,9 +404,7 @@ class FFTArray(metaclass=ABCMeta):
         return self._tlib.reduce_multiply(self._tlib.array([fft_dim.d_pos for fft_dim in self._dims]))
 
     def _check_consistency(self) -> None:
-        """
-            Check some invariants of FFTArray.
-        """
+        """Check some invariants of FFTArray."""
         assert len(self._dims) == len(self._values.shape)
         dim_names: Set[Hashable] = set()
         for n, dim in zip(self._values.shape, self._dims):
