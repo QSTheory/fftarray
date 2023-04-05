@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 from .fft_constraint_solver import _z3_constraint_solver
 from .lazy_state import PhaseFactors, LazyState, get_lazy_state_to_apply
-from .backends.tensor_lib import TensorLib, PrecisionSpec
+from .backends.tensor_lib import TensorLib
 from .backends.np_backend import NumpyTensorLib
 # from dbg_tools import dbg # type: ignore
 from .helpers import reduce_equal, UniformValue
@@ -358,11 +358,11 @@ class FFTArray():
     # Interface to implement
     #--------------------
     @abstractmethod
-    def pos_array(self, tlib: Optional[TensorLib] = None, precision: Optional[PrecisionSpec] = None) -> PosArray:
+    def pos_array(self, tlib: Optional[TensorLib] = None) -> PosArray:
         ...
 
     @abstractmethod
-    def freq_array(self, tlib: Optional[TensorLib] = None, precision: Optional[PrecisionSpec] = None) -> FreqArray:
+    def freq_array(self, tlib: Optional[TensorLib] = None) -> FreqArray:
         ...
 
     @property
@@ -434,12 +434,11 @@ class FFTArray():
                 assert dim.name in self._lazy_state._phases_per_dim
 
 class PosArray(FFTArray):
-    def pos_array(self, tlib: Optional[TensorLib] = None, precision: Optional[PrecisionSpec] = None) -> PosArray:
+    def pos_array(self, tlib: Optional[TensorLib] = None) -> PosArray:
         return self._set_tlib(tlib)
 
     def freq_array(self,
                 tlib: Optional[TensorLib] = None,
-                precision: Optional[PrecisionSpec] = None,
             ) -> FreqArray:
         res_pos = self
         for dim in self._dims:
@@ -470,8 +469,7 @@ class PosArray(FFTArray):
 
 class FreqArray(FFTArray):
     def pos_array(self,
-                tlib: Optional[TensorLib] = None,
-                precision: Optional[PrecisionSpec] = None,
+                tlib: Optional[TensorLib] = None
             ) -> PosArray:
         res_freq = self
         for dim in self._dims:
@@ -498,7 +496,7 @@ class FreqArray(FFTArray):
 
         return res_pos._set_tlib(tlib)
 
-    def freq_array(self, tlib: Optional[TensorLib] = None, precision: Optional[PrecisionSpec] = None) -> FreqArray:
+    def freq_array(self, tlib: Optional[TensorLib] = None) -> FreqArray:
         return self._set_tlib(tlib)
 
     @property
