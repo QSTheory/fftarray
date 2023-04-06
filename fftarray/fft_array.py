@@ -910,6 +910,10 @@ class FFTDimension:
         self._d_freq = params["d_freq"]
         self._n = int(params["n"])
 
+    def __repr__(self: FFTDimension) -> str:
+        arg_str = ", ".join([f"{name[1:]}={value}" for name, value in self.__dict__.items()])
+        return f"FFTDimension({arg_str})"
+
     def __str__(self: FFTDimension) -> str:
         evaluated = 'eagerly' if self._default_eager else 'lazily'
         properties = (
