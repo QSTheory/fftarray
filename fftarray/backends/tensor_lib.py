@@ -96,7 +96,7 @@ class TensorLib:
         phase_arr = _get_phase_arr(
             n=values.shape[dim_idx],
             i=factors_list[0][0],
-            factor=factors_list[0][1]
+            factor=factors_list[0][1],
         )
         for i, factor in factors_list[1:]:
             phase_arr +=  _get_phase_arr(n=values.shape[dim_idx], i=i, factor=factor)
