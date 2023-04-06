@@ -1,16 +1,15 @@
 import copy
 
-from fftarray import FFTDimension
 import numpy as np
-
 import pytest
-
 import jax
-jax.config.update("jax_enable_x64", True)
 
+from fftarray import FFTDimension
 from fftarray.backends.jax_backend import JaxTensorLib
 from fftarray.backends.np_backend import NumpyTensorLib
 from fftarray.backends.pyfftw_backend import PyFFTWTensorLib
+
+jax.config.update("jax_enable_x64", True)
 
 def assert_scalars_almost_equal_nulp(x, y, nulp = 1):
     np.testing.assert_array_almost_equal_nulp(np.array([x]), np.array([y]), nulp = nulp)

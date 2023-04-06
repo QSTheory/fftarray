@@ -1,20 +1,18 @@
-from typing import Callable, Optional, TypeVar, Tuple, Any, List
-from numpy.typing import NDArray
-
 from functools import partial
+from typing import Callable, Optional, TypeVar, Tuple, Any, List
 
 import numpy as np
-
-from ..fft_array import FFTDimension, FFTArray, PosArray, FreqArray, LazyState
-from .tensor_lib import TensorLib, PrecisionSpec
-
+from numpy.typing import NDArray
 import jax
 from jax.tree_util import tree_unflatten, register_pytree_node
 import jax.numpy as jnp
 
+from ..fft_array import FFTDimension, FFTArray, PosArray, FreqArray, LazyState
+from .tensor_lib import TensorLib, PrecisionSpec
+
 
 class JaxTensorLib(TensorLib):
-    
+
     def __init__(self, precision: PrecisionSpec = "default"):
         TensorLib.__init__(self, precision = precision)
         self.fftn = lambda values, precision: jax.numpy.fft.fftn(values)
@@ -29,10 +27,10 @@ class JaxTensorLib(TensorLib):
         """
         values_jnp: jnp.ndarray = jnp.array(values)
         return jax.lax.reduce(
-            values_jnp, 
-            jnp.array(1, dtype = values_jnp.dtype), 
-            jnp.multiply, 
-            dimensions = range(len(values_jnp.shape))
+            operands=values_jnp,
+            init_values=jnp.array(1, dtype = values_jnp.dtype),
+            computation=jnp.multiply,
+            dimensions=range(len(values_jnp.shape)),
         )
 
 
@@ -43,7 +41,7 @@ def make_matched_input(f, input, loop_arg):
     out_val = jax.eval_shape(f, input, loop_arg)[0]
     leaves_high_out, _ = jax.tree_util.tree_flatten(out_val, is_leaf = is_leaf)
 
-    # This check is intentionally coarse in order to not interfere with the 
+    # This check is intentionally coarse in order to not interfere with the
     # weak-type adjustments of scan.
     assert len(leaves_high_in) == len(leaves_high_out)
 
@@ -87,12 +85,12 @@ def fft_array_scan(f: Callable[[Carry, X], Tuple[Carry, Y]],
 
     matched_input = make_matched_input(f, input = init, loop_arg = first_x)
     return jax.lax.scan(
-        f, 
-        init=matched_input, 
-        xs=xs, 
-        length=length, 
-        reverse=reverse, 
-        unroll=unroll
+        f,
+        init=matched_input,
+        xs=xs,
+        length=length,
+        reverse=reverse,
+        unroll=unroll,
     )
 
 
@@ -208,7 +206,7 @@ def unflatten_lazy_state(aux_data, children):
     # () = children
     (phase,scale) = aux_data
     # We explicitly do not want to call the constructor here.
-    # The consistency check fails (needlessly) for PyTreeArrays and other 
+    # The consistency check fails (needlessly) for PyTreeArrays and other
     # special "tricks".
     self = LazyState.__new__(LazyState)
     self._phases_per_dim = phase

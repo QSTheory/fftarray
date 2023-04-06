@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from typing import Dict, Union, Hashable
 from dataclasses import dataclass
 from copy import copy, deepcopy
@@ -15,13 +14,13 @@ class PhaseFactors:
         i: index in array and dimension this instance belongs to.
         Stores "phase-factors" that are evaluated by multiplying `np.exp(1.j * a_n * (i**n))` to the values they belong to.
     """
-    
+
     # Dict[n: a_n]
     values: Dict[int, Union[float, complex]]
 
     def __init__(self, values: Dict[int, Union[float, complex]]):
         # TODO: Specialize float or not?
-        # Can also just check real uand imag part at kernel launch and simplify 
+        # Can also just check real uand imag part at kernel launch and simplify
         # that here.
         self.values = {index: complex(value) for index, value in values.items()}
         for value in self.values.values():
@@ -57,7 +56,7 @@ class PhaseFactors:
 
 
 def _get_phase_factor_change(
-        existing: Dict[str, PhaseFactors], 
+        existing: Dict[str, PhaseFactors],
         target: Dict[str, PhaseFactors]
     ) -> Dict[str, PhaseFactors]:
     """
@@ -100,7 +99,7 @@ class LazyState:
 
         Scale is just one complex or float number for all dimensions.
     """
-    
+
     # There is one dict per dimension.
     _phases_per_dim: Dict[Hashable, Dict[str, PhaseFactors]]
     # TODO Currently we only have one use for that so it is less general.
@@ -121,9 +120,9 @@ class LazyState:
         assert isinstance(self._scale, complex)
         return self._scale
 
-    def add_phase_factor(self, 
-            dim: Hashable, 
-            factor_name: str, 
+    def add_phase_factor(self,
+            dim: Hashable,
+            factor_name: str,
             phase_factors: PhaseFactors
         ) -> LazyState:
         new_lazy = deepcopy(self)
@@ -148,8 +147,8 @@ class LazyState:
 
     def phase_factors_for_dim(self, dim_name: Hashable) -> PhaseFactors:
         return reduce(
-            lambda a,b: a+b, 
-            self._phases_per_dim.get(dim_name, {}).values(), 
+            lambda a,b: a+b,
+            self._phases_per_dim.get(dim_name, {}).values(),
             PhaseFactors({})
         )
 

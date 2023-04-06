@@ -1,23 +1,23 @@
 from __future__ import annotations
-
-import numpy as np
-from typing import Optional, Union, List, Any, Tuple, Dict, Hashable, Literal, \
-    TypeVar, Iterable, Set, Generic
-from copy import copy, deepcopy
+from typing import (
+    Optional, Union, List, Any, Tuple, Dict, Hashable,
+    Literal, TypeVar, Iterable, Set, Generic
+)
 from abc import abstractmethod
-import numpy.lib.mixins
+from copy import copy, deepcopy
 from numbers import Number
-from .named_array import align_named_arrays, transpose_array
 from dataclasses import dataclass
 
+import numpy as np
+import numpy.lib.mixins
+
+from .named_array import align_named_arrays, transpose_array
 from .fft_constraint_solver import _z3_constraint_solver
 from .lazy_state import PhaseFactors, LazyState, get_lazy_state_to_apply
 from .backends.tensor_lib import TensorLib, PrecisionSpec
 from .backends.np_backend import NumpyTensorLib
-# from dbg_tools import dbg # type: ignore
 from .helpers import reduce_equal, UniformValue
 
-from dataclasses import dataclass
 
 TFFTArray = TypeVar("TFFTArray", bound="FFTArray")
 T = TypeVar("T")
@@ -26,7 +26,7 @@ Space = Literal["pos", "freq"]
 
 def _get_tensor_lib(dims: Iterable[FFTDimension]) -> TensorLib:
     return reduce_equal(
-        map(lambda dim: dim._default_tlib, dims), 
+        map(lambda dim: dim._default_tlib, dims),
         "Tried to join arrays with different tensor-libs or precision settings."
     )
 
@@ -65,7 +65,7 @@ class LocFFTArrayIndexer(Generic[T]):
             if isinstance(dim_item, slice):
                 slices.append(dim_item)
             else:
-                slices.append(dim._index_from_coord(dim_item, method=None, 
+                slices.append(dim._index_from_coord(dim_item, method=None,
                     space=self.arr.space))
         return self.arr.__getitem__(tuple(slices))
 
@@ -75,7 +75,7 @@ class FFTArray():
         The base class of `PosArray` and `FreqArray` that implements all shared behavior.
     """
 
-    # _dims are stored as a sequence and not by name because their oder needs 
+    # _dims are stored as a sequence and not by name because their oder needs
     # to match the order of dimensions in _values.
     _dims: Tuple[FFTDimension, ...]
     # Contains an array instance of _tlib with _lazy_state not yet applied.
@@ -111,7 +111,7 @@ class FFTArray():
         return _array_ufunc(self, ufunc, method, inputs, kwargs)
 
     # Support numpy array protocol.
-    # Many libraries use this to coerce special types to plain numpy array e.g. 
+    # Many libraries use this to coerce special types to plain numpy array e.g.
     # via np.array(fftarray)
     def __array__(self):
         return np.array(self.values)
@@ -142,9 +142,9 @@ class FFTArray():
         for index, dimension in zip(item, self._dims):
             if not isinstance(index, slice):
                 new_dim = dimension._dim_from_start_and_n(
-                    start=index, 
-                    n=1, 
-                    space=self.space
+                    start=index,
+                    n=1,
+                    space=self.space,
                 )
                 index = slice(index, index+1, None)
             elif index == slice(None, None, None):
@@ -190,9 +190,9 @@ class FFTArray():
             if dim.name in kwargs:
                 slices.append(
                     dim._index_from_coord(
-                        kwargs[dim.name], 
-                        method=method, 
-                        space=self.space
+                        kwargs[dim.name],
+                        method=method,
+                        space=self.space,
                     )
                 ) #type: ignore
             else:
@@ -214,9 +214,9 @@ class FFTArray():
         else:
             new_arr = tlib.array(self._values, dtype=tlib.real_type)
         new_arr = self.__class__(
-            values=new_arr, 
-            dims=new_dims, 
-            eager=self.is_eager
+            values=new_arr,
+            dims=new_dims,
+            eager=self.is_eager,
         )
         new_arr._lazy_state = self._lazy_state
         return new_arr
@@ -452,8 +452,8 @@ class FFTArray():
 
 
 class PosArray(FFTArray):
-    def pos_array(self, 
-            tlib: Optional[TensorLib] = None, 
+    def pos_array(self,
+            tlib: Optional[TensorLib] = None,
             precision: Optional[PrecisionSpec] = None
         ) -> PosArray:
         return self._set_tlib(tlib)
@@ -466,7 +466,7 @@ class PosArray(FFTArray):
         for dim in self._dims:
             res_pos = res_pos.add_phase_factor(
                 dim.name,
-                "fft_shift_pos", 
+                "fft_shift_pos",
                 PhaseFactors({1: -2*np.pi*dim.freq_min*dim.d_pos}),
             )
 
@@ -479,10 +479,10 @@ class PosArray(FFTArray):
         for dim in self._dims:
             res_freq = res_freq.add_phase_factor(
                 dim.name,
-                "fft_phase_freq", 
+                "fft_phase_freq",
                 PhaseFactors({
-                    0: -2*np.pi*dim.pos_min*dim.freq_min, 
-                    1: -2*np.pi*dim.pos_min*dim.d_freq
+                    0: -2*np.pi*dim.pos_min*dim.freq_min,
+                    1: -2*np.pi*dim.pos_min*dim.d_freq,
                 }),
             )
 
@@ -504,10 +504,10 @@ class FreqArray(FFTArray):
         for dim in self._dims:
             res_freq = res_freq.add_phase_factor(
                 dim.name,
-                "fft_phase_freq", 
+                "fft_phase_freq",
                 PhaseFactors({
-                    0: 2*np.pi*dim.pos_min*dim.freq_min, 
-                    1: 2*np.pi*dim.pos_min*dim.d_freq
+                    0: 2*np.pi*dim.pos_min*dim.freq_min,
+                    1: 2*np.pi*dim.pos_min*dim.d_freq,
                 }),
             )
 
@@ -529,9 +529,9 @@ class FreqArray(FFTArray):
 
         return res_pos._set_tlib(tlib)
 
-    def freq_array(self, 
-            tlib: Optional[TensorLib] = None, 
-            precision: Optional[PrecisionSpec] = None
+    def freq_array(self,
+            tlib: Optional[TensorLib] = None,
+            precision: Optional[PrecisionSpec] = None,
         ) -> FreqArray:
         return self._set_tlib(tlib)
 
@@ -651,7 +651,7 @@ def _array_ufunc(self, ufunc, method, inputs, kwargs):
 
 @dataclass
 class UnpackedValues:
-    
+
     # FFTDimensions in the order in which they appear in each non-scalar value.
     dims: List[FFTDimension]
     # Values without any dimensions, etc.
@@ -1027,7 +1027,7 @@ class FFTDimension:
         """
         return (self.n - 1) * self.d_pos
 
-    def pos_array(self: FFTDimension, 
+    def pos_array(self: FFTDimension,
             tlib: Optional[TensorLib] = None
         ) -> PosArray:
         """..
@@ -1042,9 +1042,9 @@ class FFTDimension:
             dim = dim.set_default_tlib(tlib)
 
         indices = dim.default_tlib.numpy_ufuncs.arange(
-            0, 
-            dim.n, 
-            dtype = dim.default_tlib.real_type
+            0,
+            dim.n,
+            dtype = dim.default_tlib.real_type,
         )
 
         return PosArray(
@@ -1071,10 +1071,10 @@ class FFTDimension:
         assert n >= 1
         return self._dim_from_start_and_n(start=start, n=n, space=space)
 
-    def _dim_from_start_and_n(self, 
-            start: int, 
-            n: int, 
-            space: Space
+    def _dim_from_start_and_n(self,
+            start: int,
+            n: int,
+            space: Space,
         ) -> FFTDimension:
         new = self.__class__.__new__(self.__class__)
         new._name = self.name
@@ -1098,10 +1098,10 @@ class FFTDimension:
         return new
 
 
-    def _index_from_coord(self, 
-            x, 
-            method: Optional[Literal["nearest", "min", "max"]], 
-            space: Space
+    def _index_from_coord(self,
+            x,
+            method: Optional[Literal["nearest", "min", "max"]],
+            space: Space,
         ):
         """
             Compute index from given coordinate `x`.
@@ -1204,8 +1204,8 @@ class FFTDimension:
         """
         return (self.n - 1) * self.d_freq
 
-    def freq_array(self: FFTDimension, 
-                   tlib: Optional[TensorLib] = None
+    def freq_array(self: FFTDimension,
+                   tlib: Optional[TensorLib] = None,
         ) -> FreqArray:
         """..
 
@@ -1219,9 +1219,9 @@ class FFTDimension:
             dim = dim.set_default_tlib(tlib)
 
         indices = dim.default_tlib.numpy_ufuncs.arange(
-            0, 
-            dim.n, 
-            dtype = dim.default_tlib.real_type
+            0,
+            dim.n,
+            dtype = dim.default_tlib.real_type,
         )
 
         return FreqArray(
