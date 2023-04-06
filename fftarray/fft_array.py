@@ -144,7 +144,7 @@ class FFTArray():
                 new_dim = dimension._dim_from_start_and_n(
                     start=index, 
                     n=1, 
-                    space=self.space
+                    space=self.space,
                 )
                 index = slice(index, index+1, None)
             elif index == slice(None, None, None):
@@ -192,7 +192,7 @@ class FFTArray():
                     dim._index_from_coord(
                         kwargs[dim.name], 
                         method=method, 
-                        space=self.space
+                        space=self.space,
                     )
                 ) #type: ignore
             else:
@@ -216,7 +216,7 @@ class FFTArray():
         new_arr = self.__class__(
             values=new_arr, 
             dims=new_dims, 
-            eager=self.is_eager
+            eager=self.is_eager,
         )
         new_arr._lazy_state = self._lazy_state
         return new_arr
@@ -531,7 +531,7 @@ class FreqArray(FFTArray):
 
     def freq_array(self, 
             tlib: Optional[TensorLib] = None, 
-            precision: Optional[PrecisionSpec] = None
+            precision: Optional[PrecisionSpec] = None,
         ) -> FreqArray:
         return self._set_tlib(tlib)
 
@@ -1044,7 +1044,7 @@ class FFTDimension:
         indices = dim.default_tlib.numpy_ufuncs.arange(
             0, 
             dim.n, 
-            dtype = dim.default_tlib.real_type
+            dtype = dim.default_tlib.real_type,
         )
 
         return PosArray(
@@ -1071,7 +1071,7 @@ class FFTDimension:
     def _dim_from_start_and_n(self, 
             start: int, 
             n: int, 
-            space: Space
+            space: Space,
         ) -> FFTDimension:
         new = self.__class__.__new__(self.__class__)
         new._name = self.name
@@ -1098,7 +1098,7 @@ class FFTDimension:
     def _index_from_coord(self, 
             x, 
             method: Optional[Literal["nearest", "min", "max"]], 
-            space: Space
+            space: Space,
         ):
         """
             Compute index from given coordinate `x`.
@@ -1202,7 +1202,7 @@ class FFTDimension:
         return (self.n - 1) * self.d_freq
 
     def freq_array(self: FFTDimension, 
-                   tlib: Optional[TensorLib] = None
+                   tlib: Optional[TensorLib] = None,
         ) -> FreqArray:
         """..
 
@@ -1218,7 +1218,7 @@ class FFTDimension:
         indices = dim.default_tlib.numpy_ufuncs.arange(
             0, 
             dim.n, 
-            dtype = dim.default_tlib.real_type
+            dtype = dim.default_tlib.real_type,
         )
 
         return FreqArray(
