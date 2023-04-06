@@ -6,14 +6,15 @@ of the FFTWave. It contains functions that are out of scope for the average
 FFTWave user. Please visit the development area to toggle their visibility.
 """
 
+from typing import Any, Optional, Union, List, Dict
+import sys
+import decimal
+
 from z3 import (
     Real, Or, Solver, CheckSatResult, Z3_L_TRUE, Z3_L_FALSE,
     AlgebraicNumRef, RatNumRef, BoolRef, ModelRef
 )
-from typing import Any, Optional, Union, List, Dict
 import numpy as np
-import sys
-import decimal
 
 from .fft_constraint_solver_exceptions import *
 
@@ -89,11 +90,11 @@ def _z3_constraint_solver(*, # prohibit use of positional arguments
     if _no_solution_exists(all_constraints):
         if make_suggestions:
             suggested_removed_params = _suggest_removed_params(
-                user_constraints, 
+                user_constraints,
                 loose_params
             )
             raise NoSolutionFoundError(
-                all_constraints, 
+                all_constraints,
                 suggested_removed_params=suggested_removed_params
             )
         raise NoSolutionFoundError(all_constraints)
@@ -101,8 +102,8 @@ def _z3_constraint_solver(*, # prohibit use of positional arguments
     # Find unique model of the system or suggest additional params if not
     # existent
     model = _get_unique_model_if_exists(
-        all_constraints, 
-        user_constraints, 
+        all_constraints,
+        user_constraints,
         make_suggestions
     )
 
@@ -118,7 +119,7 @@ def _z3_constraint_solver(*, # prohibit use of positional arguments
         if make_suggestions:
             suggested_loose_params = _suggest_loose_params(user_constraints)
             raise NoSolutionFoundError(
-                all_constraints, 
+                all_constraints,
                 suggested_loose_params=suggested_loose_params
             )
         raise NoSolutionFoundError(all_constraints)
@@ -126,9 +127,9 @@ def _z3_constraint_solver(*, # prohibit use of positional arguments
     # Perform distributed n widening over all loose param groups to reach next
     # valid n
     model = _perform_n_widening_all(
-        user_constraints, 
-        loose_params, 
-        model=model, 
+        user_constraints,
+        loose_params,
+        model=model,
         make_suggestions=make_suggestions
     )
 
@@ -354,8 +355,8 @@ def _get_unique_model_if_exists(
         model = s.model()
         # Modify the constraint system to forbid the first found solution
         different_sol_constraints = [
-            Real(var_name) != model[Real(var_name)] 
-            for var_name in VARS_WITH_PROPS 
+            Real(var_name) != model[Real(var_name)]
+            for var_name in VARS_WITH_PROPS
             if (not var_name in user_constraints \
             or isinstance(user_constraints[var_name], str))
         ]
@@ -366,7 +367,7 @@ def _get_unique_model_if_exists(
             if make_suggestions:
                 suggested_additional_params = _suggest_additional_params(user_constraints)
                 raise NoUniqueSolutionError(
-                    constraints, 
+                    constraints,
                     suggested_additional_params=suggested_additional_params
                 )
             raise NoUniqueSolutionError(constraints)
@@ -400,7 +401,7 @@ def _perform_n_widening_all(
     # the target n
     for i, loose_param_group in enumerate(grouped_loose_params):
         group_constraint = _make_constraint_for_loose_param_group(
-            loose_param_group, 
+            loose_param_group,
             user_constraints
         )
         current_n = n_invalid + n_budget_per_step * (i+1) if i+1 < len(loose_params) else n_target
@@ -408,27 +409,27 @@ def _perform_n_widening_all(
         # the previous model and the current_n which apprpoaches the target n
         # step by step
         all_constraints = _get_constraints(
-            user_constraints, 
-            loose_param_group, 
+            user_constraints,
+            loose_param_group,
             previous_model=model,
-            widening_n=current_n, 
+            widening_n=current_n,
             add_constraints=group_constraint
         )
         try:
             model = _get_unique_model_if_exists(
-                all_constraints, 
-                user_constraints, 
+                all_constraints,
+                user_constraints,
                 make_suggestions=False
             )
         except ConstraintSolverError:
             original_constraints = _get_constraints(
-                user_constraints, 
+                user_constraints,
                 loose_params
             )
             if make_suggestions:
                 suggested_loose_params = _suggest_loose_params(user_constraints)
                 raise NoSolutionFoundError(
-                    original_constraints, 
+                    original_constraints,
                     suggested_loose_params=suggested_loose_params
                 )
             raise NoSolutionFoundError(original_constraints)
@@ -449,11 +450,11 @@ def _group_loose_params(
     """
 
     if find_suggestions:
-        groups = [["d_freq"], ["d_pos"], ["freq_min", "freq_max"], 
+        groups = [["d_freq"], ["d_pos"], ["freq_min", "freq_max"],
                   ["freq_extent"], ["pos_min", "pos_max"], ["pos_extent"]]
     else:
-        groups = [["d_freq"], ["d_pos"], 
-                  ["freq_min", "freq_max", "freq_extent"], 
+        groups = [["d_freq"], ["d_pos"],
+                  ["freq_min", "freq_max", "freq_extent"],
                   ["pos_min", "pos_max", "pos_extent"]]
     grouped_loose_params = []
     for group in groups:
@@ -566,9 +567,9 @@ def _check_overflow(var: str, val: Union[float, int]) -> None:
     ------
     ConstraintValueError
         If `val` is infinite or not a number or
-        if `val` is an `int` and not in the range 
+        if `val` is an `int` and not in the range
         `[-sys.maxsize-1, sys.maxsize]` or
-        if `val` is a `float` and its absolute value is not in the range 
+        if `val` is a `float` and its absolute value is not in the range
         `[0, sys.float_info.max]` and not `0.0`
     """
 
@@ -590,7 +591,7 @@ def _suggest_loose_params(
     """
 
     groups = _group_loose_params(
-        list(user_constraints.keys()), 
+        list(user_constraints.keys()),
         find_suggestions=True
     )
     suggested_loose_params = []

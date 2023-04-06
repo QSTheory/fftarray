@@ -1,7 +1,8 @@
+import warnings
+
 import numpy as np
 
 from .tensor_lib import TensorLib, PrecisionSpec
-import warnings
 
 
 class NumpyTensorLib(TensorLib):

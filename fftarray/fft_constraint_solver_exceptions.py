@@ -1,8 +1,9 @@
 import json
 import sys
 from typing import Optional, Union, List
-from z3 import BoolRef
 from copy import copy
+
+from z3 import BoolRef
 
 
 class ConstraintSolverError(Exception):
@@ -31,7 +32,7 @@ class ConstraintSolverError(Exception):
         if self._constraints is None:
             return self._msg
         constraints_f = json.dumps(
-            [str(constraint) for constraint in self._constraints], 
+            [str(constraint) for constraint in self._constraints],
             indent=4
         )
         return f"{self._msg} Supplied constraint system:\n {constraints_f}"
@@ -44,7 +45,7 @@ class ConstraintSolverError(Exception):
 
 
 class NoUniqueSolutionError(ConstraintSolverError):
-    """Exception raised if the supplied constraints do not yield a unique 
+    """Exception raised if the supplied constraints do not yield a unique
     solution.
 
     Parameters
@@ -52,7 +53,7 @@ class NoUniqueSolutionError(ConstraintSolverError):
     constraints : Optional[List[BoolRef]], optional
         Constraint system that a solution is searched for, by default None
     suggested_additional_params : Optional[List[List[str]]], optional
-        List of suggested params that the user could add for finding a unique 
+        List of suggested params that the user could add for finding a unique
         solution, by default None
     """
 
@@ -132,7 +133,7 @@ class ConstraintValueError(ConstraintSolverError):
     Parameters
     ----------
     msg : Optional[str], optional
-        The message to throw (overwrites the data generated message), by default 
+        The message to throw (overwrites the data generated message), by default
         None
     var_name : Optional[str], optional
         The variable's name, by default None

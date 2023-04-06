@@ -1,7 +1,7 @@
-from .fft_array import FFTArray
-
 import numpy as np
 import xarray as xr
+
+from .fft_array import FFTArray
 
 #--------------------
 # XArray interoperability
@@ -26,14 +26,14 @@ def as_xr_dataset(arr: FFTArray) -> xr.Dataset:
             "pos": xr.DataArray(
                 np.array(arr.pos_array()),
                 coords = {
-                    f"{dim.name}_pos": np.array(dim.pos_array()) 
+                    f"{dim.name}_pos": np.array(dim.pos_array())
                     for dim in arr.dims
                 }
             ),
             "freq":  xr.DataArray(
                 np.array(arr.freq_array()),
                 coords = {
-                    f"{dim.name}_freq": np.array(dim.freq_array()) 
+                    f"{dim.name}_freq": np.array(dim.freq_array())
                     for dim in arr.dims
                 }
             ),

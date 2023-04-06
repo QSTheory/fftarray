@@ -1,12 +1,13 @@
 from __future__ import annotations
-
 from typing import Any, Dict, Literal, Iterable
 from typing import TYPE_CHECKING
+
+import numpy as np
+
 if TYPE_CHECKING:
     from ..fft_array import FFTDimension
     from ..lazy_state import LazyState
 
-import numpy as np
 
 PrecisionSpec = Literal["default", "fp32", "fp64"]
 
@@ -46,14 +47,14 @@ class TensorLib:
             for i, factor in phase_factors.values.items():
                 if factor != 0.:
                     if i == 0:
-                        # (x**0 is one for all real x, therefore we can compute 
+                        # (x**0 is one for all real x, therefore we can compute
                         # as a scalar scale.)
                         scalar_phase += factor
                     else:
                         phases_to_apply[i] = factor
             values = self.apply_phase_factors(
-                values=values, 
-                dim_idx=dim_idx, 
+                values=values,
+                dim_idx=dim_idx,
                 factors=phases_to_apply
             )
 
@@ -63,11 +64,11 @@ class TensorLib:
         return values
 
     def apply_scale(self, values, scale):
-        # values is raw numpy and therefore we need to force scale possibly 
+        # values is raw numpy and therefore we need to force scale possibly
         # down to a lower precision.
         # TODO Why not?
         # values *= self.as_array_with_precision(scale, dim.precision)
-        # TODO dim is not necessarily defined here. All current callers do that 
+        # TODO dim is not necessarily defined here. All current callers do that
         # but there is no principal guarantuee.
         if np.imag(scale) == 0:
             scale = np.real(scale)
@@ -80,8 +81,8 @@ class TensorLib:
         return values
 
     def apply_phase_factors(
-            self, values, 
-            dim_idx: int, 
+            self, values,
+            dim_idx: int,
             factors: Dict[int, complex]
         ):
         if len(factors) == 0:
@@ -93,8 +94,8 @@ class TensorLib:
                 (self.numpy_ufuncs.arange(0, values.shape[dim_idx], dtype=self.real_type)**i)
 
         phase_arr = _get_phase_arr(
-            n=values.shape[dim_idx], 
-            i=factors_list[0][0], 
+            n=values.shape[dim_idx],
+            i=factors_list[0][0],
             factor=factors_list[0][1]
         )
         for i, factor in factors_list[1:]:
