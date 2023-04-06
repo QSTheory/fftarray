@@ -274,22 +274,22 @@ def _validate_args(
             if (isinstance(val, bool) or not
                     isinstance(val, (int, float, np.integer, np.floating))):
                 raise ConstraintValueError(
-                    f"Supplied constraint ({val}) for {var} is not a real number. \
-                    Only int and float are supported."
+                    f"Supplied constraint ({val}) for {var} is not a real number." +
+                    "Only int and float are supported."
                 )
             _check_overflow(var, val) # type: ignore
 
     # Check validity of user_constraints["n"]
     if "n" not in user_constraints:
-        raise ConstraintSolverError('There is neither an explicit numerical ' + \
-            'value for n defined, nor one of the rounding modes ("even" or ' + \
-            '"power_of_two") is chosen. Please supply one of these.'
+        raise ConstraintSolverError("There is neither an explicit numerical " +
+            "value for n defined, nor one of the rounding modes ('even' or " +
+            "'power_of_two') is chosen. Please supply one of these."
         )
     elif isinstance(user_constraints["n"], (int, np.integer)):
         if len(loose_params) != 0:
             raise ConstraintSolverError(
-                "It is not supported to supply loose params with explicitly " + \
-                "defined n. The loose params are only used to find a valid n " + \
+                "It is not supported to supply loose params with explicitly " +
+                "defined n. The loose params are only used to find a valid n " +
                 "but intentionally not for making overconstrained systems solvable."
             )
         if user_constraints["n"] < 1:
@@ -299,16 +299,16 @@ def _validate_args(
     elif isinstance(user_constraints["n"], str):
         if user_constraints["n"] not in ["even", "power_of_two"]:
             raise ConstraintValueError(
-                f'The available rounding modes for n are: "even", "power_of_two". ' + \
-                f'The supplied value "{user_constraints["n"]}" is not valid.'
+                f"The available rounding modes for n are: 'even', 'power_of_two'. " +
+                f"The supplied value '{user_constraints['n']}' is not valid."
             )
     else:
         raise ConstraintValueError(
-            f"Supplied constraint ({user_constraints['n']}) for n should be " + \
-            "of type int or str. The supplied value is of type " + \
-            f"{type(user_constraints)}. Please set an explicit numerical value " + \
-            'for n (int) or choose one of the rounding modes ("even" or ' + \
-            '"power_of_two")'
+            f"Supplied constraint ({user_constraints['n']}) for n should be " +
+            "of type int or str. The supplied value is of type " +
+            f"{type(user_constraints)}. Please set an explicit numerical value " +
+            "for n (int) or choose one of the rounding modes ('even' or " +
+            "'power_of_two')"
         )
 
     loose_params = list(set(loose_params)) # remove duplicates
@@ -323,7 +323,7 @@ def _validate_args(
             )
         if loose_param == "pos_middle":
             raise ConstraintSolverError(
-                "The position of the center of position space ('pos_middle') " + \
+                "The position of the center of position space ('pos_middle') " +
                 "cannot be a loose_param."
             )
 
@@ -357,8 +357,8 @@ def _get_unique_model_if_exists(
         different_sol_constraints = [
             Real(var_name) != model[Real(var_name)]
             for var_name in VARS_WITH_PROPS
-            if (not var_name in user_constraints \
-            or isinstance(user_constraints[var_name], str))
+            if (not var_name in user_constraints
+                or isinstance(user_constraints[var_name], str))
         ]
         s.add(Or(different_sol_constraints))
         # Check if constraint system is still satisfiable
@@ -502,7 +502,7 @@ def _round_up_n(current_n: float, rounding_mode: str) -> int:
         return valid_n
     except Exception as e:
         raise ConstraintValueError(
-            f"The above error occured while trying to round up n={current_n} " + \
+            f"The above error occured while trying to round up n={current_n} " +
             "to the next valid integer."
         ) from e
 
@@ -532,7 +532,7 @@ def _z3_to_float(num: Union[RatNumRef, AlgebraicNumRef]) -> float:
         # if normal division would result in an OverflowError
         overflow_approx = decimal.Decimal(num.numerator // num.denominator)
         raise ConstraintValueError(
-            "Constraint solver results in too large value for some " + \
+            "Constraint solver results in too large value for some " +
             f"parameter: {overflow_approx:.2e}."
         )
 
