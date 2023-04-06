@@ -910,7 +910,7 @@ class FFTDimension:
         self._d_freq = params["d_freq"]
         self._n = int(params["n"])
 
-    def __repr__(self: FFTDimension) -> str:
+    def __str__(self: FFTDimension) -> str:
         evaluated = 'eagerly' if self._default_eager else 'lazily'
         properties = (
             f"\t Number of grid points n: {self.n} \n\t " +
