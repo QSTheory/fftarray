@@ -30,7 +30,7 @@ class JaxTensorLib(TensorLib):
             operands=values_jnp,
             init_values=jnp.array(1, dtype = values_jnp.dtype),
             computation=jnp.multiply,
-            dimensions=range(len(values_jnp.shape))
+            dimensions=range(len(values_jnp.shape)),
         )
 
 
@@ -90,7 +90,7 @@ def fft_array_scan(f: Callable[[Carry, X], Tuple[Carry, Y]],
         xs=xs,
         length=length,
         reverse=reverse,
-        unroll=unroll
+        unroll=unroll,
     )
 
 

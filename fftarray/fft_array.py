@@ -1063,7 +1063,10 @@ class FFTDimension:
                 well defined how to cut frequency space with an arbitrary offset."
             )
         start = range.start
-        stop = start+1 if range.stop is None else range.stop
+        if range.stop is None:
+            stop = start+1
+        else:
+            stop = range.stop
         n = stop - start
         assert n >= 1
         return self._dim_from_start_and_n(start=start, n=n, space=space)
