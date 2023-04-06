@@ -29,10 +29,10 @@ class JaxTensorLib(TensorLib):
         """
         values_jnp: jnp.ndarray = jnp.array(values)
         return jax.lax.reduce(
-            values_jnp, 
-            jnp.array(1, dtype = values_jnp.dtype), 
-            jnp.multiply, 
-            dimensions = range(len(values_jnp.shape))
+            operands=values_jnp, 
+            init_values=jnp.array(1, dtype = values_jnp.dtype), 
+            computation=jnp.multiply, 
+            dimensions=range(len(values_jnp.shape))
         )
 
 
