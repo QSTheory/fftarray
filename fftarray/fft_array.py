@@ -482,7 +482,7 @@ class PosArray(FFTArray):
                 "fft_phase_freq", 
                 PhaseFactors({
                     0: -2*np.pi*dim.pos_min*dim.freq_min, 
-                    1: -2*np.pi*dim.pos_min*dim.d_freq
+                    1: -2*np.pi*dim.pos_min*dim.d_freq,
                 }),
             )
 
@@ -507,7 +507,7 @@ class FreqArray(FFTArray):
                 "fft_phase_freq", 
                 PhaseFactors({
                     0: 2*np.pi*dim.pos_min*dim.freq_min, 
-                    1: 2*np.pi*dim.pos_min*dim.d_freq
+                    1: 2*np.pi*dim.pos_min*dim.d_freq,
                 }),
             )
 
