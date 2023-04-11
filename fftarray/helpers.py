@@ -41,3 +41,4 @@ class UniformValue(Generic[T]):
             assert self.value == value
         self.value = value
         self.is_set = True
+        

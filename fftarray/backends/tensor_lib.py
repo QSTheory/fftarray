@@ -90,8 +90,12 @@ class TensorLib:
         factors_list = list(factors.items())
 
         def _get_phase_arr(factor: complex, n: int, i: int):
-            return self.as_array(factor) * \
-                (self.numpy_ufuncs.arange(0, values.shape[dim_idx], dtype=self.real_type)**i)
+            indices = self.numpy_ufuncs.arange(
+                0,
+                values.shape[dim_idx],
+                dtype=self.real_type,
+            )
+            return self.as_array(factor) * (indices**i)
 
         phase_arr = _get_phase_arr(
             n=values.shape[dim_idx],

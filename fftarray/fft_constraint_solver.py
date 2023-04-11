@@ -35,7 +35,8 @@ VARS_WITH_PROPS: Dict[str, Optional[str]] = {
     "freq_middle": None,
 }
 
-def _z3_constraint_solver(*, # prohibit use of positional arguments
+def _z3_constraint_solver(
+        *, # prohibit use of positional arguments
         constraints: Dict[str, Union[int, float, str, None]],
         loose_params: List[str],
         make_suggestions: bool,
@@ -110,8 +111,8 @@ def _z3_constraint_solver(*, # prohibit use of positional arguments
     # Return model if n supplied by user or the found n is a valid n (even/power
     # of two)
     current_n = _z3_to_float(model[Real("n")])
-    if isinstance(user_constraints["n"], (int, np.integer)) \
-        or current_n == _round_up_n(current_n, user_constraints["n"]): # type: ignore
+    if (isinstance(user_constraints["n"], (int, np.integer)) or
+        current_n == _round_up_n(current_n, user_constraints["n"]): # type: ignore
         return _finalize_model(model)
 
     # If no loose params are supplied for n widening -> suggest loose params
@@ -584,7 +585,7 @@ def _check_overflow(var: str, val: Union[float, int]) -> None:
 
 def _suggest_loose_params(
         user_constraints: Dict[str, Union[float, int, str]]
-    )-> Optional[List[List[str]]]:
+    ) -> Optional[List[List[str]]]:
     """
     Try different combinations of loose params within independent groups
     and suggest those to the user which yield a solution.

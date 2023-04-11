@@ -227,7 +227,7 @@ class FFTArray():
         """
         if self.is_eager == eager:
             return self
-        return self.__class__(values = self.values, dims = self._dims, eager = eager)
+        return self.__class__(values=self.values, dims=self._dims, eager=eager)
 
     @property
     def dims_dict(self) -> Dict[Hashable, FFTDimension]:
@@ -888,7 +888,10 @@ class FFTDimension:
     _default_tlib: TensorLib
     _default_eager: bool
 
-    def __init__(self, name: str, *,
+    def __init__(
+        self,
+        name: str,
+        *,
             n: Union[int, Literal["power_of_two", "even"]] = "power_of_two",
             d_pos: Optional[float] = None,
             d_freq: Optional[float] = None,
@@ -1204,8 +1207,9 @@ class FFTDimension:
         """
         return (self.n - 1) * self.d_freq
 
-    def freq_array(self: FFTDimension,
-                   tlib: Optional[TensorLib] = None,
+    def freq_array(
+            self: FFTDimension,
+            tlib: Optional[TensorLib] = None,
         ) -> FreqArray:
         """..
 

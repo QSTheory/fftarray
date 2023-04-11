@@ -24,8 +24,10 @@ class NumpyTensorLib(TensorLib):
     def ifftn(self, values, precision: PrecisionSpec):
         transformed = np.fft.ifftn(values)
         if precision == "fp32":
-            warnings.warn('numpy.fft.ifftn always computes in double \
-                precision. Since precision was set to fp32 the result is \
-                automatically truncated.')
+            warnings.warn(
+                "numpy.fft.ifftn always computes in double " + 
+                "precision. Since precision was set to fp32 the result is " +
+                "automatically truncated."
+            )
             return transformed.astype(np.complex64)
         return transformed
