@@ -911,7 +911,7 @@ class FFTDimension:
         self._n = int(params["n"])
 
     def __repr__(self: FFTDimension) -> str:
-        arg_str = ", ".join([f"{name[1:]}={value}" for name, value in self.__dict__.items()])
+        arg_str = ", ".join([f"{name[1:]}={repr(value)}" for name, value in self.__dict__.items()])
         return f"FFTDimension({arg_str})"
 
     def __str__(self: FFTDimension) -> str:
