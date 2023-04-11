@@ -44,7 +44,7 @@ setuptools.setup(
             'ipython',
             'nbformat',
             "bokeh",
-            "pyFFTW"
+            "pyFFTW",
         ],
         "examples": [
             "bokeh"
