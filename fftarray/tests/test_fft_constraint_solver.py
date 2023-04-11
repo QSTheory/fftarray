@@ -831,7 +831,7 @@ def test_invalid_values(test_val):
 #             make_suggestions=False
 #         )
 #     except ConstraintSolverError:
-#         pass
+#         ...
 #     except Exception as e:
 #         raise e
 
@@ -854,7 +854,7 @@ def test_invalid_values(test_val):
 #             make_suggestions=False
 #         )
 #     except ConstraintSolverError:
-#         pass
+#         ...
 #     except Exception as e:
 #         raise e
 
@@ -874,6 +874,6 @@ def test_invalid_values(test_val):
 #             make_suggestions=False
 #         )
 #     except ConstraintSolverError:
-#         pass
+#         ...
 #     except Exception as e:
 #         raise e

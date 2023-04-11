@@ -19,24 +19,24 @@ PrecisionSpec = Literal["default", "fp32", "fp64"]
 class TensorLib(metaclass=ABCMeta):
 
     precision: PrecisionSpec
-    
+
     @abstractmethod
     def fftn(self, values: ArrayLike) -> ArrayLike:
-        pass
+        ...
 
     @abstractmethod
     def ifftn(self, values: ArrayLike) -> ArrayLike:
-        pass
+        ...
 
     @property
     @abstractmethod
     def numpy_ufuncs(self) -> ModuleType:
-        pass
+        ...
 
     @property
     @abstractmethod
     def array(self) -> Callable[..., ArrayLike]:
-        pass
+        ...
 
     def get_values_lazy_factors_applied(
                 self,

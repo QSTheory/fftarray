@@ -491,7 +491,7 @@ def _suggest_loose_params(
             )
             suggested_loose_params += [group]
         except:
-            pass
+            ...
     return suggested_loose_params
 
 def _suggest_additional_params(
@@ -557,5 +557,5 @@ def _suggest_removed_params(
             )
             suggested_removed_params += [constraint]
         except:
-            pass
+            ...
     return suggested_removed_params
