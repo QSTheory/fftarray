@@ -60,6 +60,7 @@ class LocFFTArrayIndexer(Generic[T]):
         if isinstance(item, slice):
             assert item == slice(None, None, None)
             return self.arr.values
+
         slices = []
         for dim, dim_item in zip(self.arr.dims, item):
             if isinstance(dim_item, slice):
