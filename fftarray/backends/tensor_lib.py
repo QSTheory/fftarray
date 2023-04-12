@@ -81,7 +81,8 @@ class TensorLib:
         return values
 
     def apply_phase_factors(
-            self, values,
+            self,
+            values,
             dim_idx: int,
             factors: Dict[int, complex]
         ):
