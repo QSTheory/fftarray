@@ -112,7 +112,7 @@ def _z3_constraint_solver(
     # of two)
     current_n = _z3_to_float(model[Real("n")])
     if (isinstance(user_constraints["n"], (int, np.integer)) or
-        current_n == _round_up_n(current_n, user_constraints["n"]): # type: ignore
+        current_n == _round_up_n(current_n, user_constraints["n"])): # type: ignore
         return _finalize_model(model)
 
     # If no loose params are supplied for n widening -> suggest loose params
