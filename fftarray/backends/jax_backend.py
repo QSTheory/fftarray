@@ -16,14 +16,14 @@ class JaxTensorLib(TensorLib):
         TensorLib.__init__(self, precision = precision)
 
     def fftn(self, values: ArrayLike) -> jax.Array:
-        return jax.numpy.fft.fftn(values)
-    
+        return jnp.fft.fftn(values)
+
     def ifftn(self, values: ArrayLike) -> jax.Array:
-        return jax.numpy.fft.ifftn(values)
-    
+        return jnp.fft.ifftn(values)
+
     @property
     def numpy_ufuncs(self) -> ModuleType:
-        return jax.numpy
+        return jnp
 
     @property
     def array(self) -> Callable[..., jax.Array]:
