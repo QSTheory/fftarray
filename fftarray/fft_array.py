@@ -1031,7 +1031,8 @@ class FFTDimension:
         """
         return (self.n - 1) * self.d_pos
 
-    def pos_array(self: FFTDimension,
+    def pos_array(
+        self: FFTDimension,
             tlib: Optional[TensorLib] = None
         ) -> PosArray:
         """..
@@ -1075,7 +1076,8 @@ class FFTDimension:
         assert n >= 1
         return self._dim_from_start_and_n(start=start, n=n, space=space)
 
-    def _dim_from_start_and_n(self,
+    def _dim_from_start_and_n(
+        self,
             start: int,
             n: int,
             space: Space,
@@ -1102,7 +1104,8 @@ class FFTDimension:
         return new
 
 
-    def _index_from_coord(self,
+    def _index_from_coord(
+        self,
             x,
             method: Optional[Literal["nearest", "min", "max"]],
             space: Space,
