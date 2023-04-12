@@ -11,12 +11,10 @@ from dataclasses import dataclass
 
 from .fft_constraint_solver import _z3_constraint_solver
 from .lazy_state import PhaseFactors, LazyState, get_lazy_state_to_apply
-from .backends.tensor_lib import TensorLib, PrecisionSpec
+from .backends.tensor_lib import TensorLib
 from .backends.np_backend import NumpyTensorLib
 # from dbg_tools import dbg # type: ignore
 from .helpers import reduce_equal, UniformValue
-
-from dataclasses import dataclass
 
 TFFTArray = TypeVar("TFFTArray", bound="FFTArray")
 T = TypeVar("T")
@@ -41,26 +39,33 @@ def _unary_ufunc(op):
         return op(self)
     return fun
 
-@dataclass
 class LocFFTArrayIndexer(Generic[T]):
     """
         `wf.loc` allows indexing by dim index but by coordinate position.
         In order to support the indexing operator on a property
         we need this indexable helper class to be returned by the property `loc`.
     """
-    arr: FFTArray
+    _arr: FFTArray
+
+    def __init__(
+            self,
+            arr: FFTArray,
+        ) -> None:
+
+        self._arr = arr
+
     def __getitem__(self, item) -> FFTArray:
         if isinstance(item, slice):
             assert item == slice(None, None, None)
-            return self.arr.values
+            return self._arr.values
         else:
             slices = []
-            for dim, dim_item in zip(self.arr.dims, item):
+            for dim, dim_item in zip(self._arr.dims, item):
                 if isinstance(dim_item, slice):
                     slices.append(dim_item)
                 else:
-                    slices.append(dim._index_from_coord(dim_item, method=None, space=self.arr.space))
-        return self.arr.__getitem__(tuple(slices))
+                    slices.append(dim._index_from_coord(dim_item, method=None, space=self._arr.space))
+        return self._arr.__getitem__(tuple(slices))
 
 
 class FFTArray(metaclass=ABCMeta):
@@ -358,11 +363,11 @@ class FFTArray(metaclass=ABCMeta):
     # Interface to implement
     #--------------------
     @abstractmethod
-    def pos_array(self, tlib: Optional[TensorLib] = None, precision: Optional[PrecisionSpec] = None) -> PosArray:
+    def pos_array(self, tlib: Optional[TensorLib] = None) -> PosArray:
         ...
 
     @abstractmethod
-    def freq_array(self, tlib: Optional[TensorLib] = None, precision: Optional[PrecisionSpec] = None) -> FreqArray:
+    def freq_array(self, tlib: Optional[TensorLib] = None) -> FreqArray:
         ...
 
     @property
@@ -434,12 +439,11 @@ class FFTArray(metaclass=ABCMeta):
                 assert dim.name in self._lazy_state._phases_per_dim
 
 class PosArray(FFTArray):
-    def pos_array(self, tlib: Optional[TensorLib] = None, precision: Optional[PrecisionSpec] = None) -> PosArray:
+    def pos_array(self, tlib: Optional[TensorLib] = None) -> PosArray:
         return self._set_tlib(tlib)
 
     def freq_array(self,
                 tlib: Optional[TensorLib] = None,
-                precision: Optional[PrecisionSpec] = None,
             ) -> FreqArray:
         res_pos = self
         for dim in self._dims:
@@ -470,8 +474,7 @@ class PosArray(FFTArray):
 
 class FreqArray(FFTArray):
     def pos_array(self,
-                tlib: Optional[TensorLib] = None,
-                precision: Optional[PrecisionSpec] = None,
+                tlib: Optional[TensorLib] = None
             ) -> PosArray:
         res_freq = self
         for dim in self._dims:
@@ -498,7 +501,7 @@ class FreqArray(FFTArray):
 
         return res_pos._set_tlib(tlib)
 
-    def freq_array(self, tlib: Optional[TensorLib] = None, precision: Optional[PrecisionSpec] = None) -> FreqArray:
+    def freq_array(self, tlib: Optional[TensorLib] = None) -> FreqArray:
         return self._set_tlib(tlib)
 
     @property
@@ -904,6 +907,25 @@ class FFTDimension:
         self._d_pos = params["d_pos"]
         self._d_freq = params["d_freq"]
         self._n = int(params["n"])
+
+    def __repr__(self: FFTDimension) -> str:
+        arg_str = ", ".join([f"{name[1:]}={repr(value)}" for name, value in self.__dict__.items() if name != "_d_freq"])
+        return f"FFTDimension({arg_str})"
+
+    def __str__(self: FFTDimension) -> str:
+        evaluated = 'eagerly' if self._default_eager else 'lazily'
+        properties = (
+            f"\t Number of grid points n: {self.n} \n\t " +
+            f"Position space: min={self.pos_min}, middle={self.pos_middle}, " +
+            f"max={self.pos_max}, extent={self.pos_extent}, d_pos={self.d_pos} \n\t " +
+            f"Frequency space: min={self.freq_min}, middle={self.freq_middle}, " +
+            f"max={self.freq_max}, extent={self.freq_extent}, d_freq={self.d_freq}"
+        )
+        return (
+            f"FFTDimension with name '{self.name}' on backend " +
+            f"'{self.default_tlib}' evaluated {evaluated} with the " +
+            f"following properties:\n{properties}"
+        )
 
     def set_default_tlib(self, tlib: TensorLib) -> FFTDimension:
         dim = copy(self)
