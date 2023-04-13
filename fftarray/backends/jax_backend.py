@@ -69,7 +69,8 @@ Y = TypeVar('Y')
 
 
 Carry = TypeVar('Carry')
-def fft_array_scan(f: Callable[[Carry, X], Tuple[Carry, Y]],
+def fft_array_scan(
+        f: Callable[[Carry, X], Tuple[Carry, Y]],
         init: Carry,
         xs: X,
         length: Optional[int] = None,
