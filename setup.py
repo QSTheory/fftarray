@@ -41,13 +41,14 @@ setuptools.setup(
             "myst_parser",
             "mistune==0.8.4",
             "m2r2",
-            'ipython',
-            'nbformat',
+            "ipython",
+            "nbformat",
             "bokeh",
             "pyFFTW",
         ],
         "examples": [
-            "bokeh"
+            "bokeh",
+            "ipython",
         ],
     }
 )
