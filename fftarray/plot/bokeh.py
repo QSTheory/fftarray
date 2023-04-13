@@ -14,6 +14,6 @@ def plt_fft(arr: FFTArray):
         p_freq.line(np.array(dim.freq_array()), np.real(arr.freq_array().values), line_width=2, color = "navy", legend_label="real")
         p_freq.line(np.array(dim.freq_array()), np.imag(arr.freq_array().values), line_width=2, color = "firebrick", legend_label="imag")
 
-        return row([p_pos, p_freq])
+        return row([p_pos, p_freq]) # type: ignore
     else:
         raise NotImplementedError
