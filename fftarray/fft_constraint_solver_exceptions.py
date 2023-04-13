@@ -1,8 +1,10 @@
 import json
 import sys
 from typing import Optional, Union, List
-from z3 import BoolRef
 from copy import copy
+
+from z3 import BoolRef
+
 
 class ConstraintSolverError(Exception):
     """Custom exception class for the constraint solver.
@@ -18,11 +20,10 @@ class ConstraintSolverError(Exception):
     """
 
     def __init__(
-                self,
-                msg: Optional[str] = None,
-                constraints: Optional[List[BoolRef]] = None
-            ):
-
+            self,
+            msg: Optional[str] = None,
+            constraints: Optional[List[BoolRef]] = None
+        ):
         self._msg = "Constraint solver failed." if msg is None else msg
         self._constraints = constraints
         super().__init__()
@@ -30,7 +31,10 @@ class ConstraintSolverError(Exception):
     def get_message(self) -> str:
         if self._constraints is None:
             return self._msg
-        constraints_f = json.dumps([str(constraint) for constraint in self._constraints], indent=4)
+        constraints_f = json.dumps(
+            [str(constraint) for constraint in self._constraints],
+            indent=4
+        )
         return f"{self._msg} Supplied constraint system:\n {constraints_f}"
 
     def __str__(self):
@@ -39,31 +43,35 @@ class ConstraintSolverError(Exception):
         # \033[0m : ENDC (resets the color)
         return "\033[91m" + self.get_message() + "\033[0m"
 
+
 class NoUniqueSolutionError(ConstraintSolverError):
-    """Exception raised if the supplied constraints do not yield a unique solution.
+    """Exception raised if the supplied constraints do not yield a unique
+    solution.
 
     Parameters
     ----------
     constraints : Optional[List[BoolRef]], optional
         Constraint system that a solution is searched for, by default None
     suggested_additional_params : Optional[List[List[str]]], optional
-        List of suggested params that the user could add for finding a unique solution, by default None
+        List of suggested params that the user could add for finding a unique
+        solution, by default None
     """
 
     def __init__(
-                self,
-                constraints: Optional[List[BoolRef]] = None,
-                suggested_additional_params: Optional[List[List[str]]] = None
-            ):
-
+            self,
+            constraints: Optional[List[BoolRef]] = None,
+            suggested_additional_params: Optional[List[List[str]]] = None
+        ):
         self._suggested_additional_params = suggested_additional_params
-
         suggestion_msg = ""
         if suggested_additional_params is not None:
             if len(suggested_additional_params) > 0:
-                suggestion_str = ', '.join([str(param) for param in suggested_additional_params])
+                suggestion_str = ', '.join(
+                    [str(param) for param in suggested_additional_params]
+                )
                 multiple_groups: bool = len(suggested_additional_params) > 1
-                suggestion_msg = f" Choosing an additional constraint from the following undefined group{'s' if multiple_groups else ''} " + \
+                suggestion_msg = " Choosing an additional constraint from the " + \
+                    f"following undefined group{'s' if multiple_groups else ''} " + \
                     f"may yield a unique solution: {suggestion_str}."
 
         super().__init__(
@@ -97,19 +105,25 @@ class NoSolutionFoundError(ConstraintSolverError):
         suggestion_msg = ""
         if suggested_loose_params is not None:
             if len(suggested_loose_params) > 0:
-                suggestion_str = ', '.join([str(param) for param in suggested_loose_params])
-                suggestion_msg = f" Using one or multiple of the following list elements as loose params yields a solution: {suggestion_str}."
+                suggestion_str = ', '.join(
+                    [str(param) for param in suggested_loose_params]
+                )
+                suggestion_msg = " Using one or multiple of the following " + \
+                    f"list elements as loose params yields a solution: {suggestion_str}."
         if suggested_removed_params is not None:
             if "n" in suggested_removed_params:
                 suggested_removed_params.remove("n")
-                suggestion_msg = f' Find a solution by either removing one of the following params: {", ".join(suggested_removed_params)} or choose n="even".'
+                suggestion_msg = " Find a solution by either removing one " + \
+                    f'of the following params: {", ".join(suggested_removed_params)} or choose n="even".'
             elif len(suggested_removed_params) > 0:
-                suggestion_msg = f" Removing one of the following params yields a solution: {', '.join(suggested_removed_params)}."
+                suggestion_msg = " Removing one of the following params " + \
+                    f"yields a solution: {', '.join(suggested_removed_params)}."
 
         super().__init__(
             msg = "Could not find any solution." + suggestion_msg,
             constraints = constraints
         )
+
 
 class ConstraintValueError(ConstraintSolverError):
     """Exception raised if constraint values exceed specific bounds, i.e., if
@@ -119,7 +133,8 @@ class ConstraintValueError(ConstraintSolverError):
     Parameters
     ----------
     msg : Optional[str], optional
-        The message to throw (overwrites the data generated message), by default None
+        The message to throw (overwrites the data generated message), by default
+        None
     var_name : Optional[str], optional
         The variable's name, by default None
     var_value : Optional[Union[int, float]], optional
@@ -127,12 +142,11 @@ class ConstraintValueError(ConstraintSolverError):
     """
 
     def __init__(
-                self,
-                msg: Optional[str] = None,
-                var_name: Optional[str] = None,
-                var_value: Optional[Union[int, float]] = None
-            ):
-
+            self,
+            msg: Optional[str] = None,
+            var_name: Optional[str] = None,
+            var_value: Optional[Union[int, float]] = None
+        ):
         if msg is None:
             self.var_name = var_name
             self.var_value = var_value
