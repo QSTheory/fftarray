@@ -114,7 +114,8 @@ class LazyState:
         assert isinstance(self._scale, complex)
         return self._scale
 
-    def add_phase_factor(self,
+    def add_phase_factor(
+            self,
             dim: Hashable,
             factor_name: str,
             phase_factors: PhaseFactors
