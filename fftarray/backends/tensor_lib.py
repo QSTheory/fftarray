@@ -107,7 +107,7 @@ class TensorLib:
             factor=factors_list[0][1],
         )
         for i, factor in factors_list[1:]:
-            phase_arr +=  _get_phase_arr(n=values.shape[dim_idx], i=i, factor=factor)
+            phase_arr += _get_phase_arr(n=values.shape[dim_idx], i=i, factor=factor)
 
         # Ensure correct broadcasting
         extended_shape = np.ones(len(values.shape), dtype=int)
