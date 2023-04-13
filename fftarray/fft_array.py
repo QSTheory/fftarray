@@ -188,7 +188,7 @@ class FFTArray():
             if dim.name in kwargs:
                 slices.append(
                     dim._index_from_coord(
-                        kwargs[dim.name],
+                        kwargs[str(dim.name)],
                         method=method,
                         space=self.space,
                     )
