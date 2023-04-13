@@ -1,8 +1,6 @@
 from functools import partial
 from typing import Callable, Optional, TypeVar, Tuple, Any, List
 
-import numpy as np
-from numpy.typing import NDArray
 import jax
 from jax.tree_util import tree_unflatten, register_pytree_node
 import jax.numpy as jnp
