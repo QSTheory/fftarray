@@ -205,15 +205,15 @@ def _get_constraints(
     # actual grid points, there are two different constraint systems for even
     # and odd n
     if n_is_even:
-        all_constraints += z3_vars["pos_middle"] == z3_vars["pos_min"] \
-            + z3_vars["d_pos"] * z3_vars["n"] / 2,
-        all_constraints += z3_vars["freq_middle"] == z3_vars["freq_min"] \
-            + z3_vars["d_freq"] * z3_vars["n"] / 2,
+        all_constraints.append(z3_vars["pos_middle"] ==
+            z3_vars["pos_min"] + z3_vars["d_pos"] * z3_vars["n"] / 2)
+        all_constraints.append(z3_vars["freq_middle"] ==
+            z3_vars["freq_min"] + z3_vars["d_freq"] * z3_vars["n"] / 2)
     else:
-        all_constraints += z3_vars["pos_middle"] == z3_vars["pos_min"] \
-            + z3_vars["d_pos"] * (z3_vars["n"]-1) / 2,
-        all_constraints += z3_vars["freq_middle"] == z3_vars["freq_min"] \
-            + z3_vars["d_freq"] * (z3_vars["n"]-1) / 2,
+        all_constraints.append(z3_vars["pos_middle"] ==
+            z3_vars["pos_min"] + z3_vars["d_pos"] * (z3_vars["n"]-1) / 2)
+        all_constraints.append(z3_vars["freq_middle"] ==
+            z3_vars["freq_min"] + z3_vars["d_freq"] * (z3_vars["n"]-1) / 2)
 
     if add_constraints is not None:
         all_constraints += [add_constraints]
