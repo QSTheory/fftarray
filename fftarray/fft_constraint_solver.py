@@ -478,11 +478,13 @@ def _make_constraint_for_loose_param_group(
     """
 
     space = "freq" if any(["freq" in param for param in loose_param_group]) else "pos"
-    if any("min" in param for param in loose_param_group) \
-        and any("max" in param for param in loose_param_group):
-        return user_constraints[f"{space}_min"] \
-            - Real(f"{space}_min") == Real(f"{space}_max") \
+    if (any("min" in param for param in loose_param_group)
+        and any("max" in param for param in loose_param_group)):
+        return (
+            user_constraints[f"{space}_min"]
+            - Real(f"{space}_min") == Real(f"{space}_max")
             - user_constraints[f"{space}_max"]
+        )
     return None
 
 def _round_up_n(current_n: float, rounding_mode: str) -> int:

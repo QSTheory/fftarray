@@ -658,7 +658,10 @@ def _array_ufunc(self, ufunc, method, inputs, kwargs):
             unpacked_inputs.lazy_state,
         )
     # conj?
-    assert unpacked_inputs.lazy_state is None or unpacked_inputs.lazy_state == LazyState()
+    assert (
+        unpacked_inputs.lazy_state is None
+        or unpacked_inputs.lazy_state == LazyState()
+    )
     values = tensor_lib_ufunc(*unpacked_inputs.values, **kwargs)
     return _pack_values(
         values,
@@ -1152,7 +1155,7 @@ class FFTDimension:
 
 
     def _index_from_coord(
-        self,
+            self,
             x,
             method: Optional[Literal["nearest", "min", "max"]],
             space: Space,
