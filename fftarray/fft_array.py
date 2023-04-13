@@ -187,12 +187,16 @@ class FFTArray():
         for dim in self.dims:
             if dim.name in kwargs:
                 slices.append(
+                    # mypy error: kwargs is of type "Dict[str, Any]" but
+                    # dim.name is of type "Hashable". However, the if condition
+                    # already makes sure that dim.name is a key of kwargs (so
+                    # also of type "str")
                     dim._index_from_coord(
-                        kwargs[str(dim.name)],
+                        kwargs[dim.name], # type: ignore
                         method=method,
                         space=self.space,
                     )
-                ) #type: ignore
+                )
             else:
                 slices.append(slice(None, None, None))
         return self.__getitem__(tuple(slices))
