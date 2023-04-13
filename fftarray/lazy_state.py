@@ -1,27 +1,27 @@
 from __future__ import annotations
-
 from typing import Dict, Union, Hashable
 from dataclasses import dataclass
 from copy import copy, deepcopy
 from functools import reduce
 
 
-# TODO Should this still be a dataclass?
 @dataclass
 class PhaseFactors:
-    """Dataclass containing information about the phase factors. The values are 
-    ofthe form `{n: a_n}` where `n` is a positive integer including zero and 
+    """Dataclass containing information about the phase factors. The values are
+    ofthe form `{n: a_n}` where `n` is a positive integer including zero and
     `a_n` is a float or complex number.
-    Stores "phase-factors" that are evaluated by multiplying 
-    `np.exp(1.j * a_n * (i**n))` to the values they belong to (here `i` denotes 
+    Stores "phase-factors" that are evaluated by multiplying
+    `np.exp(1.j * a_n * (i**n))` to the values they belong to (here `i` denotes
     the index in the array and dimension this instance belongs to).
     """
+
     # Dict[n: a_n]
     values: Dict[int, Union[float, complex]]
 
     def __init__(self, values: Dict[int, Union[float, complex]]):
         # TODO: Specialize float or not?
-        # Can also just check real uand imag part at kernel launch and simplify that here.
+        # Can also just check real uand imag part at kernel launch and simplify
+        # that here.
         self.values = {index: complex(value) for index, value in values.items()}
         for value in self.values.values():
             assert isinstance(value, complex)
@@ -54,22 +54,27 @@ class PhaseFactors:
             assert isinstance(result[i], complex)
         return PhaseFactors(result)
 
-def _get_phase_factor_change(existing: Dict[str, PhaseFactors], target: Dict[str, PhaseFactors]) -> Dict[str, PhaseFactors]:
-    """Return the phase factors I need to apply in order to change from the 
+
+def _get_phase_factor_change(
+        existing: Dict[str, PhaseFactors],
+        target: Dict[str, PhaseFactors]
+    ) -> Dict[str, PhaseFactors]:
+    """Return the phase factors I need to apply in order to change from the
     `existing` to the `target` PhaseFactors state.
     Used in `get_lazy_state_to_apply`.
     """
     factor_names = set(existing.keys()).union(set(target.keys()))
     # If our existing phase factor should not exist in the target we need to apply.
     # If we want to add a new phase factor we need to apply its inverse.
-    return {name: existing.get(name, PhaseFactors({})) - target.get(name, PhaseFactors({}))
+    return {
+        name: existing.get(name, PhaseFactors({})) - target.get(name, PhaseFactors({}))
         for name in factor_names
     }
 
 def get_lazy_state_to_apply(existing: LazyState, target: LazyState) -> LazyState:
-    """Returns the phase `LazyState` that needs to be applied to change the 
+    """Returns the phase `LazyState` that needs to be applied to change the
     `existing` to the `target` LazyState.
-    
+
     Used in `FFTArray._set_lazy_state`.
 
     Parameters
@@ -78,15 +83,15 @@ def get_lazy_state_to_apply(existing: LazyState, target: LazyState) -> LazyState
         The current LazyState.
     target : LazyState
         The target LazyState.
-    
+
     Returns
     -------
     LazyState
         LazyState defining the transition from `existing` to `target`.
     """
     # Iterate over dims
-    phases_to_apply = {dim:
-        _get_phase_factor_change(
+    phases_to_apply = {
+        dim: _get_phase_factor_change(
             existing._phases_per_dim.get(dim, {}),
             target._phases_per_dim.get(dim, {})
         )
@@ -98,17 +103,19 @@ def get_lazy_state_to_apply(existing: LazyState, target: LazyState) -> LazyState
     return result
 
 
+@dataclass
 class LazyState:
-    """Represents the lazy state of a whole FFTArray. It allows the lazy 
-    evaluation of scale factors before broadcasted to each value of the 
+    """Represents the lazy state of a whole FFTArray. It allows the lazy
+    evaluation of scale factors before broadcasted to each value of the
     FFTArray.
-    
-    Phase factors are stored per dimension under specific names in order to 
-    allow guarantueed cancelling in the presence of floating point rounding 
+
+    Phase factors are stored per dimension under specific names in order to
+    allow guarantueed cancelling in the presence of floating point rounding
     errors.
-    
+
     Scale is just one complex number for all dimensions.
     """
+
     # There is one dict per dimension.
     _phases_per_dim: Dict[Hashable, Dict[str, PhaseFactors]]
     # TODO Currently we only have one use for that so it is less general.
@@ -118,18 +125,18 @@ class LazyState:
         self._phases_per_dim = {}
         self._scale = complex(scale)
 
-    def __eq__(self, other) -> bool:
-        if type(self) != type(other):
-            return False
-        return self._scale == other._scale and self._phases_per_dim == other._phases_per_dim
-
     @property
     def scale(self) -> complex:
         """Returns the scale factor (one complex number for all dimensions)"""
         assert isinstance(self._scale, complex)
         return self._scale
 
-    def add_phase_factor(self, dim: Hashable, factor_name: str, phase_factors: PhaseFactors) -> LazyState:
+    def add_phase_factor(
+            self,
+            dim: Hashable,
+            factor_name: str,
+            phase_factors: PhaseFactors
+        ) -> LazyState:
         """Add the `phase_factors` to the phase factors of `self`.
 
         Parameters
@@ -140,7 +147,7 @@ class LazyState:
             Name of the phase factor.
         phase_factors : PhaseFactors
             The phase factor that should be added.
-        
+
         Returns
         -------
         LazyState
@@ -161,14 +168,14 @@ class LazyState:
         return new_lazy
 
     def add_scale(self, scale: complex) -> LazyState:
-        """Combine the scales of `self` with `scale` (they are multiplied 
+        """Combine the scales of `self` with `scale` (they are multiplied
         together).
 
         Parameters
         ----------
         scale : complex
             Scale factor that is multiplied on top of `self.scale`.
-        
+
         Returns
         -------
         LazyState
@@ -181,12 +188,16 @@ class LazyState:
 
     def phase_factors_for_dim(self, dim_name: Hashable) -> PhaseFactors:
         """Returns the sum of the phase factors associated to `dim_name`."""
-        return reduce(lambda a,b: a+b, self._phases_per_dim.get(dim_name, {}).values(), PhaseFactors({}))
+        return reduce(
+            lambda a,b: a+b,
+            self._phases_per_dim.get(dim_name, {}).values(),
+            PhaseFactors({})
+        )
 
     def __add__(self, other: LazyState) -> LazyState:
-        """Combine two lazy states into one (the new LazyState containes the sum 
+        """Combine two lazy states into one (the new LazyState containes the sum
         of the phase factors and the product of the scales).
-        The combined results in the same thing as applying both one after the 
+        The combined results in the same thing as applying both one after the
         other up to rounding errors.
         """
         assert isinstance(other, LazyState)

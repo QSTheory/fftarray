@@ -1,6 +1,7 @@
+import numpy as np
+
 from fftarray.fft_constraint_solver import _z3_constraint_solver
 from fftarray.fft_constraint_solver import NoSolutionFoundError, NoUniqueSolutionError
-import numpy as np
 
 def test_undefined_pos_space():
     user_constraints = dict(

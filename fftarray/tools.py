@@ -1,6 +1,8 @@
 from typing import Dict, Hashable
-from fftarray import FFTArray
+
 import numpy as np
+
+from fftarray import FFTArray
 
 def shift_frequency(wf: FFTArray, offsets: Dict[Hashable, float]) -> FFTArray:
     """Shift the wavefunction in frequency space:
