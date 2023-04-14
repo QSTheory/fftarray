@@ -3,7 +3,7 @@ from typing import (
     Optional, Union, List, Any, Tuple, Dict, Hashable,
     Literal, TypeVar, Iterable, Set, Generic
 )
-from abc import abstractmethod
+from abc import ABCMeta, abstractmethod
 from copy import copy, deepcopy
 from numbers import Number
 from dataclasses import dataclass
@@ -67,7 +67,7 @@ class LocFFTArrayIndexer(Generic[T]):
         return self._arr.__getitem__(tuple(slices))
 
 
-class FFTArray():
+class FFTArray(metaclass=ABCMeta):
     """The base class of `PosArray` and `FreqArray` that implements all shared
     behavior.
     """
@@ -480,10 +480,7 @@ class PosArray(FFTArray):
 
         res_freq = FreqArray(
             dims=self.dims,
-            values=self._tlib.fftn(
-                res_pos.values,
-                precision=self._dims[0].default_tlib.precision,
-            ),
+            values=self._tlib.fftn(res_pos.values),
             eager=self.is_eager
         )
 
@@ -526,10 +523,7 @@ class FreqArray(FFTArray):
         res_pos = PosArray(
             dims=self.dims,
             # TODO: Generic backend selection
-            values=self._tlib.ifftn(
-                res_freq.values,
-                precision=self._dims[0].default_tlib.precision,
-            ),
+            values=self._tlib.ifftn(res_freq.values),
             eager=self.is_eager
         )
         for dim in self._dims:
