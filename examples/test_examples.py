@@ -38,7 +38,7 @@ class NotebookLoader(object):
         """import a notebook as a module"""
         path = find_notebook(fullname, self.path)
 
-        print ("importing Jupyter notebook from %s" % path)
+        print("importing Jupyter notebook from %s" % path)
 
         # load the notebook object
         with io.open(path, 'r', encoding='utf-8') as f:
@@ -95,7 +95,4 @@ sys.meta_path.append(NotebookFinder())
 
 def test_notebooks():
     # The import statements automatically evaluate all cells.
-    print([m for m in sys.modules.keys()])
-    modulenames = set(sys.modules) & set(globals())
-    print(sys.path)
     from examples import Gaussians
