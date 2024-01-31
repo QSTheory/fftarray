@@ -85,7 +85,6 @@ def fft_dim_from_constraints(
             n=int(params["n"]),
             d_pos=params["d_pos"],
             pos_min=params["pos_min"],
-            d_freq=params["d_freq"],
             freq_min=params["freq_min"],
             default_tlib = default_tlib,
             default_eager = default_eager
