@@ -1,6 +1,8 @@
-from typing import Sequence, Tuple, Hashable, Any, List, Dict
+from typing import Sequence, Tuple, Hashable, Any, List, Dict, TypeVar
 from numpy.typing import ArrayLike
 from dataclasses import dataclass
+
+TArrayLike = TypeVar("TArrayLike", bound=ArrayLike)
 
 #-------------------
 # TODO This is copied from abstraction but then quite significantly modified
@@ -58,11 +60,11 @@ class FillDim:
 
 
 def transpose_array(
-        array: ArrayLike,
+        array: TArrayLike,
         tlib,
         old_dims: Sequence[Hashable],
         new_dims: Sequence[Hashable]
-    ) -> ArrayLike:
+    ) -> TArrayLike:
     """
         `old_dims` and `new_dims` must be a transpose of one another.
         They may be shorter than array.shape. The last dims are left untouched.

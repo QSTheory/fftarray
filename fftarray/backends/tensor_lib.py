@@ -13,7 +13,6 @@ if TYPE_CHECKING:
 
 
 PrecisionSpec = Literal["default", "fp32", "fp64"]
-T = TypeVar("T")
 
 @dataclass
 class TensorLib(metaclass=ABCMeta):
@@ -46,10 +45,10 @@ class TensorLib(metaclass=ABCMeta):
 
     def get_values_lazy_factors_applied(
                 self,
-                values: T,
+                values: ArrayLike,
                 dims: Iterable[FFTDimension],
                 lazy_state: LazyState,
-            ) -> T:
+            ) -> ArrayLike:
         """
             This function takes all dims so that it has more freedom to optimize the application over all dimensions.
             # TODO Get the aliasing and copy story for values straight.
