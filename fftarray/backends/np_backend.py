@@ -1,4 +1,4 @@
-from typing import Callable, Union
+from typing import Callable, Union, Sequence
 from types import ModuleType
 import warnings
 
@@ -13,8 +13,8 @@ class NumpyTensorLib(TensorLib):
     def __init__(self, precision: PrecisionSpec = "default"):
         TensorLib.__init__(self, precision=precision)
 
-    def fftn(self, values) -> Union[NDArray[np.complex64], NDArray[np.complex128]]:
-        transformed = np.fft.fftn(values)
+    def fftn(self, values, axes: Sequence[int]) -> Union[NDArray[np.complex64], NDArray[np.complex128]]:
+        transformed = np.fft.fftn(values, axes=axes)
         if self.precision == "fp32":
             warnings.warn(
                 "numpy.fft.fftn always computes in double precision. " +
@@ -24,8 +24,8 @@ class NumpyTensorLib(TensorLib):
             return transformed.astype(np.complex64)
         return transformed
 
-    def ifftn(self, values) -> Union[NDArray[np.complex64], NDArray[np.complex128]]:
-        transformed = np.fft.ifftn(values)
+    def ifftn(self, values, axes: Sequence[int]) -> Union[NDArray[np.complex64], NDArray[np.complex128]]:
+        transformed = np.fft.ifftn(values, axes=axes)
         if self.precision == "fp32":
             warnings.warn('numpy.fft.ifftn always computes in double precision. Since precision was set to fp32 the result is automatically truncated.')
             return transformed.astype(np.complex64)

@@ -8,7 +8,7 @@ from .fft_array import FFTArray
 #--------------------
 def as_xr_pos(arr: FFTArray) -> xr.DataArray:
     return xr.DataArray(
-        np.array(arr.pos_array()),
+        np.array(arr.into(space="pos")),
         coords = {dim.name: np.array(dim.pos_array()) for dim in arr.dims},
         # TODO These in the attributes somehow crash where with a pickle error.
         # attrs = _xr_attribs(arr),
@@ -26,14 +26,14 @@ def as_xr_dataset(arr: FFTArray) -> xr.Dataset:
             "pos": xr.DataArray(
                 np.array(arr.into(space="pos")),
                 coords = {
-                    f"{dim.name}_pos": np.array(dim.into(space="pos"))
+                    f"{dim.name}_pos": np.array(dim.pos_array())
                     for dim in arr.dims
                 }
             ),
             "freq":  xr.DataArray(
                 np.array(arr.into(space="freq")),
                 coords = {
-                    f"{dim.name}_freq": np.array(dim.into(space="freq"))
+                    f"{dim.name}_freq": np.array(dim.freq_array())
                     for dim in arr.dims
                 }
             ),

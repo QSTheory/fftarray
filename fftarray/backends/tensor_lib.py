@@ -1,15 +1,14 @@
 from __future__ import annotations
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
-from typing import Callable, Dict, Literal, Iterable, Tuple, TYPE_CHECKING
+from typing import Callable, Dict, Literal, Iterable, Tuple, Sequence, TYPE_CHECKING
 from types import ModuleType
 
 import numpy as np
 from numpy.typing import ArrayLike
 
 if TYPE_CHECKING:
-    from ..fft_array import FFTDimension
-    from ..lazy_state import LazyState
+    from ..fft_array import FFTDimension, Space
 
 
 PrecisionSpec = Literal["default", "fp32", "fp64"]
@@ -20,11 +19,11 @@ class TensorLib(metaclass=ABCMeta):
     precision: PrecisionSpec
 
     @abstractmethod
-    def fftn(self, values: ArrayLike) -> ArrayLike:
+    def fftn(self, values: ArrayLike, axes: Sequence[int]) -> ArrayLike:
         ...
 
     @abstractmethod
-    def ifftn(self, values: ArrayLike) -> ArrayLike:
+    def ifftn(self, values: ArrayLike, axes: Sequence[int]) -> ArrayLike:
         ...
 
     @property
@@ -46,10 +45,10 @@ class TensorLib(metaclass=ABCMeta):
     def get_values_with_lazy_factors(
             self,
             values,
-            dims: Tuple[FFTDimension],
-            input_factors_applied: Tuple[bool],
-            target_factors_applied: Tuple[bool],
-            space: Tuple[Literal["pos", "space"]],
+            dims: Iterable[FFTDimension],
+            input_factors_applied: Iterable[bool],
+            target_factors_applied: Iterable[bool],
+            space: Iterable[Space],
         ):
         """
             This function takes all dims so that it has more freedom to optimize the application over all dimensions.
@@ -63,8 +62,8 @@ class TensorLib(metaclass=ABCMeta):
         # Real-numbered scale
         scale: float = 1.
         # This is gonna be an array of the shape of values, with length 1 in dimensions that do not change.
-        per_idx_phase_factors = 0.
-        for dim_idx, dim, input, target, space in enumerate(zip(dims, input_factors_applied, target_factors_applied, space)):
+        per_idx_phase_factors = self.array(0., self.real_type)
+        for dim_idx, (dim, input, target, dim_space) in enumerate(zip(dims, input_factors_applied, target_factors_applied, space)):
             # If both are the same, we do not need to do anything
 
             if input != target:
@@ -79,20 +78,21 @@ class TensorLib(metaclass=ABCMeta):
                     sign = 1
                 else:
                     sign = -1
-                if space == "pos":
+                if dim_space == "pos":
                     x = indices * dim.d_pos + dim.pos_min
                     per_idx_values = -sign*2*np.pi*dim.freq_min*dim.d_pos*x
-                elif space == "freq":
+                else:
                     f = indices * dim.d_freq + dim.freq_min
                     per_idx_values = sign*2*np.pi*dim.pos_min*dim.d_freq*f
                     per_idx_values = per_idx_values * sign*2*np.pi*dim.pos_min*dim.freq_min
                     # TODO: Write as separate mul or div?
-                    scale = scale * (dim.d_freq*dim.N)**sign
+                    scale = scale * (dim.d_freq*dim.n)**sign
 
                 per_idx_phase_factors = per_idx_phase_factors + per_idx_values
 
-        if per_idx_phase_factors != 0:
-            exponent = self.array(1.j, dtype=self.complex_type) * per_idx_phase_factors
+        if len(per_idx_phase_factors.shape) > 0:
+            # TODO: Figure out typing
+            exponent = self.array(1.j, dtype=self.complex_type) * per_idx_phase_factors # type: ignore
             # TODO Could optimise exp into cos and sin because exponent is purely complex
             # Is that faster or more precise? Should we test that or just do it?
             values = values * self.numpy_ufuncs.exp(exponent)

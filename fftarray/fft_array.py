@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import (
     Optional, Union, List, Any, Tuple, Dict, Hashable,
-    Literal, TypeVar, Iterable, Set, Generic
+    Literal, TypeVar, Iterable, Set, Generic, Type
 )
 from abc import ABCMeta, abstractmethod
 from copy import copy, deepcopy
@@ -13,12 +13,10 @@ import numpy.lib.mixins
 
 from .named_array import align_named_arrays, get_axes_transpose
 from .fft_constraint_solver import _z3_constraint_solver
-from .lazy_state import PhaseFactors, LazyState, get_lazy_state_to_apply
 from .backends.tensor_lib import TensorLib
 from .backends.np_backend import NumpyTensorLib
 from .helpers import reduce_equal, UniformValue
 
-TFFTArray = TypeVar("TFFTArray", bound="FFTArray")
 T = TypeVar("T")
 
 Space = Literal["pos", "freq"]
@@ -33,14 +31,14 @@ def _get_tensor_lib(dims: Iterable[FFTDimension]) -> TensorLib:
 # Helper functions to support type inference on binary and unary functions in FFTArray
 #-------------
 def _binary_ufuncs(op):
-    def fun(self: TFFTArray, other) -> TFFTArray:
+    def fun(self: FFTArray, other) -> FFTArray:
         return op(self, other)
-    def fun_ref(self: TFFTArray, other) -> TFFTArray:
+    def fun_ref(self: FFTArray, other) -> FFTArray:
         return op(other, self)
     return fun, fun_ref
 
 def _unary_ufunc(op):
-    def fun(self: TFFTArray) -> TFFTArray:
+    def fun(self: FFTArray) -> FFTArray:
         return op(self)
     return fun
 
@@ -60,18 +58,19 @@ class LocFFTArrayIndexer(Generic[T]):
             assert item == slice(None, None, None)
             return self._arr.values
         slices = []
-        for dim, dim_item in zip(self._arr.dims, item):
+        for dim, dim_item, space in zip(self._arr.dims, item, self._arr._space):
             if isinstance(dim_item, slice):
                 slices.append(dim_item)
             else:
-                slices.append(dim._index_from_coord(dim_item, method=None, space=self._arr.space))
+                slices.append(dim._index_from_coord(dim_item, method=None, space=space))
         return self._arr.__getitem__(tuple(slices))
 
-def _norm_param(val: Union[T, Iterable[T]], types) -> List[T]:
+def _norm_param(val: Union[T, Iterable[T]], types) -> Tuple[T, ...]:
     if isinstance(val, types):
-        return [val]
+        return tuple([val])
 
-    return list(val)
+    # TODO: Can we make this type check work?
+    return tuple(val) # type: ignore
 
 class FFTArray(metaclass=ABCMeta):
     """
@@ -84,11 +83,11 @@ class FFTArray(metaclass=ABCMeta):
     # Contains an array instance of _tlib with _lazy_state not yet applied.
     _values: Any
     # Marks each dimension whether it is in position or frequency space
-    _space: Tuple[Space]
+    _space: Tuple[Space, ...]
     # Marks each dimension whether the phase-factors should be applied directly after executing a fft or ifft
-    _eager: Tuple[bool]
+    _eager: Tuple[bool, ...]
     # Marks each dim whether its phase_factors still need to be applied
-    _factors_applied: Tuple[bool]
+    _factors_applied: Tuple[bool, ...]
     # Contains the array backend, precision and device to be used for operations.
     _tlib: TensorLib
 
@@ -145,23 +144,24 @@ class FFTArray(metaclass=ABCMeta):
     # Selection
     #--------------------
 
-    def __getitem__(self: TFFTArray, item) -> TFFTArray:
+    def __getitem__(self, item):
         new_dims = []
+
         if isinstance(item, slice):
             item = [item]
-        for index, dimension in zip(item, self._dims):
+        for index, dimension, space in zip(item, self._dims, self._space):
             if not isinstance(index, slice):
                 new_dim = dimension._dim_from_start_and_n(
                     start=index,
                     n=1,
-                    space=self.space,
+                    space=space,
                 )
                 index = slice(index, index+1, None)
             elif index == slice(None, None, None):
                 # No selection, just keep the old dim.
                 new_dim = dimension
             else:
-                new_dim = dimension._dim_from_slice(index, self.space)
+                new_dim = dimension._dim_from_slice(index, space)
 
             new_dims.append(new_dim)
 
@@ -171,10 +171,12 @@ class FFTArray(metaclass=ABCMeta):
         # So we have to reintroduce those dropped dimensions via reshape.
         selected_values = selected_values.reshape(tuple(dim.n for dim in new_dims))
 
-        return self.__class__(
-            values = selected_values,
-            dims = new_dims,
-            eager = self._lazy_state is None
+        return FFTArray(
+            values=selected_values,
+            dims=new_dims,
+            space=self._space,
+            eager=self._eager,
+            factors_applied=self._factors_applied,
         )
 
     @property
@@ -195,7 +197,7 @@ class FFTArray(metaclass=ABCMeta):
             Supports in addition to its xarray-counterpart tuples for ranges.
         """
         slices = []
-        for dim in self.dims:
+        for dim, space in zip(self.dims, self._space):
             if dim.name in kwargs:
                 slices.append(
                     # mypy error: kwargs is of type "Dict[str, Any]" but
@@ -205,7 +207,7 @@ class FFTArray(metaclass=ABCMeta):
                     dim._index_from_coord(
                         kwargs[dim.name], # type: ignore
                         method=method,
-                        space=self.space,
+                        space=space,
                     )
                 )
             else:
@@ -245,14 +247,13 @@ class FFTArray(metaclass=ABCMeta):
             Therefore each call evaluates its lazy state again.
             Use `evaluate_lazy_state` if you want to evaluate it once and reuse it multiple times.
         """
-        if self._lazy_state is None:
-            # TODO There is no defensive copy here for the Numpy Backend
-            return self._values
+        # TODO Ensure defensive copy here for the Numpy Backend?
         return self._tlib.get_values_with_lazy_factors(
             values=self._values,
-            dimns=self._dims,
-            input=self._factors_applied,
-            output=tuple([True]*len(self._dims)),
+            dims=self._dims,
+            input_factors_applied=self._factors_applied,
+            target_factors_applied=tuple([True]*len(self._dims)),
+            space=self._space,
         )
 
     def into(
@@ -273,7 +274,7 @@ class FFTArray(metaclass=ABCMeta):
         if eager is None:
             eager_norm = self._eager
         else:
-            eager_norm = _norm_param(space, bool)
+            eager_norm = _norm_param(eager, bool)
 
 
 
@@ -282,7 +283,7 @@ class FFTArray(metaclass=ABCMeta):
             dims=self._dims
         else:
             tlib_norm = tlib
-            dims = [dim.set_default_tlib(tlib) for dim in self._dims]
+            dims = tuple([dim.set_default_tlib(tlib) for dim in self._dims])
             if tlib.numpy_ufuncs.iscomplexobj(self._values):
                 values = tlib.array(values, dtype=tlib.complex_type)
             else:
@@ -304,7 +305,7 @@ class FFTArray(metaclass=ABCMeta):
             )
             fft_axes = []
             ifft_axes = []
-            for dim_idx, old_space, new_space in enumerate(zip(self._space, space_norm)):
+            for dim_idx, (old_space, new_space) in enumerate(zip(self._space, space_norm)):
                 if old_space != new_space:
                     if old_space == "pos":
                         fft_axes.append(dim_idx)
@@ -319,10 +320,10 @@ class FFTArray(metaclass=ABCMeta):
 
 
         if factors_applied is None:
-            factors_norm = [
+            factors_norm = tuple([
                 is_eager if fft_needed else is_applied
                 for is_eager, fft_needed, is_applied in zip(self._factors_applied, needs_fft, eager_norm)
-            ]
+            ])
         else:
             factors_norm = _norm_param(factors_applied, bool)
 
@@ -360,7 +361,7 @@ class FFTArray(metaclass=ABCMeta):
     #         return self
     #     return self._set_lazy_state(LazyState())
 
-    def transpose(self: TFFTArray, *dims: Hashable) -> TFFTArray:
+    def transpose(self: FFTArray, *dims: Hashable) -> FFTArray:
         """
             Transpose with dimension names.
         """
@@ -572,7 +573,7 @@ class FFTArray(metaclass=ABCMeta):
 
 # Implementing NEP 13 https://numpy.org/neps/nep-0013-ufunc-overrides.html
 # See also https://numpy.org/doc/stable/user/basics.dispatch.html
-def _array_ufunc(self, ufunc, method, inputs, kwargs):
+def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
     """Override NumPy ufuncs, per NEP-13."""
     if method != "__call__":
         return NotImplemented
@@ -628,7 +629,7 @@ def _array_ufunc(self, ufunc, method, inputs, kwargs):
     #         unpacked_inputs.lazy_state,
     #     )
     # Further ops: conj, both lazy factors in addition, would need different unpacking...?
-    assert all(unpacked_inputs._factors_applied)
+    assert all(unpacked_inputs.factors_applied)
     values = tensor_lib_ufunc(*unpacked_inputs.values, **kwargs)
     return FFTArray(
         values=values,
@@ -690,9 +691,8 @@ class UnpackedDimProperties:
     eager: UniformValue[bool]
     space: UniformValue[Space]
 
-    def __init__(self, dim: FFTDimension):
+    def __init__(self):
         self.dim = UniformValue()
-        self.dim.set(dim)
         self.factors_applied = True
         self.eager = UniformValue()
         self.space = UniformValue()
@@ -731,44 +731,46 @@ def _unpack_fft_arrays(
 
             for dim_idx, fft_dim in enumerate(x._dims):
                 if not fft_dim.name in dims:
-                    dims[fft_dim.name] = UnpackedDimProperties(fft_dim)
+                    dim_props = UnpackedDimProperties()
+                    dims[fft_dim.name] = dim_props
                 else:
                     dim_props = dims[fft_dim.name]
-                    try:
-                        dim_props.dim.set(fft_dim)
-                    except ValueError:
-                        raise ValueError(
-                            "Tried to call ufunc on two FFTArrays with " +
-                            "different dimension of name " +
-                            f"{fft_dim.name}."
-                        )
 
-                    try:
-                        dim_props.space.set(x._space[dim_idx])
-                    except ValueError:
-                        raise ValueError(
-                            "Tried to call ufunc on two FFTArrays with " +
-                            "different spaces in dimension of name " +
-                            f"{fft_dim.name}." +
-                            "One of them has to be explicitly converted " +
-                            "into the other space to ensure the correct space."
-                        )
+                try:
+                    dim_props.dim.set(fft_dim)
+                except ValueError:
+                    raise ValueError(
+                        "Tried to call ufunc on two FFTArrays with " +
+                        "different dimension of name " +
+                        f"{fft_dim.name}."
+                    )
 
-                    try:
-                        dim_props.eager.set(x._eager[dim_idx])
-                    except ValueError:
-                        raise ValueError(
-                            "Tried to call ufunc on two FFTArrays with " +
-                            "different eager settings in dimension of name " +
-                            f"{fft_dim.name}."
-                        )
+                try:
+                    dim_props.space.set(x._space[dim_idx])
+                except ValueError:
+                    raise ValueError(
+                        "Tried to call ufunc on two FFTArrays with " +
+                        "different spaces in dimension of name " +
+                        f"{fft_dim.name}." +
+                        "One of them has to be explicitly converted " +
+                        "into the other space to ensure the correct space."
+                    )
 
-                    # if not keep_lazy this will just be overwritten later.
-                    if dim_props.factors_applied:
-                        dim_props.factors_applied = x._factors_applied[dim_idx]
-                    else:
-                        # need to apply this factor
-                        target_factors_applied[dim_idx] = True
+                try:
+                    dim_props.eager.set(x._eager[dim_idx])
+                except ValueError:
+                    raise ValueError(
+                        "Tried to call ufunc on two FFTArrays with " +
+                        "different eager settings in dimension of name " +
+                        f"{fft_dim.name}."
+                    )
+
+                # if not keep_lazy this will just be overwritten later.
+                if dim_props.factors_applied:
+                    dim_props.factors_applied = x._factors_applied[dim_idx]
+                else:
+                    # need to apply this factor
+                    target_factors_applied[dim_idx] = True
 
             if not keep_lazy:
                 target_factors_applied = [True]*len(target_factors_applied)
@@ -787,11 +789,11 @@ def _unpack_fft_arrays(
 
 
     # Broadcasting
-    dim_names, aligned_arrs = align_named_arrays(arrays_to_align, tlib=tlib)
+    dim_names, aligned_arrs = align_named_arrays(arrays_to_align, tlib=tlib.get())
     for idx, arr in zip(array_indices, aligned_arrs):
         unpacked_values[idx] = arr
 
-    dims_list = [dims[dim_name].dim for dim_name in dim_names]
+    dims_list = [dims[dim_name].dim.get() for dim_name in dim_names]
     space_list = [dims[dim_name].space.get() for dim_name in dim_names]
     factors_applied_list = [dims[dim_name].factors_applied for dim_name in dim_names]
     eager_list = [dims[dim_name].eager.get() for dim_name in dim_names]
@@ -1106,7 +1108,7 @@ class FFTDimension:
     def pos_array(
             self: FFTDimension,
             tlib: Optional[TensorLib] = None
-        ) -> PosArray:
+        ) -> FFTArray:
         """..
 
         Returns
@@ -1124,10 +1126,12 @@ class FFTDimension:
             dtype = dim.default_tlib.real_type,
         )
 
-        return PosArray(
+        return FFTArray(
             values = indices * dim.d_pos + dim.pos_min,
             dims = [dim],
             eager = self._default_eager,
+            factors_applied=True,
+            space="pos",
         )
 
     def _dim_from_slice(self, range: slice, space: Space) -> FFTDimension:
@@ -1290,7 +1294,7 @@ class FFTDimension:
     def freq_array(
             self: FFTDimension,
             tlib: Optional[TensorLib] = None,
-        ) -> FreqArray:
+        ) -> FFTArray:
         """..
 
         Returns
@@ -1308,8 +1312,10 @@ class FFTDimension:
             dtype = dim.default_tlib.real_type,
         )
 
-        return FreqArray(
+        return FFTArray(
             values = indices * dim.d_freq + dim.freq_min,
             dims = [dim],
             eager = self._default_eager,
+            factors_applied=True,
+            space="freq",
         )
