@@ -12,7 +12,6 @@ import numpy as np
 import numpy.lib.mixins
 
 from .named_array import align_named_arrays, transpose_array
-from .fft_constraint_solver import _z3_constraint_solver
 from .lazy_state import PhaseFactors, LazyState, get_lazy_state_to_apply
 from .backends.tensor_lib import TensorLib
 from .backends.np_backend import NumpyTensorLib
@@ -920,54 +919,22 @@ class FFTDimension:
     def __init__(
             self,
             name: str,
-            *,
-            n: Union[int, Literal["power_of_two", "even"]] = "power_of_two",
-            d_pos: Optional[float] = None,
-            d_freq: Optional[float] = None,
-            pos_min: Optional[float] = None,
-            pos_max: Optional[float] = None,
-            pos_middle: Optional[float] = None,
-            pos_extent: Optional[float] = None,
-            freq_min: Optional[float] = None,
-            freq_max: Optional[float] = None,
-            freq_extent: Optional[float] = None,
-            freq_middle: Optional[float] = None,
-            loose_params: Optional[Union[str, List[str]]] = None,
+            n: int,
+            d_pos: float,
+            pos_min: float,
+            d_freq: float,
+            freq_min: float,
             default_tlib: TensorLib = NumpyTensorLib(),
             default_eager: bool = False,
         ):
         self._name = name
+        self._n = n
+        self._d_pos = d_pos
+        self._pos_min = pos_min
+        self._d_freq = d_freq
+        self._freq_min = freq_min
         self._default_tlib = default_tlib
         self._default_eager = default_eager
-
-        if isinstance(loose_params, str):
-            loose_params = [loose_params]
-        elif loose_params is None:
-            loose_params = []
-
-        params = _z3_constraint_solver(
-            constraints=dict(
-                n = n,
-                d_pos = d_pos,
-                d_freq = d_freq,
-                pos_min = pos_min,
-                pos_max = pos_max,
-                pos_middle = pos_middle,
-                pos_extent = pos_extent,
-                freq_min = freq_min,
-                freq_max = freq_max,
-                freq_extent = freq_extent,
-                freq_middle = freq_middle
-            ),
-            loose_params=loose_params,
-            make_suggestions=True
-        )
-
-        self._pos_min = params["pos_min"]
-        self._freq_min = params["freq_min"]
-        self._d_pos = params["d_pos"]
-        self._d_freq = params["d_freq"]
-        self._n = int(params["n"])
 
     def __repr__(self: FFTDimension) -> str:
         arg_str = ", ".join([f"{name[1:]}={repr(value)}" for name, value in self.__dict__.items() if name != "_d_freq"])

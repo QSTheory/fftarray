@@ -6,7 +6,7 @@ of the FFTWave. It contains functions that are out of scope for the average
 FFTWave user. Please visit the development area to toggle their visibility.
 """
 
-from typing import Any, Optional, Union, List, Dict
+from typing import Any, Optional, Union, List, Dict, Literal
 import sys
 import decimal
 
@@ -16,6 +16,9 @@ from z3 import (
 )
 import numpy as np
 
+from .fft_array import FFTDimension
+from .backends.tensor_lib import TensorLib
+from .backends.np_backend import NumpyTensorLib
 from .fft_constraint_solver_exceptions import *
 
 # This dict contains all possible user constraints
@@ -34,6 +37,59 @@ VARS_WITH_PROPS: Dict[str, Optional[str]] = {
     "freq_extent": "min",
     "freq_middle": None,
 }
+
+def fft_dim_from_constraints(
+            name: str,
+            *,
+            n: Union[int, Literal["power_of_two", "even"]] = "power_of_two",
+            d_pos: Optional[float] = None,
+            d_freq: Optional[float] = None,
+            pos_min: Optional[float] = None,
+            pos_max: Optional[float] = None,
+            pos_middle: Optional[float] = None,
+            pos_extent: Optional[float] = None,
+            freq_min: Optional[float] = None,
+            freq_max: Optional[float] = None,
+            freq_extent: Optional[float] = None,
+            freq_middle: Optional[float] = None,
+            loose_params: Optional[Union[str, List[str]]] = None,
+            default_tlib: TensorLib = NumpyTensorLib(),
+            default_eager: bool = False,
+        ) -> FFTDimension:
+
+        if isinstance(loose_params, str):
+            loose_params = [loose_params]
+        elif loose_params is None:
+            loose_params = []
+
+        params = _z3_constraint_solver(
+            constraints=dict(
+                n = n,
+                d_pos = d_pos,
+                d_freq = d_freq,
+                pos_min = pos_min,
+                pos_max = pos_max,
+                pos_middle = pos_middle,
+                pos_extent = pos_extent,
+                freq_min = freq_min,
+                freq_max = freq_max,
+                freq_extent = freq_extent,
+                freq_middle = freq_middle
+            ),
+            loose_params=loose_params,
+            make_suggestions=True
+        )
+
+        return FFTDimension(
+            name=name,
+            n=int(params["n"]),
+            d_pos=params["d_pos"],
+            pos_min=params["pos_min"],
+            d_freq=params["d_freq"],
+            freq_min=params["freq_min"],
+            default_tlib = default_tlib,
+            default_eager = default_eager
+        )
 
 def _z3_constraint_solver(
         *, # prohibit use of positional arguments
