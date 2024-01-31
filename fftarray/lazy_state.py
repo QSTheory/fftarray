@@ -1,12 +1,10 @@
 from __future__ import annotations
-
 from typing import Dict, Union, Hashable
 from dataclasses import dataclass
 from copy import copy, deepcopy
 from functools import reduce
 
 
-# TODO Should this still be a dataclass?
 @dataclass
 class PhaseFactors:
     """
@@ -15,12 +13,14 @@ class PhaseFactors:
         i: index in array and dimension this instance belongs to.
         Stores "phase-factors" that are evaluated by multiplying `np.exp(1.j * a_n * (i**n))` to the values they belong to.
     """
+
     # Dict[n: a_n]
     values: Dict[int, Union[float, complex]]
 
     def __init__(self, values: Dict[int, Union[float, complex]]):
         # TODO: Specialize float or not?
-        # Can also just check real uand imag part at kernel launch and simplify that here.
+        # Can also just check real uand imag part at kernel launch and simplify
+        # that here.
         self.values = {index: complex(value) for index, value in values.items()}
         for value in self.values.values():
             assert isinstance(value, complex)
@@ -53,7 +53,11 @@ class PhaseFactors:
             assert isinstance(result[i], complex)
         return PhaseFactors(result)
 
-def _get_phase_factor_change(existing: Dict[str, PhaseFactors], target: Dict[str, PhaseFactors]) -> Dict[str, PhaseFactors]:
+
+def _get_phase_factor_change(
+        existing: Dict[str, PhaseFactors],
+        target: Dict[str, PhaseFactors]
+    ) -> Dict[str, PhaseFactors]:
     """
         Return the phase factors I need to apply in order to change from the `existing` to the `target` PhaseFactors state.
         Used in `get_lazy_state_to_apply`.
@@ -61,7 +65,8 @@ def _get_phase_factor_change(existing: Dict[str, PhaseFactors], target: Dict[str
     factor_names = set(existing.keys()).union(set(target.keys()))
     # If our existing phase factor should not exist in the target we need to apply.
     # If we want to add a new phase factor we need to apply its inverse.
-    return {name: existing.get(name, PhaseFactors({})) - target.get(name, PhaseFactors({}))
+    return {
+        name: existing.get(name, PhaseFactors({})) - target.get(name, PhaseFactors({}))
         for name in factor_names
     }
 
@@ -71,8 +76,8 @@ def get_lazy_state_to_apply(existing: LazyState, target: LazyState) -> LazyState
         Used in `FFTArray._set_lazy_state`.
     """
     # Iterate over dims
-    phases_to_apply = {dim:
-        _get_phase_factor_change(
+    phases_to_apply = {
+        dim: _get_phase_factor_change(
             existing._phases_per_dim.get(dim, {}),
             target._phases_per_dim.get(dim, {})
         )
@@ -84,6 +89,7 @@ def get_lazy_state_to_apply(existing: LazyState, target: LazyState) -> LazyState
     return result
 
 
+@dataclass
 class LazyState:
     """
         Represents the lazy state of a whole FFTArray.
@@ -93,6 +99,7 @@ class LazyState:
 
         Scale is just one complex or float number for all dimensions.
     """
+
     # There is one dict per dimension.
     _phases_per_dim: Dict[Hashable, Dict[str, PhaseFactors]]
     # TODO Currently we only have one use for that so it is less general.
@@ -112,7 +119,12 @@ class LazyState:
         assert isinstance(self._scale, complex)
         return self._scale
 
-    def add_phase_factor(self: LazyState, dim: Hashable, factor_name: str, phase_factors: PhaseFactors) -> LazyState:
+    def add_phase_factor(
+            self: LazyState,
+            dim: Hashable,
+            factor_name: str,
+            phase_factors: PhaseFactors
+        ) -> LazyState:
         new_lazy = deepcopy(self)
         # If you copy a concrete traced jax-array it becomes a symbolic value.
         # Reassigning fixes that.
@@ -133,8 +145,15 @@ class LazyState:
         assert isinstance(new_lazy_state._scale, complex)
         return new_lazy_state
 
-    def phase_factors_for_dim(self: LazyState, dim_name: Hashable) -> PhaseFactors:
-        return reduce(lambda a,b: a+b, self._phases_per_dim.get(dim_name, {}).values(), PhaseFactors({}))
+    def phase_factors_for_dim(
+            self: LazyState,
+            dim_name: Hashable
+        ) -> PhaseFactors:
+        return reduce(
+            lambda a,b: a+b,
+            self._phases_per_dim.get(dim_name, {}).values(),
+            PhaseFactors({})
+        )
 
     def __add__(self: LazyState, other: LazyState) -> LazyState:
         """

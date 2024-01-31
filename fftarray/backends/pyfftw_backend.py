@@ -1,16 +1,31 @@
 import numpy as np
+from typing import Any, Callable
+from types import ModuleType
+from numpy.typing import NDArray, ArrayLike
 import pyfftw
 
 from .tensor_lib import TensorLib, PrecisionSpec
 
 pyfftw.interfaces.cache.enable()
 
+
 class PyFFTWTensorLib(TensorLib):
+
     def __init__(self, precision: PrecisionSpec = "default"):
         TensorLib.__init__(self, precision=precision)
         # TODO Use the direct pyfftw interface?
         # Might need info about shape which would introduce a further internal API
-        self.fftn = lambda values, precision: pyfftw.interfaces.numpy_fft.fftn(values)
-        self.ifftn = lambda values, precision: pyfftw.interfaces.numpy_fft.ifftn(values)
-        self.numpy_ufuncs = np
-        self.array = np.array
+
+    def fftn(self, values: ArrayLike) -> ArrayLike:
+        return pyfftw.interfaces.numpy_fft.fftn(values)
+    
+    def ifftn(self, values: ArrayLike) -> ArrayLike:
+        return pyfftw.interfaces.numpy_fft.ifftn(values)
+    
+    @property
+    def numpy_ufuncs(self) -> ModuleType:
+        return np
+
+    @property
+    def array(self) -> Callable[..., NDArray]:
+        return np.array

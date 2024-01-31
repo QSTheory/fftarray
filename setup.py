@@ -2,10 +2,16 @@ import setuptools
 import subprocess
 
 version = (
-    subprocess.run(["git", "describe", "--tags"], stdout=subprocess.PIPE)
+    subprocess.run(["git", "tag", "--points-at", "HEAD"], stdout=subprocess.PIPE)
     .stdout.decode("utf-8")
     .strip()
 )
+if version == "":
+    version = (
+        subprocess.run(["git", "describe", "--tags", "--abbrev=0"], stdout=subprocess.PIPE)
+        .stdout.decode("utf-8")
+        .strip()
+    )
 
 assert "." in version
 
@@ -40,7 +46,15 @@ setuptools.setup(
             "sphinx_rtd_theme",
             "myst_parser",
             "mistune==0.8.4",
-            "m2r2"
+            "m2r2",
+            "ipython",
+            "nbformat",
+            "bokeh",
+            "pyFFTW",
+        ],
+        "examples": [
+            "bokeh",
+            "ipython",
         ],
     }
 )

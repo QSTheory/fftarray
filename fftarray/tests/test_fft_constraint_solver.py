@@ -1,11 +1,11 @@
-from fftarray.fft_constraint_solver import _z3_constraint_solver
-from fftarray.fft_constraint_solver import ConstraintSolverError, NoSolutionFoundError, NoUniqueSolutionError, ConstraintValueError
 import numpy as np
 from numpy.testing import assert_array_almost_equal_nulp
 import pytest
 from hypothesis import given, strategies as st, settings, note
-import sys
 import jax.numpy as jnp
+
+from fftarray.fft_constraint_solver import _z3_constraint_solver
+from fftarray.fft_constraint_solver import ConstraintSolverError, NoSolutionFoundError, NoUniqueSolutionError, ConstraintValueError
 
 """Constant of Rubidium 87"""
 from numpy import pi
@@ -831,7 +831,7 @@ def test_invalid_values(test_val):
 #             make_suggestions=False
 #         )
 #     except ConstraintSolverError:
-#         pass
+#         ...
 #     except Exception as e:
 #         raise e
 
@@ -854,7 +854,7 @@ def test_invalid_values(test_val):
 #             make_suggestions=False
 #         )
 #     except ConstraintSolverError:
-#         pass
+#         ...
 #     except Exception as e:
 #         raise e
 
@@ -874,6 +874,6 @@ def test_invalid_values(test_val):
 #             make_suggestions=False
 #         )
 #     except ConstraintSolverError:
-#         pass
+#         ...
 #     except Exception as e:
 #         raise e
