@@ -24,7 +24,7 @@ setuptools.setup(
     long_description="",
     long_description_content_type="text/plain",
     url="",
-    packages=["fftarray"],
+    packages=setuptools.find_packages(),
     include_package_data=True,
     package_data={"fftarray": ["py.typed"]},
     zip_safe=False,
