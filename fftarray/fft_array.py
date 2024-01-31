@@ -970,23 +970,24 @@ class FFTDimension:
         self._n = int(params["n"])
 
     def __repr__(self: FFTDimension) -> str:
-        arg_str = ", ".join([f"{name[1:]}={repr(value)}" for name, value in self.__dict__.items() if name != "_d_freq"])
+        arg_str = ", ".join(
+            [f"{name[1:]}={repr(value)}"
+                for name, value in self.__dict__.items()
+                if name != "_d_freq"]
+        )
         return f"FFTDimension({arg_str})"
 
     def __str__(self: FFTDimension) -> str:
-        evaluated = 'eagerly' if self._default_eager else 'lazily'
-        properties = (
-            f"\t Number of grid points n: {self.n} \n\t " +
-            f"Position space: min={self.pos_min}, middle={self.pos_middle}, " +
-            f"max={self.pos_max}, extent={self.pos_extent}, d_pos={self.d_pos} \n\t " +
-            f"Frequency space: min={self.freq_min}, middle={self.freq_middle}, " +
-            f"max={self.freq_max}, extent={self.freq_extent}, d_freq={self.d_freq}"
-        )
-        return (
-            f"FFTDimension with name '{self.name}' on backend " +
-            f"'{self.default_tlib}' evaluated {evaluated} with the " +
-            f"following properties:\n{properties}"
-        )
+        str_out = f"FFTDimenion: name={repr(self.name)}, " + \
+            f"eval={'eager' if self._default_eager else 'lazy'}\n"
+        str_out += f"[Number of grid points] n={self._n}\n"
+        str_out += f"[Position space] d_pos={self._d_pos}, " + \
+            f"min={self.pos_min}, middle={self.pos_middle}, " + \
+            f"max={self.pos_max}, extent={self.pos_extent}\n"
+        str_out += f"[Frequency space] d_freq={self._d_freq}, " + \
+            f"min={self.freq_min}, middle={self.freq_middle}, " + \
+            f"max={self.freq_max}, extent={self.freq_extent}"
+        return str_out
 
     def set_default_tlib(self, tlib: TensorLib) -> FFTDimension:
         dim = copy(self)
