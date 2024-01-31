@@ -16,7 +16,7 @@ def as_xr_pos(arr: FFTArray) -> xr.DataArray:
 
 def as_xr_freq(arr: FFTArray) -> xr.DataArray:
     return xr.DataArray(
-        np.array(arr.freq_array()),
+        np.array(arr.into(space="freq")),
         coords = {dim.name: np.array(dim.freq_array()) for dim in arr.dims},
         # attrs = _xr_attribs(arr),
     )
@@ -24,16 +24,16 @@ def as_xr_freq(arr: FFTArray) -> xr.DataArray:
 def as_xr_dataset(arr: FFTArray) -> xr.Dataset:
     return xr.Dataset({
             "pos": xr.DataArray(
-                np.array(arr.pos_array()),
+                np.array(arr.into(space="pos")),
                 coords = {
-                    f"{dim.name}_pos": np.array(dim.pos_array())
+                    f"{dim.name}_pos": np.array(dim.into(space="pos"))
                     for dim in arr.dims
                 }
             ),
             "freq":  xr.DataArray(
-                np.array(arr.freq_array()),
+                np.array(arr.into(space="freq")),
                 coords = {
-                    f"{dim.name}_freq": np.array(dim.freq_array())
+                    f"{dim.name}_freq": np.array(dim.into(space="freq"))
                     for dim in arr.dims
                 }
             ),

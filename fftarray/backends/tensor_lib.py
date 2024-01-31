@@ -47,8 +47,8 @@ class TensorLib(metaclass=ABCMeta):
             self,
             values,
             dims: Tuple[FFTDimension],
-            input_lazy: Tuple[bool],
-            target_lazy: Tuple[bool],
+            input_factors_applied: Tuple[bool],
+            target_factors_applied: Tuple[bool],
             space: Tuple[Literal["pos", "space"]],
         ):
         """
@@ -64,7 +64,7 @@ class TensorLib(metaclass=ABCMeta):
         scale: float = 1.
         # This is gonna be an array of the shape of values, with length 1 in dimensions that do not change.
         per_idx_phase_factors = 0.
-        for dim_idx, dim, input, target, space in enumerate(zip(dims, input_lazy, target_lazy, space)):
+        for dim_idx, dim, input, target, space in enumerate(zip(dims, input_factors_applied, target_factors_applied, space)):
             # If both are the same, we do not need to do anything
 
             if input != target:
@@ -91,10 +91,11 @@ class TensorLib(metaclass=ABCMeta):
 
                 per_idx_phase_factors = per_idx_phase_factors + per_idx_values
 
-        exponent = self.array(1.j, dtype=self.complex_type) * per_idx_phase_factors
-        # TODO Could optimise exp into cos and sin because exponent is purely complex
-        # Is that faster or more precise? Should we test that or just do it?
-        values = values * self.numpy_ufuncs.exp(exponent)
+        if per_idx_phase_factors != 0:
+            exponent = self.array(1.j, dtype=self.complex_type) * per_idx_phase_factors
+            # TODO Could optimise exp into cos and sin because exponent is purely complex
+            # Is that faster or more precise? Should we test that or just do it?
+            values = values * self.numpy_ufuncs.exp(exponent)
 
         if scale != 1.0:
             # as array to ensure 32bit precision.
