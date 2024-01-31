@@ -20,10 +20,10 @@ class JaxTensorLib(TensorLib):
     def __init__(self, precision: PrecisionSpec = "default"):
         TensorLib.__init__(self, precision = precision)
 
-    def fftn(self, values: ArrayLike) -> jax.Array: # type: ignore
+    def fftn(self, values: ArrayLike) -> jax.Array: # type: ignore[override]
         return jnp.fft.fftn(values)
 
-    def ifftn(self, values: ArrayLike) -> jax.Array: # type: ignore
+    def ifftn(self, values: ArrayLike) -> jax.Array: # type: ignore[override]
         return jnp.fft.ifftn(values)
 
     @property
