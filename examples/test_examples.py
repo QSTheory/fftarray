@@ -95,4 +95,7 @@ sys.meta_path.append(NotebookFinder())
 
 def test_notebooks():
     # The import statements automatically evaluate all cells.
+    print([m for m in sys.modules.keys()])
+    modulenames = set(sys.modules) & set(globals())
+    print(sys.path)
     from examples import Gaussians
