@@ -2,10 +2,16 @@ import setuptools
 import subprocess
 
 version = (
-    subprocess.run(["git", "describe", "--tags", "--always", "--abbrev=0"], stdout=subprocess.PIPE)
+    subprocess.run(["git", "tag", "--points-at", "HEAD"], stdout=subprocess.PIPE)
     .stdout.decode("utf-8")
     .strip()
 )
+if version == "":
+    version = (
+        subprocess.run(["git", "describe", "--tags", "--abbrev=0"], stdout=subprocess.PIPE)
+        .stdout.decode("utf-8")
+        .strip()
+    )
 
 assert "." in version
 
