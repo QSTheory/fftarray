@@ -32,7 +32,7 @@ jobs:
         python -m pip install -e ".[dev]"
     - name: Test with mypy
       run: |
-        mypy fftarray
+        mypy fftarray examples
     - name: Test with pytest
       run: |
         python -m pytest
