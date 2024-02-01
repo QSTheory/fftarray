@@ -265,6 +265,7 @@ class FFTArray(metaclass=ABCMeta):
         ) -> FFTArray:
 
         values = self._values
+        dims = self._dims
 
         if space is None:
             space_norm = self._space
@@ -275,15 +276,15 @@ class FFTArray(metaclass=ABCMeta):
             eager_norm = self._eager
         else:
             eager_norm = _norm_param(eager, bool)
+            dims = tuple([dim.set_default_eager(eager) for dim, eager in zip(dims, eager_norm)])
 
 
 
         if tlib is None:
             tlib_norm = self._tlib
-            dims=self._dims
         else:
             tlib_norm = tlib
-            dims = tuple([dim.set_default_tlib(tlib) for dim in self._dims])
+            dims = tuple([dim.set_default_tlib(tlib) for dim in dims])
             if tlib.numpy_ufuncs.iscomplexobj(self._values):
                 values = tlib.array(values, dtype=tlib.complex_type)
             else:
@@ -412,13 +413,12 @@ class FFTArray(metaclass=ABCMeta):
     # def freq_array(self, tlib: Optional[TensorLib] = None) -> FreqArray:
     #     ...
 
-    # @property
-    # @abstractmethod
-    # def space(self) -> Space:
-    #     """
-    #         Enables automatically and easily detecting in which space a generic FFTArray curently is.
-    #     """
-    #     ...
+    @property
+    def space(self) -> Tuple[Space, ...]:
+        """
+            Enables automatically and easily detecting in which space a generic FFTArray curently is.
+        """
+        return self._space
 
     #--------------------
     # Default implementations that may be overriden if there are performance benefits
@@ -1029,6 +1029,15 @@ class FFTDimension:
     @property
     def default_tlib(self) -> TensorLib:
         return self._default_tlib
+
+    def set_default_eager(self, eager: bool) -> FFTDimension:
+        dim = copy(self)
+        dim._default_eager = eager
+        return dim
+
+    @property
+    def default_eager(self) -> bool:
+        return self._default_eager
 
     @property
     def n(self: FFTDimension) -> int:
