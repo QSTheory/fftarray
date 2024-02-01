@@ -10,7 +10,6 @@ from dataclasses import dataclass
 
 import numpy as np
 import numpy.lib.mixins
-from numpy.typing import NDArray
 
 from .named_array import align_named_arrays, get_axes_transpose
 from .fft_constraint_solver import _z3_constraint_solver
@@ -620,11 +619,15 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
     #         eager=unpacked_inputs.eager,
     #         factors_applied=True,
     #     )
-    # if ufunc == np.multiply:
+    if ufunc == np.multiply:
         # Element-wise multiplication is commutative with the multiplication of the phase factors.
         # So we can always directly multiply with the inner values and can delay up to one set of phase factors per dimension.
 
-        # pass
+        # Reduce dim factors to apply to once per dim by applying all but the first
+        #   Maybe write, knowing there are just two operands, might be simpler
+
+        # Then do multiplication and write out all dims where we managed to keep a lazy factor.
+        pass
 
     #     values = tensor_lib_ufunc(*unpacked_inputs.values, **kwargs)
     #     return _pack_values(
