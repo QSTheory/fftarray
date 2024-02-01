@@ -10,6 +10,7 @@ from dataclasses import dataclass
 
 import numpy as np
 import numpy.lib.mixins
+from numpy.typing import NDArray
 
 from .named_array import align_named_arrays, get_axes_transpose
 from .fft_constraint_solver import _z3_constraint_solver
@@ -591,12 +592,6 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
     if len(inputs) > 2:
         return NotImplemented
 
-    # These special functions have shortcuts for the evaluation of lazy state.
-    # Therefore the lazy_state is not applied on unpacking.
-    # if ufunc == np.abs or ufunc == np.multiply :
-    #     unpacked_inputs = _unpack_fft_arrays(inputs, True)
-    # else:
-    # Apply all lazy state because we have no shortcuts.
     unpacked_inputs = _unpack_fft_arrays(inputs)
 
     # Returning NotImplemented gives other operands a chance to see if they support interacting with us.
@@ -610,7 +605,6 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
     except:
         return NotImplemented
 
-    # Element-wise multiplication is commutative with the multiplication of the phase factor.
     # So we can always directly multiply with the inner values and keep the outer wrapper class as is
     # We can also shortcut the multiplication of a scalar into the lazy_scale. (Commented out at the moment)
     # if ufunc == np.abs and unpacked_inputs.lazy_state is not None:
@@ -626,7 +620,12 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
     #         eager=unpacked_inputs.eager,
     #         factors_applied=True,
     #     )
-    # if ufunc == np.multiply and unpacked_inputs.lazy_state is not None:
+    # if ufunc == np.multiply:
+        # Element-wise multiplication is commutative with the multiplication of the phase factors.
+        # So we can always directly multiply with the inner values and can delay up to one set of phase factors per dimension.
+
+        # pass
+
     #     values = tensor_lib_ufunc(*unpacked_inputs.values, **kwargs)
     #     return _pack_values(
     #         values,
@@ -635,14 +634,35 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
     #         unpacked_inputs.lazy_state,
     #     )
     # Further ops: conj, both lazy factors in addition, would need different unpacking...?
-    assert all(unpacked_inputs.factors_applied)
+
+    # Apply all phase factors because there is no special case applicable
+    for op_idx in range(len(inputs)):
+        if isinstance(inputs[op_idx], FFTArray):
+            input_factors_applied: List[bool] = []
+            for dim_idx in range(len(unpacked_inputs.dims)):
+                factor_applied = unpacked_inputs.factors_applied[dim_idx][op_idx]
+                if factor_applied is None:
+                    # dim does not appear in this operand, do not do anything.
+                    # So write out True because that is also the target.
+                    input_factors_applied.append(True)
+                else:
+                    input_factors_applied.append(factor_applied)
+
+            unpacked_inputs.values[op_idx] = unpacked_inputs.tlib.get_values_with_lazy_factors(
+                values=unpacked_inputs.values[op_idx],
+                dims=inputs[op_idx]._dims,
+                input_factors_applied=input_factors_applied,
+                target_factors_applied=[True]*len(input_factors_applied),
+                space=inputs[op_idx]._space,
+            )
+
     values = tensor_lib_ufunc(*unpacked_inputs.values, **kwargs)
     return FFTArray(
         values=values,
         space=unpacked_inputs.space,
         dims=unpacked_inputs.dims,
         eager=unpacked_inputs.eager,
-        factors_applied=unpacked_inputs.factors_applied,
+        factors_applied=[True]*len(input_factors_applied),
     )
 
 # def _pack_values(
@@ -683,8 +703,8 @@ class UnpackedValues:
     values: List[Union[Number, Any]]
     # Space nper dimension in which all values were
     space: List[Space]
-    # True => all factors applied, False factors missing in exactly one of the values.
-    factors_applied: List[bool]
+    # outer list: dim_idx, inner_list: op_idx, None: dim does not appear in operand
+    factors_applied: List[List[Optional[bool]]]
     # Fails if not homogeneous in all values.
     eager: List[bool]
     # Shared tensor-lib between all values.
@@ -693,14 +713,13 @@ class UnpackedValues:
 @dataclass
 class UnpackedDimProperties:
     dim: UniformValue[FFTDimension]
-    # factors_applied: bool
+    factors_applied: List[Optional[bool]]
     eager: UniformValue[bool]
     space: UniformValue[Space]
 
-    def __init__(self):
+    def __init__(self, n_operands: int):
         self.dim = UniformValue()
-        # self.input_factors_applied = True
-        # self.target_factors_applied = True
+        self.factors_applied = [None]*n_operands
         self.eager = UniformValue()
         self.space = UniformValue()
 
@@ -717,18 +736,18 @@ def _unpack_fft_arrays(
     unpacked_values: List[Optional[Union[Number, Any]]] = [None]*len(values)
     tlib: UniformValue[TensorLib] = UniformValue()
 
-    for idx, x in enumerate(values):
+    for op_idx, x in enumerate(values):
         if isinstance(x, Number):
-            unpacked_values[idx] = x
+            unpacked_values[op_idx] = x
         elif hasattr(x, "shape") and not isinstance(x, FFTArray):
             if x.shape == ():
-                unpacked_values[idx] = x
+                unpacked_values[op_idx] = x
             else:
                 raise ValueError(
                     "Cannot multiply coordinate-less arrays with a FFTArray."
                 )
         else:
-            array_indices.append(idx)
+            array_indices.append(op_idx)
             assert isinstance(x, FFTArray)
 
             tlib.set(x.tlib)
@@ -737,7 +756,7 @@ def _unpack_fft_arrays(
 
             for dim_idx, fft_dim in enumerate(x._dims):
                 if not fft_dim.name in dims:
-                    dim_props = UnpackedDimProperties()
+                    dim_props = UnpackedDimProperties(len(values))
                     dims[fft_dim.name] = dim_props
                 else:
                     dim_props = dims[fft_dim.name]
@@ -771,38 +790,21 @@ def _unpack_fft_arrays(
                         f"{fft_dim.name}."
                     )
 
-                # if not keep_lazy this will just be overwritten later.
-                # if dim_props.factors_applied:
-                #     dim_props.factors_applied = x._factors_applied[dim_idx]
-                # else:
-                #     # need to apply this factor
-                #     target_factors_applied[dim_idx] = True
-
-            # if not keep_lazy:
-            #     target_factors_applied = [True]*len(target_factors_applied)
-
-            # Very cheap, if nothing changes.
-            raw_arr = tlib.get().get_values_with_lazy_factors(
-                values = x._values,
-                dims=x._dims,
-                input_factors_applied=x._factors_applied,
-                # TODO: This needs more thought, do it in a later refactor.
-                target_factors_applied=[True]*len(x._factors_applied),
-                space=x._space,
-            )
+                dim_props.factors_applied[op_idx] = x._factors_applied[dim_idx]
 
             elem_dim_names = [fft_dim.name for fft_dim in x._dims]
-            arrays_to_align.append((elem_dim_names, raw_arr))
+            arrays_to_align.append((elem_dim_names, x._values))
 
 
     # Broadcasting
     dim_names, aligned_arrs = align_named_arrays(arrays_to_align, tlib=tlib.get())
-    for idx, arr in zip(array_indices, aligned_arrs):
-        unpacked_values[idx] = arr
+    for op_idx, arr in zip(array_indices, aligned_arrs):
+        unpacked_values[op_idx] = arr
 
     dims_list = [dims[dim_name].dim.get() for dim_name in dim_names]
     space_list = [dims[dim_name].space.get() for dim_name in dim_names]
     eager_list = [dims[dim_name].eager.get() for dim_name in dim_names]
+    factors_applied = [dims[dim_name].factors_applied for dim_name in dim_names]
     unpacked_values = [tlib.get().as_array(x) for x in unpacked_values]
 
     for value in unpacked_values:
@@ -812,7 +814,7 @@ def _unpack_fft_arrays(
         dims = dims_list,
         values = unpacked_values, # type: ignore
         space = space_list,
-        factors_applied=[True]*len(dims_list),
+        factors_applied=factors_applied,
         eager=eager_list,
         tlib = tlib.get(),
     )
