@@ -6,7 +6,7 @@ of the FFTWave. It contains functions that are out of scope for the average
 FFTWave user. Please visit the development area to toggle their visibility.
 """
 
-from typing import Any, Optional, Union, List, Dict, Literal
+from typing import Any, Optional, Union, List, Dict, Literal, TypedDict
 import sys
 import decimal
 
@@ -37,6 +37,22 @@ VARS_WITH_PROPS: Dict[str, Optional[str]] = {
     "freq_extent": "min",
     "freq_middle": None,
 }
+
+class GridParams(TypedDict):
+    """Specifies the types of the respective grid parameters. All grid
+    parameters must be present in the TypedDict.
+    """
+    n: int
+    d_pos: float
+    pos_min: float
+    pos_max: float
+    pos_extent: float
+    pos_middle: float
+    d_freq: float
+    freq_min: float
+    freq_max: float
+    freq_extent: float
+    freq_middle: float
 
 def fft_dim_from_constraints(
         name: str,
@@ -158,7 +174,7 @@ def dict_from_constraints(
         freq_extent: Optional[float] = None,
         freq_middle: Optional[float] = None,
         loose_params: Optional[Union[str, List[str]]] = None,
-    ) -> Dict[str, Union[int, float]]:
+    ) -> GridParams:
     """Returns a dictionary including all grid parameters calculated from an
     arbitrary subset using the z3 constraint solver. Note that the specified
     grid parameters must lead to a unique solution that fulfill the following
@@ -209,7 +225,7 @@ def dict_from_constraints(
 
     Returns
     -------
-    Dict[str, Union[int, float]]
+    GridParams
         Dictionary including all grid parameters.
     """
 
@@ -218,7 +234,7 @@ def dict_from_constraints(
     elif loose_params is None:
         loose_params = []
 
-    params = _z3_constraint_solver(
+    return _z3_constraint_solver(
         constraints=dict(
             n = n,
             d_pos = d_pos,
@@ -235,15 +251,13 @@ def dict_from_constraints(
         loose_params=loose_params,
         make_suggestions=True
     )
-    params["n"] = int(params["n"])
-    return params
 
 def _z3_constraint_solver(
         *, # prohibit use of positional arguments
         constraints: Dict[str, Union[int, float, str, None]],
         loose_params: List[str],
         make_suggestions: bool,
-    ) -> Dict[str, Union[int, float]]:
+    ) -> GridParams:
     """Solves the constraints for an FFTDimension.
 
     This method solves the linear system of equations to correctly match
@@ -712,7 +726,7 @@ def _round_up_n(current_n: float, rounding_mode: str) -> int:
             "to the next valid integer."
         ) from e
 
-def _finalize_model(model: ModelRef) -> Dict[str, Union[int, float]]:
+def _finalize_model(model: ModelRef) -> GridParams:
     """
     Final conversion of model to dict with values for all parameters
     and final numerical tests before returning the solution.
@@ -722,7 +736,7 @@ def _finalize_model(model: ModelRef) -> Dict[str, Union[int, float]]:
     sol["n"] = int(sol["n"])
     for val, var in sol.items():
         _check_overflow(val, var)
-    return sol
+    return sol # type: ignore
 
 def _z3_to_float(num: Union[RatNumRef, AlgebraicNumRef]) -> float:
     """
