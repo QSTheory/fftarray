@@ -290,9 +290,10 @@ class FFTArray(metaclass=ABCMeta):
                 values = tlib.array(values, dtype=tlib.real_type)
 
 
-        needs_fft = [old == new for old, new in zip(self._space, space_norm)]
+        needs_fft = [old != new for old, new in zip(self._space, space_norm)]
+        current_factors_applied = list(self._factors_applied)
         if any(needs_fft):
-            pre_fft_lazy = [
+            pre_fft_applied = [
                 False if fft_needed else old_lazy
                 for fft_needed, old_lazy in zip(needs_fft, self._factors_applied)
             ]
@@ -300,8 +301,8 @@ class FFTArray(metaclass=ABCMeta):
                 values=values,
                 dims=dims,
                 input_factors_applied=self._factors_applied,
-                target_factors_applied=pre_fft_lazy,
-                space=space_norm,
+                target_factors_applied=pre_fft_applied,
+                space=self._space,
             )
             fft_axes = []
             ifft_axes = []
@@ -311,6 +312,7 @@ class FFTArray(metaclass=ABCMeta):
                         fft_axes.append(dim_idx)
                     else:
                         ifft_axes.append(dim_idx)
+                    current_factors_applied[dim_idx] = False
 
             if len(fft_axes) > 0:
                 values = tlib_norm.fftn(values, axes=fft_axes)
@@ -320,10 +322,14 @@ class FFTArray(metaclass=ABCMeta):
 
 
         if factors_applied is None:
-            factors_norm = tuple([
-                is_eager if fft_needed else is_applied
-                for is_eager, fft_needed, is_applied in zip(self._factors_applied, needs_fft, eager_norm)
-            ])
+            factors_norm_list = []
+            for is_eager, fft_needed, is_applied in zip(eager_norm, needs_fft, self._factors_applied):
+                if fft_needed:
+                    factors_norm_list.append(is_eager)
+                else:
+                    # We did not do a fft, so just take whatever it was before
+                    factors_norm_list.append(is_applied)
+            factors_norm = tuple(factors_norm_list)
         else:
             factors_norm = _norm_param(factors_applied, bool)
 
@@ -331,7 +337,7 @@ class FFTArray(metaclass=ABCMeta):
         values = tlib_norm.get_values_with_lazy_factors(
             values=values,
             dims=dims,
-            input_factors_applied=self._factors_applied,
+            input_factors_applied=current_factors_applied,
             target_factors_applied=factors_norm,
             space=space_norm,
         )
@@ -591,7 +597,7 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
     #     unpacked_inputs = _unpack_fft_arrays(inputs, True)
     # else:
     # Apply all lazy state because we have no shortcuts.
-    unpacked_inputs = _unpack_fft_arrays(inputs, False)
+    unpacked_inputs = _unpack_fft_arrays(inputs)
 
     # Returning NotImplemented gives other operands a chance to see if they support interacting with us.
     # Not really necessary here.
@@ -687,19 +693,19 @@ class UnpackedValues:
 @dataclass
 class UnpackedDimProperties:
     dim: UniformValue[FFTDimension]
-    factors_applied: bool
+    # factors_applied: bool
     eager: UniformValue[bool]
     space: UniformValue[Space]
 
     def __init__(self):
         self.dim = UniformValue()
-        self.factors_applied = True
+        # self.input_factors_applied = True
+        # self.target_factors_applied = True
         self.eager = UniformValue()
         self.space = UniformValue()
 
 def _unpack_fft_arrays(
         values: List[Union[Number, FFTArray, Any]],
-        keep_lazy: bool,
     ) -> UnpackedValues:
     """
         This handles all "alignment" of input values.
@@ -726,8 +732,8 @@ def _unpack_fft_arrays(
             assert isinstance(x, FFTArray)
 
             tlib.set(x.tlib)
-            input_factors_applied = x._factors_applied
-            target_factors_applied = list(x._factors_applied)
+            # input_factors_applied = x._factors_applied
+            # target_factors_applied = list(x._factors_applied)
 
             for dim_idx, fft_dim in enumerate(x._dims):
                 if not fft_dim.name in dims:
@@ -766,21 +772,22 @@ def _unpack_fft_arrays(
                     )
 
                 # if not keep_lazy this will just be overwritten later.
-                if dim_props.factors_applied:
-                    dim_props.factors_applied = x._factors_applied[dim_idx]
-                else:
-                    # need to apply this factor
-                    target_factors_applied[dim_idx] = True
+                # if dim_props.factors_applied:
+                #     dim_props.factors_applied = x._factors_applied[dim_idx]
+                # else:
+                #     # need to apply this factor
+                #     target_factors_applied[dim_idx] = True
 
-            if not keep_lazy:
-                target_factors_applied = [True]*len(target_factors_applied)
+            # if not keep_lazy:
+            #     target_factors_applied = [True]*len(target_factors_applied)
 
             # Very cheap, if nothing changes.
             raw_arr = tlib.get().get_values_with_lazy_factors(
                 values = x._values,
                 dims=x._dims,
-                input_factors_applied=input_factors_applied,
-                target_factors_applied=tuple(target_factors_applied),
+                input_factors_applied=x._factors_applied,
+                # TODO: This needs more thought, do it in a later refactor.
+                target_factors_applied=[True]*len(x._factors_applied),
                 space=x._space,
             )
 
@@ -795,7 +802,6 @@ def _unpack_fft_arrays(
 
     dims_list = [dims[dim_name].dim.get() for dim_name in dim_names]
     space_list = [dims[dim_name].space.get() for dim_name in dim_names]
-    factors_applied_list = [dims[dim_name].factors_applied for dim_name in dim_names]
     eager_list = [dims[dim_name].eager.get() for dim_name in dim_names]
     unpacked_values = [tlib.get().as_array(x) for x in unpacked_values]
 
@@ -806,7 +812,7 @@ def _unpack_fft_arrays(
         dims = dims_list,
         values = unpacked_values, # type: ignore
         space = space_list,
-        factors_applied=factors_applied_list,
+        factors_applied=[True]*len(dims_list),
         eager=eager_list,
         tlib = tlib.get(),
     )

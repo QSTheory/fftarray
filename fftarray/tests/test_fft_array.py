@@ -128,8 +128,8 @@ def test_dtype(tensor_lib, precision, override, eager: bool):
     assert np.abs(x_dim.freq_array().into(space="pos")).values.dtype == tlib.real_type # type: ignore
 
     if override is not None:
-        assert x_dim.pos_array().into(tlib=tlib_override).values.dtype == tlib_override.complex_type
-        assert x_dim.freq_array().into(tlib=tlib_override).values.dtype == tlib_override.complex_type
+        assert x_dim.pos_array().into(space="freq", tlib=tlib_override).values.dtype == tlib_override.complex_type
+        assert x_dim.freq_array().into(space="pos", tlib=tlib_override).values.dtype == tlib_override.complex_type
 
 
 @pytest.mark.parametrize("tensor_lib", tensor_libs)
@@ -153,16 +153,16 @@ def test_backend_override(tensor_lib, override):
 
     assert type(x_dim.pos_array(tlib=override()).values) == type(x_dim_override.pos_array().values)
     assert type(x_dim.freq_array(tlib=override()).values) == type(x_dim_override.freq_array().values)
-    assert type(x_dim.pos_array(tlib=override()).freq_array().values) == type(x_dim_override.freq_array().values)
-    assert type(x_dim.freq_array(tlib=override()).pos_array().values) == type(x_dim_override.freq_array().values)
+    assert type(x_dim.pos_array(tlib=override()).into(space="freq").values) == type(x_dim_override.freq_array().values)
+    assert type(x_dim.freq_array(tlib=override()).into(space="pos").values) == type(x_dim_override.freq_array().values)
 
-    assert type(x_dim.pos_array().with_tlib(tlib=override()).values) == type(x_dim_override.pos_array().values)
-    assert type(x_dim.freq_array().with_tlib(tlib=override()).values) == type(x_dim_override.freq_array().values)
-    assert type(x_dim.pos_array().with_tlib(tlib=override()).freq_array().values) == type(x_dim_override.freq_array().values)
-    assert type(x_dim.freq_array().with_tlib(tlib=override()).pos_array().values) == type(x_dim_override.freq_array().values)
+    assert type(x_dim.pos_array().into(tlib=override()).values) == type(x_dim_override.pos_array().values)
+    assert type(x_dim.freq_array().into(tlib=override()).values) == type(x_dim_override.freq_array().values)
+    assert type(x_dim.pos_array().into(tlib=override()).into(space="freq").values) == type(x_dim_override.freq_array().values)
+    assert type(x_dim.freq_array().into(tlib=override()).into(space="pos").values) == type(x_dim_override.pos_array().values)
 
-    assert type(x_dim.pos_array().freq_array(tlib=override()).values) == type(x_dim_override.freq_array().values)
-    assert type(x_dim.freq_array().pos_array(tlib=override()).values) == type(x_dim_override.freq_array().values)
+    assert type(x_dim.pos_array().into(space="freq", tlib=override()).values) == type(x_dim_override.freq_array().values)
+    assert type(x_dim.freq_array().into(space="pos", tlib=override()).values) == type(x_dim_override.freq_array().values)
 
 
 def test_broadcasting(nulp: int = 1) -> None:
