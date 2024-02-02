@@ -591,16 +591,16 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
     if len(inputs) > 2:
         return NotImplemented
 
-    unpacked_inputs = _unpack_fft_arrays(inputs)
+    unp_inp = _unpack_fft_arrays(inputs)
 
     # Returning NotImplemented gives other operands a chance to see if they support interacting with us.
     # Not really necessary here.
-    if not all(isinstance(x, (Number, FFTArray)) or hasattr(x, "__array__") for x in unpacked_inputs.values):
+    if not all(isinstance(x, (Number, FFTArray)) or hasattr(x, "__array__") for x in unp_inp.values):
         return NotImplemented
 
     # Look up the actual ufunc
     try:
-        tensor_lib_ufunc = getattr(unpacked_inputs.tlib.numpy_ufuncs, ufunc.__name__)
+        tensor_lib_ufunc = getattr(unp_inp.tlib.numpy_ufuncs, ufunc.__name__)
     except:
         return NotImplemented
 
@@ -619,9 +619,24 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
     #         eager=unpacked_inputs.eager,
     #         factors_applied=True,
     #     )
-    if ufunc == np.multiply:
+    if ufunc == np.multiply and len(inputs) == 2:
         # Element-wise multiplication is commutative with the multiplication of the phase factors.
         # So we can always directly multiply with the inner values and can delay up to one set of phase factors per dimension.
+
+        # We only handle two oeprands.
+        # If both have a phase factor we must remove it for one of the values, we pick to always do it on the first one.
+        # TODO: Could also pick the smaller one for performance optimisation.
+        # Otherwise we can just take the raw values
+        target_factors_applied = []
+
+        for dim_idx in range(len(unp_inp.dims)):
+            if unp_inp.factors_applied[dim_idx][0] is True and unp_inp.factors_applied[dim_idx][1] is True:
+                target_factors_applied.append(True)
+            elif unp_inp.factors_applied[dim_idx][0] is True:
+                target_factors_applied.append(True)
+            else:
+                # The raw values have already been expanded, so None also has to be mapped to False
+                target_factors_applied.append(False)
 
         # Reduce dim factors to apply to once per dim by applying all but the first
         #   Maybe write, knowing there are just two operands, might be simpler
@@ -642,8 +657,8 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
     for op_idx in range(len(inputs)):
         if isinstance(inputs[op_idx], FFTArray):
             input_factors_applied: List[bool] = []
-            for dim_idx in range(len(unpacked_inputs.dims)):
-                factor_applied = unpacked_inputs.factors_applied[dim_idx][op_idx]
+            for dim_idx in range(len(unp_inp.dims)):
+                factor_applied = unp_inp.factors_applied[dim_idx][op_idx]
                 if factor_applied is None:
                     # dim does not appear in this operand, do not do anything.
                     # So write out True because that is also the target.
@@ -651,20 +666,20 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
                 else:
                     input_factors_applied.append(factor_applied)
 
-            unpacked_inputs.values[op_idx] = unpacked_inputs.tlib.get_values_with_lazy_factors(
-                values=unpacked_inputs.values[op_idx],
+            unp_inp.values[op_idx] = unp_inp.tlib.get_values_with_lazy_factors(
+                values=unp_inp.values[op_idx],
                 dims=inputs[op_idx]._dims,
                 input_factors_applied=input_factors_applied,
                 target_factors_applied=[True]*len(input_factors_applied),
                 space=inputs[op_idx]._space,
             )
 
-    values = tensor_lib_ufunc(*unpacked_inputs.values, **kwargs)
+    values = tensor_lib_ufunc(*unp_inp.values, **kwargs)
     return FFTArray(
         values=values,
-        space=unpacked_inputs.space,
-        dims=unpacked_inputs.dims,
-        eager=unpacked_inputs.eager,
+        space=unp_inp.space,
+        dims=unp_inp.dims,
+        eager=unp_inp.eager,
         factors_applied=[True]*len(input_factors_applied),
     )
 
