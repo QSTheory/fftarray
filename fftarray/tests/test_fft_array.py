@@ -25,14 +25,14 @@ def test_indexing(tlib, do_jit: bool):
         n=4,
         d_pos=1,
         pos_min=0.5,
-        freq_middle=0.,
+        freq_min=0.,
         default_tlib=tlib(precision="default"),
     )
     y_dim = FFTDimension("y",
         n=4,
         d_pos=2,
         pos_min=-2,
-        freq_middle=0.,
+        freq_min=0.,
         default_tlib=tlib(precision="default"),
     )
 
@@ -103,7 +103,7 @@ def test_dtype(tensor_lib, precision, override, eager: bool):
         n=4,
         d_pos=1,
         pos_min=0.,
-        freq_middle=0.,
+        freq_min=0.,
         default_tlib=tlib,
         default_eager=eager,
     )
@@ -139,7 +139,7 @@ def test_backend_override(tensor_lib, override):
         n=4,
         d_pos=1,
         pos_min=0.,
-        freq_middle=0.,
+        freq_min=0.,
         default_tlib=tensor_lib(),
     )
 
@@ -147,7 +147,7 @@ def test_backend_override(tensor_lib, override):
         n=4,
         d_pos=1,
         pos_min=0.,
-        freq_middle=0.,
+        freq_min=0.,
         default_tlib=override(),
     )
 
@@ -166,8 +166,8 @@ def test_backend_override(tensor_lib, override):
 
 
 def test_broadcasting(nulp: int = 1) -> None:
-    x_dim = FFTDimension("x", n=4, d_pos=1, pos_min=0., freq_middle=0.)
-    y_dim = FFTDimension("y", n=8, d_pos=1, pos_min=0., freq_middle=0.)
+    x_dim = FFTDimension("x", n=4, d_pos=1, pos_min=0., freq_min=0.)
+    y_dim = FFTDimension("y", n=8, d_pos=1, pos_min=0., freq_min=0.)
 
     x_ref = np.arange(0., 4.)
     y_ref = np.arange(0., 8.)

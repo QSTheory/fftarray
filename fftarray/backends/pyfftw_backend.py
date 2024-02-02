@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Any, Callable, Sequence
+from typing import Callable, Sequence
 from types import ModuleType
 from numpy.typing import NDArray, ArrayLike
 import pyfftw

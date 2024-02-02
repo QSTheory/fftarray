@@ -43,12 +43,23 @@ class JaxTensorLib(TensorLib):
         )
 
 
-def fftarray_flatten(arr: FFTArray) -> Tuple[Tuple[Any], Tuple[Tuple[FFTDimension, ...], Tuple[Space, ...], Tuple[bool, ...], Tuple[bool, ...], TensorLib]]:
+def fftarray_flatten(
+    arr: FFTArray
+) -> Tuple[
+        Tuple[Any],
+        Tuple[
+            Tuple[FFTDimension, ...],
+            Tuple[Space, ...],
+            Tuple[bool, ...],
+            Tuple[bool, ...],
+            TensorLib
+        ]
+    ]:
     children = (arr._values,)
     aux_data = (arr._dims, arr._space, arr._eager, arr._factors_applied, arr._tlib)
     return (children, aux_data)
 
-def fftarray_unflatten(aux_data, children):
+def fftarray_unflatten(aux_data, children) -> FFTArray:
     (values,) = children
     (dims, space, eager, factors_applied, tensor_lib) = aux_data
     # We explicitly do not want to call the constructor here.
