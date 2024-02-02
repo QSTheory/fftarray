@@ -1176,7 +1176,7 @@ class FFTDimension:
         if space == "pos":
             values = indices * dim.d_pos + dim.pos_min
         else:
-            values = values = indices * dim.d_freq + dim.freq_min
+            values = indices * dim.d_freq + dim.freq_min
         return FFTArray(
             values=values,
             dims=[dim],
