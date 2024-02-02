@@ -1,10 +1,10 @@
 from __future__ import annotations
 from typing import (
     Optional, Union, List, Any, Tuple, Dict, Hashable,
-    Literal, TypeVar, Iterable, Set, Generic, Type
+    Literal, TypeVar, Iterable, Set, Generic
 )
-from abc import ABCMeta, abstractmethod
-from copy import copy, deepcopy
+from abc import ABCMeta
+from copy import copy
 from numbers import Number
 from dataclasses import dataclass
 
