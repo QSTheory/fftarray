@@ -59,12 +59,6 @@ class TensorLib(metaclass=ABCMeta):
                 signs.append(None)
             else:
                 do_return_list = True
-                # Create indices with correct shape
-                indices = self.numpy_ufuncs.arange(0, dim.n, dtype=self.real_type)
-                extended_shape = [1]*len(dims)
-                extended_shape[dim_idx] = -1
-                indices = indices.reshape(tuple(extended_shape))
-
                 # Go from applied (external) to not applied (internal)
                 if input_factor_applied:
                     signs.append(1)
