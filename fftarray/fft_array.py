@@ -995,35 +995,6 @@ class FFTDimension:
         """
         return (self.n - 1) * self.d_pos
 
-    def pos_array(
-            self: FFTDimension,
-            tlib: Optional[TensorLib] = None
-        ) -> FFTArray:
-        """..
-
-        Returns
-        -------
-        jax.numpy.ndarray
-            The position grid coordinates.
-        """
-        dim = self
-        if tlib is not None:
-            dim = dim.set_default_tlib(tlib)
-
-        indices = dim.default_tlib.numpy_ufuncs.arange(
-            0,
-            dim.n,
-            dtype = dim.default_tlib.real_type,
-        )
-
-        return FFTArray(
-            values = indices * dim.d_pos + dim.pos_min,
-            dims = [dim],
-            eager = self._default_eager,
-            factors_applied=True,
-            space="pos",
-        )
-
     def _dim_from_slice(self, range: slice, space: Space) -> FFTDimension:
         """
             Get a new FFTDimension for a interval selection in a given space.
@@ -1179,17 +1150,19 @@ class FFTDimension:
         """
         return (self.n - 1) * self.d_freq
 
-    def freq_array(
+    def fft_array(
             self: FFTDimension,
-            tlib: Optional[TensorLib] = None,
+            space: Space,
+            tlib: Optional[TensorLib] = None
         ) -> FFTArray:
         """..
 
         Returns
         -------
-        jax.numpy.ndarray
-            The frequency grid coordinates.
+        FFTArray
+            The grid coordinates of the chosen space packed into an FFTArray with self as only dimension.
         """
+
         dim = self
         if tlib is not None:
             dim = dim.set_default_tlib(tlib)
@@ -1200,10 +1173,16 @@ class FFTDimension:
             dtype = dim.default_tlib.real_type,
         )
 
+        if space == "pos":
+            values = indices * dim.d_pos + dim.pos_min
+        elif space == "freq":
+            values = indices * dim.d_freq + dim.freq_min
+        else:
+            raise ValueError(f"space has to be either 'pos' or 'freq', not {space}.")
         return FFTArray(
-            values = indices * dim.d_freq + dim.freq_min,
-            dims = [dim],
-            eager = self._default_eager,
+            values=values,
+            dims=[dim],
+            eager=dim._default_eager,
             factors_applied=True,
-            space="freq",
+            space=space,
         )

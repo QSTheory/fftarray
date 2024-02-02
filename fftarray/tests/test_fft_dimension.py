@@ -74,14 +74,14 @@ def test_arrays(tensor_lib) -> None:
         default_tlib = tensor_lib,
     )
 
-    pos_grid = np.array(fftdim.pos_array())
+    pos_grid = np.array(fftdim.fft_array(space="pos"))
     assert_scalars_almost_equal_nulp(fftdim.pos_min, np.min(pos_grid))
     assert_scalars_almost_equal_nulp(fftdim.pos_min, pos_grid[0])
     assert_scalars_almost_equal_nulp(fftdim.pos_max, np.max(pos_grid))
     assert_scalars_almost_equal_nulp(fftdim.pos_max, pos_grid[-1])
     assert_scalars_almost_equal_nulp(fftdim.pos_middle, pos_grid[int(n/2)])
 
-    freq_grid = np.array(fftdim.freq_array())
+    freq_grid = np.array(fftdim.fft_array(space="freq"))
     assert_scalars_almost_equal_nulp(fftdim.freq_min, np.min(freq_grid))
     assert_scalars_almost_equal_nulp(fftdim.freq_min, freq_grid[0])
     assert_scalars_almost_equal_nulp(fftdim.freq_max, np.max(freq_grid))
