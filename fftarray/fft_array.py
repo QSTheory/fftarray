@@ -276,7 +276,7 @@ class FFTArray(metaclass=ABCMeta):
             eager_norm = self._eager
         else:
             eager_norm = _norm_param(eager, bool)
-            dims = tuple([dim.set_default_eager(eager) for dim, eager in zip(dims, eager_norm)])
+            dims = tuple(dim.set_default_eager(eager) for dim, eager in zip(dims, eager_norm))
 
 
 
