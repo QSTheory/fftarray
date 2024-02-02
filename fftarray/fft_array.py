@@ -420,6 +420,13 @@ class FFTArray(metaclass=ABCMeta):
         """
         return self._space
 
+    @property
+    def eager(self) -> Tuple[bool, ...]:
+        """
+            Enables automatically and easily detecting in which space a generic FFTArray curently is.
+        """
+        return self._eager
+
     #--------------------
     # Default implementations that may be overriden if there are performance benefits
     #--------------------
@@ -502,6 +509,11 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
     if len(inputs) > 2:
         return NotImplemented
 
+    if len(inputs) == 1:
+        inp = inputs[0]
+        assert isinstance(inp, FFTArray)
+        return _single_element_ufunc(ufunc=ufunc, inp=inp, kwargs=kwargs)
+
     unp_inp = _unpack_fft_arrays(inputs)
 
     # Returning NotImplemented gives other operands a chance to see if they support interacting with us.
@@ -515,21 +527,7 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
     except:
         return NotImplemented
 
-    # So we can always directly multiply with the inner values and keep the outer wrapper class as is
-    # We can also shortcut the multiplication of a scalar into the lazy_scale. (Commented out at the moment)
-    # if ufunc == np.abs and unpacked_inputs.lazy_state is not None:
-    #     # For abs we can drop the phases without ever applying them
-    #     # since they would have evaluated to one.
-    #     values = tensor_lib_ufunc(*unpacked_inputs.values, **kwargs)
-    #     # TODO: Apply scale
-    #     assert False
-    #     return FFTArray(
-    #         values=values,
-    #         space=unpacked_inputs.space,
-    #         dims=unpacked_inputs.dims,
-    #         eager=unpacked_inputs.eager,
-    #         factors_applied=True,
-    #     )
+
     if ufunc == np.multiply and len(inputs) == 2:
         # Element-wise multiplication is commutative with the multiplication of the phase factors.
         # So we can always directly multiply with the inner values and can delay up to one set of phase factors per dimension.
@@ -576,7 +574,11 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
             factors_applied=final_factors_applied,
         )
 
-    # Further ops: conj, both lazy factors in addition, would need different unpacking...?
+    # if ufunc == np.add and len(inputs) == 2:
+    #     for dim_idx in range(len(unp_inp.dims)):
+    #         if unp_inp.factors_applied[dim_idx][0] is False and unp_inp.factors_applied[dim_idx][1] is False:
+    #             assert False
+
 
     # Apply all phase factors because there is no special case applicable
     for op_idx in range(len(inputs)):
@@ -608,6 +610,54 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
         factors_applied=[True]*len(input_factors_applied),
     )
 
+def _single_element_ufunc(ufunc, inp: FFTArray, kwargs):
+    try:
+        tensor_lib_ufunc = getattr(inp.tlib.numpy_ufuncs, ufunc.__name__)
+    except:
+        return NotImplemented
+
+    if ufunc == np.abs:
+        # For abs we can drop the phases without ever applying them
+        # since they would have evaluated to one.
+        values = tensor_lib_ufunc(inp._values, **kwargs)
+        # The scale can be applied after abs which is more efficient in the case of a complex input
+        signs = inp.tlib.get_transform_signs(
+            dims=inp.dims,
+            # Can use input because with a single value no broadcasting happened.
+            input_factors_applied=inp._factors_applied,
+            target_factors_applied=[True]*len(inp._factors_applied),
+            space=inp.space,
+        )
+        if not signs is None:
+            values = inp.tlib.apply_scale(
+                values=values,
+                dims=inp.dims,
+                signs=signs,
+                spaces=inp.space,
+            )
+
+        return FFTArray(
+            values=values,
+            space=inp.space,
+            dims=inp.dims,
+            eager=inp.eager,
+            factors_applied=True,
+        )
+
+    # if ufunc == np.conj:
+        # for dim_idx in range(len(unp_inp.dims)):
+            # if unp_inp.factors_applied[dim_idx][0] is False and unp_inp.factors_applied[dim_idx][1] is False:
+        # assert False
+
+    # Fallback if no special case applies
+    values = tensor_lib_ufunc(inp.values, **kwargs)
+    return FFTArray(
+        values=values,
+        space=inp.space,
+        dims=inp.dims,
+        eager=inp.eager,
+        factors_applied=True,
+    )
 
 @dataclass
 class UnpackedValues:

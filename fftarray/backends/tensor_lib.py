@@ -125,7 +125,7 @@ class TensorLib(metaclass=ABCMeta):
     ):
         # Real-numbered scale
         scale: float = 1.
-        for dim_idx, (dim, sign, dim_space) in enumerate(zip(dims, signs, spaces)):
+        for dim, sign, dim_space in zip(dims, signs, spaces):
             if not sign is None and dim_space == "freq":
                     # TODO: Write as separate mul or div?
                     scale = scale * (dim.d_freq*dim.n)**sign
