@@ -179,58 +179,29 @@ def test_broadcasting(nulp: int = 1) -> None:
     np.testing.assert_array_almost_equal_nulp((x_dim.fft_array(space="pos") + y_dim.fft_array(space="pos")).transpose("x", "y").values, (x_ref_broadcast+y_ref_broadcast).transpose(), nulp = 0)
     np.testing.assert_array_almost_equal_nulp((x_dim.fft_array(space="pos") + y_dim.fft_array(space="pos")).transpose("y", "x").values, x_ref_broadcast+y_ref_broadcast, nulp = 0)
 
-# TODO: Port and extend to new LazyState impl
-# def assert_special_fun_equivalence(arr_lazy, arr_ref, eager: bool):
-#     np.testing.assert_array_almost_equal(arr_lazy.values, arr_ref)
-#     if not eager:
-#         np.testing.assert_array_almost_equal(arr_lazy._set_lazy_state(LazyState()), arr_ref)
-#     np.testing.assert_array_almost_equal(np.abs(arr_lazy).values, np.abs(arr_ref))
+def assert_special_fun_equivalence(arr_lazy, arr_ref, eager: bool):
+    np.testing.assert_array_almost_equal(arr_lazy.values, arr_ref)
+    if not eager:
+        np.testing.assert_array_almost_equal(arr_lazy.into(factors_applied=True), arr_ref)
+    np.testing.assert_array_almost_equal(np.abs(arr_lazy).values, np.abs(arr_ref))
 
-#     np.testing.assert_array_almost_equal((arr_lazy*arr_lazy).values, arr_ref*arr_ref)
-#     if not eager:
-#         np.testing.assert_array_almost_equal((arr_lazy*arr_lazy)._set_lazy_state(LazyState()), arr_ref*arr_ref)
-#     np.testing.assert_array_almost_equal(np.abs(arr_lazy*arr_lazy).values, np.abs(arr_ref*arr_ref))
+    np.testing.assert_array_almost_equal((arr_lazy*arr_lazy).values, arr_ref*arr_ref)
+    if not eager:
+        np.testing.assert_array_almost_equal((arr_lazy*arr_lazy).into(factors_applied=True), arr_ref*arr_ref)
+    np.testing.assert_array_almost_equal(np.abs(arr_lazy*arr_lazy).values, np.abs(arr_ref*arr_ref))
 
-# @pytest.mark.parametrize("eager", [False, True])
-# def test_lazy(eager: bool) -> None:
-#     dim_pos_x = FFTDimension("x", n = 4, d_pos = 1., pos_min = 0.3, freq_min = 0.7, default_eager=eager)
-#     dim_pos_y = FFTDimension("y", n = 4, d_pos = 1., pos_min = 1.3, freq_min = 1.7, default_eager=eager)
-#     dim_freq_x = FFTDimension("x", n = 4, d_freq = 1., pos_min = 0.7, freq_min = 0.3, default_eager=eager)
-#     dim_freq_y = FFTDimension("y", n = 4, d_freq = 1., pos_min = 1.7, freq_min = 1.3, default_eager=eager)
+@pytest.mark.parametrize("eager", [False, True])
+def test_lazy(eager: bool) -> None:
+    dim_pos_x = FFTDimension("x", n = 4, d_pos = 1., pos_min = 0.3, freq_min = 0.7, default_eager=eager)
+    dim_pos_y = FFTDimension("y", n = 4, d_pos = 1., pos_min = 1.3, freq_min = 1.7, default_eager=eager)
+    dim_freq_x = FFTDimension("x", n = 4, d_freq = 1., pos_min = 0.7, freq_min = 0.3, default_eager=eager)
+    dim_freq_y = FFTDimension("y", n = 4, d_freq = 1., pos_min = 1.7, freq_min = 1.3, default_eager=eager)
 
-#     ref_values = np.arange(4).reshape(4,1)+0.3 + np.arange(4).reshape(1,4)+1.3
-#     arrs = [
-#         (dim_pos_x.fft_array(space="pos") + dim_pos_y.fft_array(space="pos")).transpose("x", "y"),
-#         (dim_freq_x.fft_array(space="freq") + dim_freq_y.fft_array(space="freq")).transpose("x", "y"),
-#     ]
-#     for arr in arrs:
-#         np.testing.assert_array_almost_equal(arr.fft_array(space="freq").fft_array(space="pos").fft_array(space="freq").values, arr.fft_array(space="freq").values)
-#         np.testing.assert_array_almost_equal(arr.values, ref_values)
-
-#         ref_scaled = 2*ref_values
-
-#         arr_lazy = arr.add_scale(2.)
-#         if not eager:
-#             assert arr_lazy._lazy_state == LazyState(scale = 2.)
-#         assert_special_fun_equivalence(arr_lazy, ref_scaled, eager)
-
-#         # This feature is currently commented out due to some problems with jax tracing
-#         # and it is also questionable whether it is a good design at all.
-#         # arr_lazy = 2. * arr
-#         # assert arr_lazy._lazy_state == LazyState(scale = 2.)
-#         # assert_special_fun_equivalence(arr_lazy, ref_scaled)
-
-#         for order in [0,1,2,3]:
-#             phases_x = np.zeros(4)
-#             phases_x[order] = 0.3
-#             phases_y = np.zeros(4)
-#             phases_y[order] = 0.9
-#             arr_lazy = arr
-#             arr_lazy = arr_lazy.add_phase_factor("x", "a", PhaseFactors({i: phase for i, phase in enumerate(list(phases_x))}))
-#             arr_lazy = arr_lazy.add_phase_factor("y", "a", PhaseFactors({i: phase for i, phase in enumerate(list(phases_y))}))
-
-#             ref_shifted = ref_values
-#             ref_shifted = ref_shifted * np.exp(1.j * 0.3 * np.arange(4).reshape(-1,1)**order)
-#             ref_shifted = ref_shifted * np.exp(1.j * 0.9 * np.arange(4).reshape(1,-1)**order)
-
-#             assert_special_fun_equivalence(arr_lazy, ref_shifted, eager)
+    ref_values = np.arange(4).reshape(4,1)+0.3 + np.arange(4).reshape(1,4)+1.3
+    arrs = [
+        (dim_pos_x.fft_array(space="pos") + dim_pos_y.fft_array(space="pos")).transpose("x", "y"),
+        (dim_freq_x.fft_array(space="freq") + dim_freq_y.fft_array(space="freq")).transpose("x", "y"),
+    ]
+    for arr in arrs:
+        np.testing.assert_array_almost_equal(arr.into(space="freq").into(space="pos").into(space="freq").values, arr.into(space="freq").values)
+        np.testing.assert_array_almost_equal(arr.values, ref_values)
