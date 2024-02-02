@@ -509,6 +509,7 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
     if len(inputs) > 2:
         return NotImplemented
 
+    # Split out the single-element case because we can then skip the whole unpacking.
     if len(inputs) == 1:
         inp = inputs[0]
         assert isinstance(inp, FFTArray)
@@ -532,7 +533,7 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
         # Element-wise multiplication is commutative with the multiplication of the phase factors.
         # So we can always directly multiply with the inner values and can delay up to one set of phase factors per dimension.
 
-        # We only handle two oeprands.
+        # We only handle two operands.
         # If both have a phase factor we must remove it for one of the values.
         # Otherwise we can just take the raw values
 
@@ -575,9 +576,45 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
         )
 
     # if ufunc == np.add and len(inputs) == 2:
+    #     input_factors_applied: List[bool] = []
+    #     target_factors_applied = []
+    #     final_factors_applied = []
+
+
+    #             if unp_inp.factors_applied[dim_idx][0] is False and unp_inp.factors_applied[dim_idx][1] is False:
+
     #     for dim_idx in range(len(unp_inp.dims)):
-    #         if unp_inp.factors_applied[dim_idx][0] is False and unp_inp.factors_applied[dim_idx][1] is False:
-    #             assert False
+
+    #                     input_factors_applied.append(False)
+    #                     target_factors_applied.append(False)
+    #                     final_factors_applied.append(False)
+    #                 else:
+    #                     # Does not matter if True or False, as long as they are the same, nothing is done.
+    #                     input_factors_applied.append(True)
+    #                     target_factors_applied.append(True)
+    #                     if unp_inp.factors_applied[dim_idx][0] is False or unp_inp.factors_applied[dim_idx][1] is False:
+    #                         final_factors_applied.append(False)
+    #                     else:
+    #                         final_factors_applied.append(True)
+
+        for op_idx in range(len(inputs)):
+            if isinstance(inputs[op_idx], FFTArray):
+                unp_inp.values[op_idx] = unp_inp.tlib.get_values_with_lazy_factors(
+                    values=unp_inp.values[op_idx],
+                    dims=unp_inp.dims,
+                    input_factors_applied=[unp_inp.factors_applied[dim_idx] for dim_idx in range(len(unp_inp.dims))],
+                    target_factors_applied=target_factors_applied,
+                    space=unp_inp.space,
+                )
+
+        values = tensor_lib_ufunc(*unp_inp.values, **kwargs)
+        return FFTArray(
+            values=values,
+            space=unp_inp.space,
+            dims=unp_inp.dims,
+            eager=unp_inp.eager,
+            factors_applied=final_factors_applied,
+        )
 
 
     # Apply all phase factors because there is no special case applicable
@@ -643,11 +680,6 @@ def _single_element_ufunc(ufunc, inp: FFTArray, kwargs):
             eager=inp.eager,
             factors_applied=True,
         )
-
-    # if ufunc == np.conj:
-        # for dim_idx in range(len(unp_inp.dims)):
-            # if unp_inp.factors_applied[dim_idx][0] is False and unp_inp.factors_applied[dim_idx][1] is False:
-        # assert False
 
     # Fallback if no special case applies
     values = tensor_lib_ufunc(inp.values, **kwargs)
