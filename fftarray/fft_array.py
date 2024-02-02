@@ -252,7 +252,7 @@ class FFTArray(metaclass=ABCMeta):
             values=self._values,
             dims=self._dims,
             input_factors_applied=self._factors_applied,
-            target_factors_applied=tuple([True]*len(self._dims)),
+            target_factors_applied=[True]*len(self._dims),
             space=self._space,
         )
 
