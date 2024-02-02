@@ -284,7 +284,7 @@ class FFTArray(metaclass=ABCMeta):
             tlib_norm = self._tlib
         else:
             tlib_norm = tlib
-            dims = tuple([dim.set_default_tlib(tlib) for dim in dims])
+            dims = tuple(dim.set_default_tlib(tlib) for dim in dims)
             if tlib.numpy_ufuncs.iscomplexobj(self._values):
                 values = tlib.array(values, dtype=tlib.complex_type)
             else:
