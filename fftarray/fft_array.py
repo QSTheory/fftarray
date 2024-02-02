@@ -576,13 +576,6 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
             factors_applied=final_factors_applied,
         )
 
-    #     values = tensor_lib_ufunc(*unpacked_inputs.values, **kwargs)
-    #     return _pack_values(
-    #         values,
-    #         unpacked_inputs.space,
-    #         unpacked_inputs.dims,
-    #         unpacked_inputs.lazy_state,
-    #     )
     # Further ops: conj, both lazy factors in addition, would need different unpacking...?
 
     # Apply all phase factors because there is no special case applicable
@@ -619,7 +612,7 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
 @dataclass
 class UnpackedValues:
     # FFTDimensions in the order in which they appear in each non-scalar value.
-    dims: List[FFTDimension]
+    dims: Tuple[FFTDimension, ...]
     # Values without any dimensions, etc.
     values: List[Union[Number, Any]]
     # Space nper dimension in which all values were
@@ -732,7 +725,7 @@ def _unpack_fft_arrays(
         assert not value is None
 
     return UnpackedValues(
-        dims = dims_list,
+        dims = tuple(dims_list),
         values = unpacked_values, # type: ignore
         space = space_list,
         factors_applied=factors_applied,

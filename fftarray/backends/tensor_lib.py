@@ -1,7 +1,7 @@
 from __future__ import annotations
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
-from typing import Callable, Dict, Literal, Iterable, Tuple, Sequence, TYPE_CHECKING
+from typing import Callable, Literal, Iterable, List, Optional, Sequence, Tuple, TYPE_CHECKING
 from types import ModuleType
 
 import numpy as np
@@ -42,10 +42,44 @@ class TensorLib(metaclass=ABCMeta):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(precision={repr(self.precision)})"
 
+    def get_transform_signs(
+                self,
+                dims: Tuple[FFTDimension, ...],
+                input_factors_applied: Iterable[bool],
+                target_factors_applied: Iterable[bool],
+                space: Iterable[Space],
+            ) -> Optional[List[Optional[int]]]:
+
+        do_return_list = False
+        signs: List[Optional[int]] = []
+        for dim_idx, (dim, input_factor_applied, target_factor_applied) in enumerate(zip(dims, input_factors_applied, target_factors_applied)):
+            # If both are the same, we do not need to do anything
+
+            if input_factor_applied == target_factor_applied:
+                signs.append(None)
+            else:
+                do_return_list = True
+                # Create indices with correct shape
+                indices = self.numpy_ufuncs.arange(0, dim.n, dtype=self.real_type)
+                extended_shape = [1]*len(dims)
+                extended_shape[dim_idx] = -1
+                indices = indices.reshape(tuple(extended_shape))
+
+                # Go from applied (external) to not applied (internal)
+                if input_factor_applied:
+                    signs.append(1)
+                else:
+                    signs.append(-1)
+
+        if do_return_list:
+            return signs
+        else:
+            return None
+
     def get_values_with_lazy_factors(
             self,
             values,
-            dims: Iterable[FFTDimension],
+            dims: Tuple[FFTDimension, ...],
             input_factors_applied: Iterable[bool],
             target_factors_applied: Iterable[bool],
             space: Iterable[Space],
@@ -57,27 +91,67 @@ class TensorLib(metaclass=ABCMeta):
         # TODO: Numpy would probably profit from in-place operations here.
         #       Just one copy in the beginning and then everything in-place.
         #       Does the python Array API allow us to do that generically?
-        # TODO: Scalar phase separately?
-        # scalar_phase: complex = 0.
+
+        signs = self.get_transform_signs(
+            dims=dims,
+            input_factors_applied=input_factors_applied,
+            target_factors_applied=target_factors_applied,
+            space=space,
+        )
+
+        if not signs is None:
+            values = self.apply_scale(
+                values=values,
+                dims=dims,
+                signs=signs,
+                spaces=space,
+            )
+
+            values = self.apply_phases(
+                values=values,
+                dims=dims,
+                signs=signs,
+                spaces=space,
+            )
+
+        return values
+
+    def apply_scale(
+        self,
+        values,
+        dims: Iterable[FFTDimension],
+        signs: List[Optional[int]],
+        spaces: Iterable[Space],
+    ):
         # Real-numbered scale
         scale: float = 1.
-        # This is gonna be an array of the shape of values, with length 1 in dimensions that do not change.
+        for dim_idx, (dim, sign, dim_space) in enumerate(zip(dims, signs, spaces)):
+            if not sign is None and dim_space == "freq":
+                    # TODO: Write as separate mul or div?
+                    scale = scale * (dim.d_freq*dim.n)**sign
+        # as array to ensure 32bit precision.
+        values = values * self.as_array(scale)
+        return values
+
+    def apply_phases(
+                self,
+                values,
+                dims: Iterable[FFTDimension],
+                signs: List[Optional[int]],
+                spaces: Iterable[Space],
+            ):
+
         per_idx_phase_factors = self.array(0., self.real_type)
-        for dim_idx, (dim, input_factor_applied, target_factor_applied, dim_space) in enumerate(zip(dims, input_factors_applied, target_factors_applied, space)):
+        for dim_idx, (dim, sign, dim_space) in enumerate(zip(dims, signs, spaces)):
             # If both are the same, we do not need to do anything
 
-            if input_factor_applied != target_factor_applied:
+            if not sign is None:
                 # Create indices with correct shape
                 indices = self.numpy_ufuncs.arange(0, dim.n, dtype=self.real_type)
                 extended_shape = np.ones(len(values.shape), dtype=int)
                 extended_shape[dim_idx] = -1
                 indices = indices.reshape(tuple(extended_shape))
 
-                # Go from applied (external) to not applied (internal)
-                if input_factor_applied:
-                    sign = 1
-                else:
-                    sign = -1
                 if dim_space == "pos":
                     # x = indices * dim.d_pos + dim.pos_min
                     per_idx_values = -sign*2*np.pi*dim.freq_min*dim.d_pos*indices
@@ -87,21 +161,14 @@ class TensorLib(metaclass=ABCMeta):
                         2*np.pi*dim.pos_min*dim.freq_min
                         + 2*np.pi*dim.pos_min*dim.d_freq*indices
                     )
-                    # TODO: Write as separate mul or div?
-                    scale = scale * (dim.d_freq*dim.n)**sign
 
                 per_idx_phase_factors = per_idx_phase_factors + per_idx_values
 
-        if len(per_idx_phase_factors.shape) > 0: # type: ignore
-            # TODO: Figure out typing
-            exponent = self.array(1.j, dtype=self.complex_type) * per_idx_phase_factors # type: ignore
-            # TODO Could optimise exp into cos and sin because exponent is purely complex
-            # Is that faster or more precise? Should we test that or just do it?
-            values = values * self.numpy_ufuncs.exp(exponent)
-
-        if scale != 1.0:
-            # as array to ensure 32bit precision.
-            values = values * self.as_array(scale)
+        # TODO: Figure out typing
+        exponent = self.array(1.j, dtype=self.complex_type) * per_idx_phase_factors # type: ignore
+        # TODO Could optimise exp into cos and sin because exponent is purely complex
+        # Is that faster or more precise? Should we test that or just do it?
+        values = values * self.numpy_ufuncs.exp(exponent)
         return values
 
     def reduce_multiply(self, values) -> float:
