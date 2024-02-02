@@ -10,5 +10,5 @@ import jax.numpy as jnp
 from jax import random
 
 def test_jax_fp64():
-    x = random.uniform(random.PRNGKey(0), (1000,), dtype=jnp.float64)
+    x = random.uniform(random.PRNGKey(0), (10,), dtype=jnp.float64)
     assert x.dtype == jnp.float64
