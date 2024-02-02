@@ -944,7 +944,6 @@ class FFTDimension:
     _pos_min: float
     _freq_min: float
     _d_pos: float
-    _d_freq: float
     _n: int
     _name: Hashable
     _default_tlib: TensorLib
@@ -999,11 +998,10 @@ class FFTDimension:
         self._pos_min = params["pos_min"]
         self._freq_min = params["freq_min"]
         self._d_pos = params["d_pos"]
-        self._d_freq = params["d_freq"]
         self._n = int(params["n"])
 
     def __repr__(self: FFTDimension) -> str:
-        arg_str = ", ".join([f"{name[1:]}={repr(value)}" for name, value in self.__dict__.items() if name != "_d_freq"])
+        arg_str = ", ".join([f"{name[1:]}={repr(value)}" for name, value in self.__dict__.items()])
         return f"FFTDimension({arg_str})"
 
     def __str__(self: FFTDimension) -> str:
@@ -1156,12 +1154,10 @@ class FFTDimension:
             new._pos_min = self.pos_min + start*self.d_pos
             new._freq_min = self.freq_min
             new._d_pos = self.d_pos
-            new._d_freq = 1./(self.d_pos*n)
         elif space == "freq":
             new._pos_min = self.pos_min
             new._freq_min = self.freq_min + start*self.d_freq
             new._d_pos = 1./(self.d_freq*n)
-            new._d_freq = self.d_freq
         else:
             assert False, "Unreachable"
         return new
@@ -1228,7 +1224,7 @@ class FFTDimension:
         float
             The distance between frequency grid points.
         """
-        return self._d_freq
+        return 1./(self.n*self.d_pos)
 
     @property
     def freq_min(self: FFTDimension) -> float:
