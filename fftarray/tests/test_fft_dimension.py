@@ -24,8 +24,8 @@ def test_fftdim_accessors(tensor_lib):
     """
     sol = FFTDimension("x",
         pos_min = 3e-6,
-        pos_max = 200e-6,
-        freq_middle = 0.,
+        d_pos = 1e-5,
+        freq_min = 0.,
         n = 16,
         default_tlib = tensor_lib,
     )
@@ -49,8 +49,8 @@ def test_fftdim_jax(tensor_lib):
 
     fftdim = FFTDimension("x",
         pos_min = 3e-6,
-        pos_max = 200e-6,
-        freq_middle = 0.,
+        d_pos = 1e-5,
+        freq_min = 0.,
         n = 16,
         default_tlib = tensor_lib,
 
@@ -68,8 +68,8 @@ def test_arrays(tensor_lib) -> None:
 
     fftdim = FFTDimension("x",
         pos_min = 3e-6,
-        pos_max = 200e-6,
-        freq_middle = 0.,
+        d_pos = 1e-5,
+        freq_min = 0.,
         n = n,
         default_tlib = tensor_lib,
     )
@@ -91,15 +91,15 @@ def test_arrays(tensor_lib) -> None:
 def test_equality(tensor_lib) -> None:
     dim_1 = FFTDimension("x",
         pos_min = 3e-6,
-        pos_max = 200e-6,
-        freq_middle = 0.,
+        d_pos = 1e-5,
+        freq_min = 0.,
         n = 8,
         default_tlib = tensor_lib,
     )
     dim_2 = FFTDimension("x",
         pos_min = 2e-6,
-        pos_max = 200e-6,
-        freq_middle = 0.,
+        d_pos = 1e-5,
+        freq_min = 0.,
         n = 8,
         default_tlib = tensor_lib,
     )

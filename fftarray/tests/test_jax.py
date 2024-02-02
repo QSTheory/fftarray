@@ -4,7 +4,7 @@ from fftarray.backends.jax_backend import JaxTensorLib, make_matched_input, fft_
 from fftarray import FFTDimension
 
 def test_input_matching() -> None:
-    x_dim = FFTDimension("x", n=4, d_pos=1, pos_min=0., freq_middle=0., default_tlib=JaxTensorLib())
+    x_dim = FFTDimension("x", n=4, d_pos=1, pos_min=0., freq_min=0., default_tlib=JaxTensorLib())
 
     def f(carry, x):
         carry["a"] = carry["a"].freq_array()
