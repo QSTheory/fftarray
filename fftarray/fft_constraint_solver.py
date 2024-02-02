@@ -6,7 +6,7 @@ of the FFTWave. It contains functions that are out of scope for the average
 FFTWave user. Please visit the development area to toggle their visibility.
 """
 
-from typing import Any, Optional, Union, List, Dict
+from typing import Any, Optional, Union, List, Dict, Literal, TypedDict
 import sys
 import decimal
 
@@ -16,6 +16,9 @@ from z3 import (
 )
 import numpy as np
 
+from .fft_array import FFTDimension
+from .backends.tensor_lib import TensorLib
+from .backends.np_backend import NumpyTensorLib
 from .fft_constraint_solver_exceptions import *
 
 # This dict contains all possible user constraints
@@ -35,12 +38,235 @@ VARS_WITH_PROPS: Dict[str, Optional[str]] = {
     "freq_middle": None,
 }
 
+class GridParams(TypedDict):
+    """Specifies the types of the respective grid parameters. All grid
+    parameters must be present in the TypedDict.
+    """
+    n: int
+    d_pos: float
+    pos_min: float
+    pos_max: float
+    pos_extent: float
+    pos_middle: float
+    d_freq: float
+    freq_min: float
+    freq_max: float
+    freq_extent: float
+    freq_middle: float
+
+def fft_dim_from_constraints(
+        name: str,
+        *,
+        n: Union[int, Literal["power_of_two", "even"]] = "power_of_two",
+        d_pos: Optional[float] = None,
+        d_freq: Optional[float] = None,
+        pos_min: Optional[float] = None,
+        pos_max: Optional[float] = None,
+        pos_middle: Optional[float] = None,
+        pos_extent: Optional[float] = None,
+        freq_min: Optional[float] = None,
+        freq_max: Optional[float] = None,
+        freq_extent: Optional[float] = None,
+        freq_middle: Optional[float] = None,
+        loose_params: Optional[Union[str, List[str]]] = None,
+        default_tlib: TensorLib = NumpyTensorLib(),
+        default_eager: bool = False,
+    ) -> FFTDimension:
+    """Creates an FFTDimension from an arbitrary subset of all possible grid
+    parameters using the z3 constraint solver. Note that the specified grid
+    parameters must lead to a unique solution that fulfill the following
+    constraints:
+
+        pos_extent = pos_max - pos_min
+        pos_middle = 0.5 * (pos_min + pos_max + d_pos)
+        d_pos = pos_extent/(n-1)
+
+        freq_extent = freq_max - freq_min
+        freq_middle = 0.5 * (freq_max + freq_min + d_freq)
+        d_freq = freq_extent/(n-1)
+
+        d_freq * d_pos * n = 2*pi
+
+    If `n` is not directly specified but one of the rounding modes is used an
+    exact solution of this constraint system leads in general to a `n` which is
+    not a natural number. In that case `n` is rounded up according to the
+    rounding mode. In order to do this some other constraint has to be improved.
+    The constraints which are allowed to change for rounding up are listed in
+    `loose_params`. The value `d_pos`, `d_freq`, `pos_min` and `freq_min` would
+    be made smaller while the value of `pos_max`, `pos_extent`, `freq_max` and
+    `freq_extent` would be made larger. `pos_middle` and `freq_middle` do not
+    influence `n`and are therefore not allowed as parameters in `loose_prams`.
+
+    Parameters
+    ----------
+    name : str
+        Name identifying the dimension.
+    n : Union[int, Literal[&quot;power_of_two&quot;, &quot;even&quot;]], optional
+        Number of grid points, by default "power_of_two"
+    d_pos : Optional[float], optional
+        Distance between two neighboring position grid points, by default None
+    d_freq : Optional[float], optional
+        Distance between two neighboring frequency grid points, by default None
+    pos_min : Optional[float], optional
+        Smallest position grid point, by default None
+    pos_max : Optional[float], optional
+        Largest position grid point, by default None
+    pos_middle : Optional[float], optional
+        Middle of the position grid, by default None
+    pos_extent : Optional[float], optional
+        Length of the position grid, by default None
+    freq_min : Optional[float], optional
+        Smallest frequency grid point, by default None
+    freq_max : Optional[float], optional
+        Largest frequency grid point, by default None
+    freq_extent : Optional[float], optional
+        Length of the frequency grid, by default None
+    freq_middle : Optional[float], optional
+        Middle of the frequency grid, by default None
+    loose_params : Optional[Union[str, List[str]]], optional
+        List of loose grid parameters (parameters that can be changed by the
+        constraint solver when rounding up to an even or power of two `n`), by
+        default None
+    default_tlib : TensorLib, optional
+        Default TensorLib that is used to create the FFTArray in
+        FFTDimension, by default NumpyTensorLib()
+    default_eager : bool, optional
+        Whether FFTArrays created by this FFTDimension are initialized as eager,
+        by default False
+
+    Returns
+    -------
+    FFTDimension
+        FFTDimension initialized using the constraints solved via the z3
+        constraint solver.
+
+    See Also
+    --------
+    fftarray.fft_constraint_solver.fft_grid_params_from_constraints
+    """
+
+    params = fft_grid_params_from_constraints(
+        n = n,
+        d_pos = d_pos,
+        d_freq = d_freq,
+        pos_min = pos_min,
+        pos_max = pos_max,
+        pos_middle = pos_middle,
+        pos_extent = pos_extent,
+        freq_min = freq_min,
+        freq_max = freq_max,
+        freq_extent = freq_extent,
+        freq_middle = freq_middle,
+        loose_params=loose_params
+    )
+
+    return FFTDimension(
+        name=name,
+        n=params["n"],
+        d_pos=params["d_pos"],
+        pos_min=params["pos_min"],
+        freq_min=params["freq_min"],
+        default_tlib = default_tlib,
+        default_eager = default_eager
+    )
+
+def fft_grid_params_from_constraints(
+        n: Union[int, Literal["power_of_two", "even"]] = "power_of_two",
+        d_pos: Optional[float] = None,
+        d_freq: Optional[float] = None,
+        pos_min: Optional[float] = None,
+        pos_max: Optional[float] = None,
+        pos_middle: Optional[float] = None,
+        pos_extent: Optional[float] = None,
+        freq_min: Optional[float] = None,
+        freq_max: Optional[float] = None,
+        freq_extent: Optional[float] = None,
+        freq_middle: Optional[float] = None,
+        loose_params: Optional[Union[str, List[str]]] = None,
+    ) -> GridParams:
+    """Returns a dictionary including all grid parameters calculated from an
+    arbitrary subset using the z3 constraint solver. Note that the specified
+    grid parameters must lead to a unique solution that fulfill the following
+    constraints:
+
+        pos_extent = pos_max - pos_min
+        pos_middle = 0.5 * (pos_min + pos_max + d_pos)
+        d_pos = pos_extent/(n-1)
+
+        freq_extent = freq_max - freq_min
+        freq_middle = 0.5 * (freq_max + freq_min + d_freq)
+        d_freq = freq_extent/(n-1)
+
+        d_freq * d_pos * n = 2*pi
+
+    Additionally, loose grid parameters can be specified which can be improved
+    by the solver in order to find a suitable solution.
+
+    Parameters
+    ----------
+    name : str
+        Name identifying the dimension.
+    n : Union[int, Literal[&quot;power_of_two&quot;, &quot;even&quot;]], optional
+        Number of grid points, by default "power_of_two"
+    d_pos : Optional[float], optional
+        Distance between two neighboring position grid points, by default None
+    d_freq : Optional[float], optional
+        Distance between two neighboring frequency grid points, by default None
+    pos_min : Optional[float], optional
+        Smallest position grid point, by default None
+    pos_max : Optional[float], optional
+        Largest position grid point, by default None
+    pos_middle : Optional[float], optional
+        Middle of the position grid, by default None
+    pos_extent : Optional[float], optional
+        Length of the position grid, by default None
+    freq_min : Optional[float], optional
+        Smallest frequency grid point, by default None
+    freq_max : Optional[float], optional
+        Largest frequency grid point, by default None
+    freq_extent : Optional[float], optional
+        Length of the frequency grid, by default None
+    freq_middle : Optional[float], optional
+        Middle of the frequency grid, by default None
+    loose_params : Optional[Union[str, List[str]]], optional
+        List of loose grid parameters (parameters that can be improved by the
+        constraint solver), by default None
+
+    Returns
+    -------
+    GridParams
+        Dictionary including all grid parameters.
+    """
+
+    if isinstance(loose_params, str):
+        loose_params = [loose_params]
+    elif loose_params is None:
+        loose_params = []
+
+    return _z3_constraint_solver(
+        constraints=dict(
+            n = n,
+            d_pos = d_pos,
+            d_freq = d_freq,
+            pos_min = pos_min,
+            pos_max = pos_max,
+            pos_middle = pos_middle,
+            pos_extent = pos_extent,
+            freq_min = freq_min,
+            freq_max = freq_max,
+            freq_extent = freq_extent,
+            freq_middle = freq_middle
+        ),
+        loose_params=loose_params,
+        make_suggestions=True
+    )
+
 def _z3_constraint_solver(
         *, # prohibit use of positional arguments
         constraints: Dict[str, Union[int, float, str, None]],
         loose_params: List[str],
         make_suggestions: bool,
-    ) -> Dict[str, Union[int, float]]:
+    ) -> GridParams:
     """Solves the constraints for an FFTDimension.
 
     This method solves the linear system of equations to correctly match
@@ -509,7 +735,7 @@ def _round_up_n(current_n: float, rounding_mode: str) -> int:
             "to the next valid integer."
         ) from e
 
-def _finalize_model(model: ModelRef) -> Dict[str, Union[int, float]]:
+def _finalize_model(model: ModelRef) -> GridParams:
     """
     Final conversion of model to dict with values for all parameters
     and final numerical tests before returning the solution.
@@ -519,7 +745,7 @@ def _finalize_model(model: ModelRef) -> Dict[str, Union[int, float]]:
     sol["n"] = int(sol["n"])
     for val, var in sol.items():
         _check_overflow(val, var)
-    return sol
+    return sol # type: ignore
 
 def _z3_to_float(num: Union[RatNumRef, AlgebraicNumRef]) -> float:
     """

@@ -59,11 +59,10 @@ class TensorLib(metaclass=ABCMeta):
                 signs.append(None)
             else:
                 do_return_list = True
-                # Go from applied (external) to not applied (internal)
-                if input_factor_applied:
-                    signs.append(1)
-                else:
-                    signs.append(-1)
+                # 1: Go from applied (external) to not applied (internal)
+                # -1 reverse
+                sign = 1 if input_factor_applied else -1
+                signs.append(sign)
 
         if do_return_list:
             return signs
@@ -151,9 +150,8 @@ class TensorLib(metaclass=ABCMeta):
                     per_idx_values = -sign*2*np.pi*dim.freq_min*dim.d_pos*indices
                 else:
                     # f = indices * dim.d_freq + dim.freq_min
-                    per_idx_values = sign * (
-                        2*np.pi*dim.pos_min*dim.freq_min
-                        + 2*np.pi*dim.pos_min*dim.d_freq*indices
+                    per_idx_values = sign*2*np.pi*dim.pos_min*(
+                        dim.freq_min + dim.d_freq*indices
                     )
 
                 per_idx_phase_factors = per_idx_phase_factors + per_idx_values

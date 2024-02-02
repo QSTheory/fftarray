@@ -61,8 +61,7 @@ def get_axes_transpose(
         ) -> Tuple[int, ...]:
     assert len(old_dims) == len(new_dims)
     dim_index_lut = {dim: i for i, dim in enumerate(old_dims)}
-    axes_transpose = [dim_index_lut[target_dim] for target_dim in new_dims]
-    return tuple(axes_transpose)
+    return tuple(dim_index_lut[target_dim] for target_dim in new_dims)
 
 
 def transpose_array(
