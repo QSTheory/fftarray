@@ -74,18 +74,15 @@ class TensorLib(metaclass=ABCMeta):
                 indices = indices.reshape(tuple(extended_shape))
 
                 # Go from applied (external) to not applied (internal)
-                if input_factor_applied:
-                    sign = 1
-                else:
-                    sign = -1
+                sign = 1 if input_factor_applied else -1
+
                 if dim_space == "pos":
                     # x = indices * dim.d_pos + dim.pos_min
                     per_idx_values = -sign*2*np.pi*dim.freq_min*dim.d_pos*indices
                 else:
                     # f = indices * dim.d_freq + dim.freq_min
-                    per_idx_values = sign * (
-                        2*np.pi*dim.pos_min*dim.freq_min
-                        + 2*np.pi*dim.pos_min*dim.d_freq*indices
+                    per_idx_values = sign*2*np.pi*dim.pos_min*(
+                        dim.freq_min + dim.d_freq*indices
                     )
                     # TODO: Write as separate mul or div?
                     scale = scale * (dim.d_freq*dim.n)**sign
