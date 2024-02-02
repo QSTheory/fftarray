@@ -535,25 +535,46 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
         # So we can always directly multiply with the inner values and can delay up to one set of phase factors per dimension.
 
         # We only handle two oeprands.
-        # If both have a phase factor we must remove it for one of the values, we pick to always do it on the first one.
-        # TODO: Could also pick the smaller one for performance optimisation.
+        # If both have a phase factor we must remove it for one of the values.
         # Otherwise we can just take the raw values
+
+        # We need to create both lists because the values have already been reshaped and extended during unpacking.
+        input_factors_applied: List[bool] = []
         target_factors_applied = []
+        final_factors_applied = []
 
         for dim_idx in range(len(unp_inp.dims)):
-            if unp_inp.factors_applied[dim_idx][0] is True and unp_inp.factors_applied[dim_idx][1] is True:
+            if unp_inp.factors_applied[dim_idx][0] is False and unp_inp.factors_applied[dim_idx][1] is False:
+                input_factors_applied.append(False)
                 target_factors_applied.append(True)
-            elif unp_inp.factors_applied[dim_idx][0] is True:
-                target_factors_applied.append(True)
+                final_factors_applied.append(False)
             else:
-                # The raw values have already been expanded, so None also has to be mapped to False
-                target_factors_applied.append(False)
+                # Does not matter if True or False, as long as they are the same, nothing is done.
+                input_factors_applied.append(True)
+                target_factors_applied.append(True)
+                if unp_inp.factors_applied[dim_idx][0] is False or unp_inp.factors_applied[dim_idx][1] is False:
+                    final_factors_applied.append(False)
+                else:
+                    final_factors_applied.append(True)
 
-        # Reduce dim factors to apply to once per dim by applying all but the first
-        #   Maybe write, knowing there are just two operands, might be simpler
+        # We pick to always do it on the first one.
+        # TODO: Could also pick the smaller one for performance optimisation.
+        unp_inp.values[0] = unp_inp.tlib.get_values_with_lazy_factors(
+            values=unp_inp.values[0],
+            dims=unp_inp.dims,
+            input_factors_applied=input_factors_applied,
+            target_factors_applied=target_factors_applied,
+            space=unp_inp.space,
+        )
 
-        # Then do multiplication and write out all dims where we managed to keep a lazy factor.
-        pass
+        values = tensor_lib_ufunc(*unp_inp.values, **kwargs)
+        return FFTArray(
+            values=values,
+            space=unp_inp.space,
+            dims=unp_inp.dims,
+            eager=unp_inp.eager,
+            factors_applied=final_factors_applied,
+        )
 
     #     values = tensor_lib_ufunc(*unpacked_inputs.values, **kwargs)
     #     return _pack_values(
@@ -567,7 +588,7 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
     # Apply all phase factors because there is no special case applicable
     for op_idx in range(len(inputs)):
         if isinstance(inputs[op_idx], FFTArray):
-            input_factors_applied: List[bool] = []
+            input_factors_applied = []
             for dim_idx in range(len(unp_inp.dims)):
                 factor_applied = unp_inp.factors_applied[dim_idx][op_idx]
                 if factor_applied is None:
@@ -579,10 +600,10 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
 
             unp_inp.values[op_idx] = unp_inp.tlib.get_values_with_lazy_factors(
                 values=unp_inp.values[op_idx],
-                dims=inputs[op_idx]._dims,
+                dims=unp_inp.dims,
                 input_factors_applied=input_factors_applied,
                 target_factors_applied=[True]*len(input_factors_applied),
-                space=inputs[op_idx]._space,
+                space=unp_inp.space,
             )
 
     values = tensor_lib_ufunc(*unp_inp.values, **kwargs)
@@ -593,35 +614,6 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
         eager=unp_inp.eager,
         factors_applied=[True]*len(input_factors_applied),
     )
-
-# def _pack_values(
-#         values,
-#         space: Space,
-#         dims: List[FFTDimension],
-#         tlib: TensorLib,
-#         lazy_state: Optional[LazyState],
-#     ) -> FFTArray:
-#     """
-#         Finish up a value after a ufunc.
-#         Internally it is more parametrized and this puts it back together.
-#     """
-#     assert tlib == _get_tensor_lib(dims)
-#     assert tlib.has_precision(values, tlib.precision)
-#     # eager does not matter here because it is overwritten with a concrete lazy_state
-#     return FFTArray(
-#         values=values,
-#         dims=dims,
-
-#     )
-#     if space == "pos":
-#         arr: FFTArray = PosArray(values, dims=dims, eager=True)
-#     else:
-#         assert space == "freq"
-#         arr = FreqArray(values, dims=dims, eager=True)
-#     arr._lazy_state = lazy_state
-#     return arr
-
-
 
 
 @dataclass
