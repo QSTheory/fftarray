@@ -87,8 +87,15 @@ def fft_dim_from_constraints(
 
         d_freq * d_pos * n = 2*pi
 
-    Additionally, loose grid parameters can be specified which can be improved
-    by the solver in order to find a suitable solution.
+    If `n` is not directly specified but one of the rounding modes is used an exact solution
+    of this constraint system leads in general to a `n` which is not a natural number.
+    In that case `n` is rounded up according to the rounding mode.
+    In order to do this some other constraint has to be improved.
+    The constraints which are allowed to change for rounding up are listed in `loose_params`.
+   The value `d_pos`, `d_freq`, `pos_min` and `freq_min` would be made smaller
+    while the value of `pos_max`, `pos_extent`, `freq_max` and `freq_extent` would be made larger.
+    `pos_middle` and `freq_middle` do not influence `n`and are therefore not allowed as parameters
+    in `loose_prams`.
 
     Parameters
     ----------
@@ -117,13 +124,13 @@ def fft_dim_from_constraints(
     freq_middle : Optional[float], optional
         Middle of the frequency grid, by default None
     loose_params : Optional[Union[str, List[str]]], optional
-        List of loose grid parameters (parameters that can be improved by the
-        constraint solver), by default None
+        List of loose grid parameters (parameters that can be changed by the
+        constraint solver when rounding up to an even or power of two `n`), by default None
     default_tlib : TensorLib, optional
         Default TensorLib that is used to create the FFTArray in
         FFTDimension, by default NumpyTensorLib()
     default_eager : bool, optional
-        Whether the FFTDimension is initialized eager, by default False
+        Whether arrays of created by this FFTDimension are initialized as eager, by default False
 
     Returns
     -------
