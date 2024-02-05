@@ -527,8 +527,10 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
     except:
         return NotImplemented
 
+    signs: List[List[Literal[-1, 1, None]]] = [[], []]
+    final_factors_applied: List[bool] = []
 
-    if ufunc == np.multiply and len(inputs) == 2:
+    if ufunc == np.multiply and len(inputs) == 2 and isinstance(inputs[0], FFTArray) and isinstance(inputs[1], FFTArray):
         # Element-wise multiplication is commutative with the multiplication of the phase factors.
         # So we can always directly multiply with the inner values and can delay up to one set of phase factors per dimension.
 
@@ -537,100 +539,81 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
         # Otherwise we can just take the raw values
 
         # We need to create both lists because the values have already been reshaped and extended during unpacking.
-        signs: List[Literal[-1, 1, None]] = []
-        final_factors_applied = []
+
+        # We pick to always do it on the first one.
+        # TODO: Could also pick the smaller one for performance optimisation.
+
+        signs[1] = [None]*len(unp_inp.dims)
 
         for dim_idx in range(len(unp_inp.dims)):
             if unp_inp.factors_applied[dim_idx][0] is False and unp_inp.factors_applied[dim_idx][1] is False:
-                signs.append(-1)
+                signs[0].append(-1)
                 final_factors_applied.append(False)
             else:
                 # Does not matter if True or False, as long as they are the same, nothing is done.
-                signs.append(None)
+                signs[0].append(None)
                 if unp_inp.factors_applied[dim_idx][0] is False or unp_inp.factors_applied[dim_idx][1] is False:
                     final_factors_applied.append(False)
                 else:
                     final_factors_applied.append(True)
 
-        # We pick to always do it on the first one.
-        # TODO: Could also pick the smaller one for performance optimisation.
-        unp_inp.values[0] = unp_inp.tlib.apply_scale_phases(
-            values=unp_inp.values[0],
-            dims=unp_inp.dims,
-            signs=signs,
-            spaces=unp_inp.space,
-        )
+    elif ufunc == np.add and len(inputs) == 2 and isinstance(inputs[0], FFTArray) and isinstance(inputs[1], FFTArray):
+        for dim_idx in range(len(unp_inp.dims)):
+            fac_applied: Tuple[bool, bool] = (unp_inp.factors_applied[dim_idx][0], unp_inp.factors_applied[dim_idx][1])
+            if fac_applied == (False, False):
+                # Both factors still need to be applied => factor them out
+                signs[0].append(None)
+                signs[1].append(None)
+                final_factors_applied.append(False)
+            # if eager True => True/False mapped to True
+            # if eager False => True/Fasle mapped to False
+            elif fac_applied == (True, False):
+                if unp_inp.eager[dim_idx]:
+                    signs[0].append(None)
+                    signs[1].append(-1)
+                    final_factors_applied.append(True)
+                else:
+                    signs[0].append(1)
+                    signs[1].append(None)
+                    final_factors_applied.append(False)
+            elif fac_applied == (False, True):
+                if unp_inp.eager[dim_idx]:
+                    signs[0].append(-1)
+                    signs[1].append(None)
+                    final_factors_applied.append(True)
+                else:
+                    signs[0].append(None)
+                    signs[1].append(1)
+                    final_factors_applied.append(False)
+            elif fac_applied == (True, True):
+                # Both factors are applied => do nothing
+                signs[0].append(None)
+                signs[1].append(None)
+                final_factors_applied.append(True)
+            else:
+                assert False, "unreachable"
 
-        values = tensor_lib_ufunc(*unp_inp.values, **kwargs)
-        return FFTArray(
-            values=values,
-            space=unp_inp.space,
-            dims=unp_inp.dims,
-            eager=unp_inp.eager,
-            factors_applied=final_factors_applied,
-        )
+    else:
+        for op_idx in [0,1]:
+            if isinstance(inputs[op_idx], FFTArray):
+                res = unp_inp.tlib.get_transform_signs(
+                    input_factors_applied=[unp_inp.factors_applied[dim_idx][op_idx] for dim_idx in range(len(unp_inp.dims))],
+                    target_factors_applied=[True]*len(unp_inp.dims),
+                )
+                if res is None:
+                    signs[op_idx] = [None]*len(unp_inp.dims)
+                else:
+                    signs[op_idx] = res
 
-    # if ufunc == np.add and len(inputs) == 2:
-    #     input_factors_applied: List[bool] = []
-    #     target_factors_applied = []
-    #     final_factors_applied = []
-
-    # if eager True => True/False mapped to True
-    # if eager False => True/Fasle mapped to False
-    #             if unp_inp.factors_applied[dim_idx][0] is False and unp_inp.factors_applied[dim_idx][1] is False:
-
-    #     for dim_idx in range(len(unp_inp.dims)):
-
-    #                     input_factors_applied.append(False)
-    #                     target_factors_applied.append(False)
-    #                     final_factors_applied.append(False)
-    #                 else:
-    #                     # Does not matter if True or False, as long as they are the same, nothing is done.
-    #                     input_factors_applied.append(True)
-    #                     target_factors_applied.append(True)
-    #                     if unp_inp.factors_applied[dim_idx][0] is False or unp_inp.factors_applied[dim_idx][1] is False:
-    #                         final_factors_applied.append(False)
-    #                     else:
-    #                         final_factors_applied.append(True)
-
-        # for op_idx in range(len(inputs)):
-        #     if isinstance(inputs[op_idx], FFTArray):
-        #         unp_inp.values[op_idx] = unp_inp.tlib.get_values_with_lazy_factors(
-        #             values=unp_inp.values[op_idx],
-        #             dims=unp_inp.dims,
-        #             input_factors_applied=[unp_inp.factors_applied[dim_idx] for dim_idx in range(len(unp_inp.dims))],
-        #             target_factors_applied=target_factors_applied,
-        #             space=unp_inp.space,
-        #         )
-
-        # values = tensor_lib_ufunc(*unp_inp.values, **kwargs)
-        # return FFTArray(
-        #     values=values,
-        #     space=unp_inp.space,
-        #     dims=unp_inp.dims,
-        #     eager=unp_inp.eager,
-        #     factors_applied=final_factors_applied,
-        # )
-
+        final_factors_applied = [True]*len(unp_inp.dims)
 
     # Apply all phase factors because there is no special case applicable
-    for op_idx in range(len(inputs)):
+    for op_idx, signs_op in zip([0,1], signs):
         if isinstance(inputs[op_idx], FFTArray):
-            input_factors_applied = []
-            for dim_idx in range(len(unp_inp.dims)):
-                factor_applied = unp_inp.factors_applied[dim_idx][op_idx]
-                if factor_applied is None:
-                    # dim does not appear in this operand, do not do anything.
-                    # So write out True because that is also the target.
-                    input_factors_applied.append(True)
-                else:
-                    input_factors_applied.append(factor_applied)
-
-            unp_inp.values[op_idx] = unp_inp.tlib.get_values_with_lazy_factors(
+            unp_inp.values[op_idx] = unp_inp.tlib.apply_scale_phases(
                 values=unp_inp.values[op_idx],
                 dims=unp_inp.dims,
-                input_factors_applied=input_factors_applied,
-                target_factors_applied=[True]*len(input_factors_applied),
+                signs=signs_op,
                 spaces=unp_inp.space,
             )
 
@@ -640,7 +623,7 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
         space=unp_inp.space,
         dims=unp_inp.dims,
         eager=unp_inp.eager,
-        factors_applied=[True]*len(input_factors_applied),
+        factors_applied=final_factors_applied,
     )
 
 def _single_element_ufunc(ufunc, inp: FFTArray, kwargs):
@@ -694,7 +677,7 @@ class UnpackedValues:
     # Space nper dimension in which all values were
     space: List[Space]
     # outer list: dim_idx, inner_list: op_idx, None: dim does not appear in operand
-    factors_applied: List[List[Optional[bool]]]
+    factors_applied: List[List[bool]]
     # Fails if not homogeneous in all values.
     eager: List[bool]
     # Shared tensor-lib between all values.
@@ -703,13 +686,17 @@ class UnpackedValues:
 @dataclass
 class UnpackedDimProperties:
     dim: UniformValue[FFTDimension]
-    factors_applied: List[Optional[bool]]
+    factors_applied: List[bool]
     eager: UniformValue[bool]
     space: UniformValue[Space]
 
     def __init__(self, n_operands: int):
         self.dim = UniformValue()
-        self.factors_applied = [None]*n_operands
+        # We broadcast the values with the phase factors applied
+        # (Each element should have the same value just duplicated along the new dimension.)
+        # If factors_applied is True we prevent multiplying the phase-factor of the new dimension
+        # unto the values.
+        self.factors_applied = [True]*n_operands
         self.eager = UniformValue()
         self.space = UniformValue()
 

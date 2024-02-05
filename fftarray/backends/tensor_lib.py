@@ -58,7 +58,7 @@ class TensorLib(metaclass=ABCMeta):
             else:
                 do_return_list = True
                 # 1: Go from applied (external) to not applied (internal)
-                # -1 reverse
+                # -1 internal to external
                 sign: Literal[1, -1] = 1 if input_factor_applied else -1
                 signs.append(sign)
 
