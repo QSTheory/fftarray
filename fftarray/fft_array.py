@@ -568,18 +568,31 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
             # if eager True => True/False mapped to True
             # if eager False => True/False mapped to False
             else:
+
                 final_factors_applied.append(unp_inp.eager[dim_idx])
-                if fac_applied == (True, False):
-                    if unp_inp.eager[dim_idx]:
-                        signs[1][dim_idx] = -1
-                    else:
-                        signs[0][dim_idx] = 1
-                else:
-                    assert fac_applied == (False, True)
-                    if unp_inp.eager[dim_idx]:
-                        signs[0][dim_idx] = -1
-                    else:
-                        signs[1][dim_idx] = 1
+
+                # Same as the commented out code below.
+                # Not sure if it is readable enough.
+
+                # If the first operand is applied and eager, we convert the second one.
+                # Some if it is not applied and lazy.
+                # Otherwise we convert the first one.
+                sign_idx = int(fac_applied[0] == unp_inp.eager[dim_idx])
+                # If we are eager we want to the applied state, so sign=-1
+                # else we want to the internal state so we apply 1.
+                signs[sign_idx][dim_idx] = -1 if unp_inp.eager[dim_idx] else 1
+
+                # if fac_applied == (True, False):
+                #     if unp_inp.eager[dim_idx]:
+                #         signs[1][dim_idx] = -1
+                #     else:
+                #         signs[0][dim_idx] = 1
+                # else:
+                #     assert fac_applied == (False, True)
+                #     if unp_inp.eager[dim_idx]:
+                #         signs[0][dim_idx] = -1
+                #     else:
+                #         signs[1][dim_idx] = 1
 
 
     else:
