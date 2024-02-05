@@ -57,7 +57,7 @@ class LocFFTArrayIndexer(Generic[T]):
             assert item == slice(None, None, None)
             return self._arr.values
         slices = []
-        for dim, dim_item, space in zip(self._arr.dims, item, self._arr._space):
+        for dim, dim_item, space in zip(self._arr.dims, item, self._arr._spaces):
             if isinstance(dim_item, slice):
                 slices.append(dim_item)
             else:
@@ -82,7 +82,7 @@ class FFTArray(metaclass=ABCMeta):
     # Contains an array instance of _tlib with _lazy_state not yet applied.
     _values: Any
     # Marks each dimension whether it is in position or frequency space
-    _space: Tuple[Space, ...]
+    _spaces: Tuple[Space, ...]
     # Marks each dimension whether the phase-factors should be applied directly after executing a fft or ifft
     _eager: Tuple[bool, ...]
     # Marks each dim whether its phase_factors still need to be applied
@@ -104,7 +104,7 @@ class FFTArray(metaclass=ABCMeta):
         """
         self._dims = tuple(dims)
         self._values = values
-        self._space = _norm_param(space, str)
+        self._spaces = _norm_param(space, str)
         self._eager = _norm_param(eager, bool)
         self._factors_applied = _norm_param(factors_applied, bool)
         self._tlib = _get_tensor_lib(self._dims)
@@ -148,7 +148,7 @@ class FFTArray(metaclass=ABCMeta):
 
         if isinstance(item, slice):
             item = [item]
-        for index, dimension, space in zip(item, self._dims, self._space):
+        for index, dimension, space in zip(item, self._dims, self._spaces):
             if not isinstance(index, slice):
                 new_dim = dimension._dim_from_start_and_n(
                     start=index,
@@ -173,7 +173,7 @@ class FFTArray(metaclass=ABCMeta):
         return FFTArray(
             values=selected_values,
             dims=new_dims,
-            space=self._space,
+            space=self._spaces,
             eager=self._eager,
             factors_applied=self._factors_applied,
         )
@@ -196,7 +196,7 @@ class FFTArray(metaclass=ABCMeta):
             Supports in addition to its xarray-counterpart tuples for ranges.
         """
         slices = []
-        for dim, space in zip(self.dims, self._space):
+        for dim, space in zip(self.dims, self._spaces):
             if dim.name in kwargs:
                 slices.append(
                     # mypy error: kwargs is of type "Dict[str, Any]" but
@@ -252,7 +252,7 @@ class FFTArray(metaclass=ABCMeta):
             dims=self._dims,
             input_factors_applied=self._factors_applied,
             target_factors_applied=[True]*len(self._dims),
-            spaces=self._space,
+            spaces=self._spaces,
         )
 
     def into(
@@ -267,7 +267,7 @@ class FFTArray(metaclass=ABCMeta):
         dims = self._dims
 
         if space is None:
-            space_norm = self._space
+            space_norm = self._spaces
         else:
             space_norm = _norm_param(space, str)
 
@@ -290,7 +290,7 @@ class FFTArray(metaclass=ABCMeta):
                 values = tlib.array(values, dtype=tlib.real_type)
 
 
-        needs_fft = [old != new for old, new in zip(self._space, space_norm)]
+        needs_fft = [old != new for old, new in zip(self._spaces, space_norm)]
         current_factors_applied = list(self._factors_applied)
         if any(needs_fft):
             pre_fft_applied = [
@@ -302,11 +302,11 @@ class FFTArray(metaclass=ABCMeta):
                 dims=dims,
                 input_factors_applied=self._factors_applied,
                 target_factors_applied=pre_fft_applied,
-                spaces=self._space,
+                spaces=self._spaces,
             )
             fft_axes = []
             ifft_axes = []
-            for dim_idx, (old_space, new_space) in enumerate(zip(self._space, space_norm)):
+            for dim_idx, (old_space, new_space) in enumerate(zip(self._spaces, space_norm)):
                 if old_space != new_space:
                     if old_space == "pos":
                         fft_axes.append(dim_idx)
@@ -385,7 +385,7 @@ class FFTArray(metaclass=ABCMeta):
         transposed_arr = FFTArray(
             values=transposed_values,
             dims=[self._dims[idx] for idx in axes_transpose],
-            space=[self._space[idx] for idx in axes_transpose],
+            space=[self._spaces[idx] for idx in axes_transpose],
             eager=[self._eager[idx] for idx in axes_transpose],
             factors_applied=[self._factors_applied[idx] for idx in axes_transpose]
         )
@@ -417,7 +417,7 @@ class FFTArray(metaclass=ABCMeta):
         """
             Enables automatically and easily detecting in which space a generic FFTArray curently is.
         """
-        return self._space
+        return self._spaces
 
     @property
     def eager(self) -> Tuple[bool, ...]:
@@ -761,7 +761,7 @@ def _unpack_fft_arrays(
                     )
 
                 try:
-                    dim_props.space.set(x._space[dim_idx])
+                    dim_props.space.set(x._spaces[dim_idx])
                 except ValueError:
                     raise ValueError(
                         "Tried to call ufunc on two FFTArrays with " +
