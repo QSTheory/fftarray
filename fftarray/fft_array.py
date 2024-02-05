@@ -558,7 +558,7 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
             values=unp_inp.values[0],
             dims=unp_inp.dims,
             signs=signs,
-            space=unp_inp.space,
+            spaces=unp_inp.space,
         )
 
         values = tensor_lib_ufunc(*unp_inp.values, **kwargs)

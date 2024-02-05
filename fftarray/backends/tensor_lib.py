@@ -102,7 +102,7 @@ class TensorLib(metaclass=ABCMeta):
             self,
             values,
             dims: Tuple[FFTDimension, ...],
-            signs: List[Literal[1,-1,0]],
+            signs: List[Literal[1,-1, None]],
             spaces: Iterable[Space],
         ):
 
