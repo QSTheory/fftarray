@@ -252,7 +252,7 @@ class FFTArray(metaclass=ABCMeta):
             dims=self._dims,
             input_factors_applied=self._factors_applied,
             target_factors_applied=[True]*len(self._dims),
-            space=self._space,
+            spaces=self._space,
         )
 
     def into(
@@ -302,7 +302,7 @@ class FFTArray(metaclass=ABCMeta):
                 dims=dims,
                 input_factors_applied=self._factors_applied,
                 target_factors_applied=pre_fft_applied,
-                space=self._space,
+                spaces=self._space,
             )
             fft_axes = []
             ifft_axes = []
@@ -339,7 +339,7 @@ class FFTArray(metaclass=ABCMeta):
             dims=dims,
             input_factors_applied=current_factors_applied,
             target_factors_applied=factors_norm,
-            space=space_norm,
+            spaces=space_norm,
         )
 
         return FFTArray(
@@ -537,19 +537,16 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
         # Otherwise we can just take the raw values
 
         # We need to create both lists because the values have already been reshaped and extended during unpacking.
-        input_factors_applied: List[bool] = []
-        target_factors_applied = []
+        signs: List[Literal[-1, 1, None]] = []
         final_factors_applied = []
 
         for dim_idx in range(len(unp_inp.dims)):
             if unp_inp.factors_applied[dim_idx][0] is False and unp_inp.factors_applied[dim_idx][1] is False:
-                input_factors_applied.append(False)
-                target_factors_applied.append(True)
+                signs.append(-1)
                 final_factors_applied.append(False)
             else:
                 # Does not matter if True or False, as long as they are the same, nothing is done.
-                input_factors_applied.append(True)
-                target_factors_applied.append(True)
+                signs.append(None)
                 if unp_inp.factors_applied[dim_idx][0] is False or unp_inp.factors_applied[dim_idx][1] is False:
                     final_factors_applied.append(False)
                 else:
@@ -557,11 +554,10 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
 
         # We pick to always do it on the first one.
         # TODO: Could also pick the smaller one for performance optimisation.
-        unp_inp.values[0] = unp_inp.tlib.get_values_with_lazy_factors(
+        unp_inp.values[0] = unp_inp.tlib.apply_scale_phases(
             values=unp_inp.values[0],
             dims=unp_inp.dims,
-            input_factors_applied=input_factors_applied,
-            target_factors_applied=target_factors_applied,
+            signs=signs,
             space=unp_inp.space,
         )
 
@@ -579,7 +575,8 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
     #     target_factors_applied = []
     #     final_factors_applied = []
 
-
+    # if eager True => True/False mapped to True
+    # if eager False => True/Fasle mapped to False
     #             if unp_inp.factors_applied[dim_idx][0] is False and unp_inp.factors_applied[dim_idx][1] is False:
 
     #     for dim_idx in range(len(unp_inp.dims)):
@@ -596,24 +593,24 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
     #                     else:
     #                         final_factors_applied.append(True)
 
-        for op_idx in range(len(inputs)):
-            if isinstance(inputs[op_idx], FFTArray):
-                unp_inp.values[op_idx] = unp_inp.tlib.get_values_with_lazy_factors(
-                    values=unp_inp.values[op_idx],
-                    dims=unp_inp.dims,
-                    input_factors_applied=[unp_inp.factors_applied[dim_idx] for dim_idx in range(len(unp_inp.dims))],
-                    target_factors_applied=target_factors_applied,
-                    space=unp_inp.space,
-                )
+        # for op_idx in range(len(inputs)):
+        #     if isinstance(inputs[op_idx], FFTArray):
+        #         unp_inp.values[op_idx] = unp_inp.tlib.get_values_with_lazy_factors(
+        #             values=unp_inp.values[op_idx],
+        #             dims=unp_inp.dims,
+        #             input_factors_applied=[unp_inp.factors_applied[dim_idx] for dim_idx in range(len(unp_inp.dims))],
+        #             target_factors_applied=target_factors_applied,
+        #             space=unp_inp.space,
+        #         )
 
-        values = tensor_lib_ufunc(*unp_inp.values, **kwargs)
-        return FFTArray(
-            values=values,
-            space=unp_inp.space,
-            dims=unp_inp.dims,
-            eager=unp_inp.eager,
-            factors_applied=final_factors_applied,
-        )
+        # values = tensor_lib_ufunc(*unp_inp.values, **kwargs)
+        # return FFTArray(
+        #     values=values,
+        #     space=unp_inp.space,
+        #     dims=unp_inp.dims,
+        #     eager=unp_inp.eager,
+        #     factors_applied=final_factors_applied,
+        # )
 
 
     # Apply all phase factors because there is no special case applicable
@@ -634,7 +631,7 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
                 dims=unp_inp.dims,
                 input_factors_applied=input_factors_applied,
                 target_factors_applied=[True]*len(input_factors_applied),
-                space=unp_inp.space,
+                spaces=unp_inp.space,
             )
 
     values = tensor_lib_ufunc(*unp_inp.values, **kwargs)
@@ -656,13 +653,11 @@ def _single_element_ufunc(ufunc, inp: FFTArray, kwargs):
         # For abs we can drop the phases without ever applying them
         # since they would have evaluated to one.
         values = tensor_lib_ufunc(inp._values, **kwargs)
-        # The scale can be applied after abs which is more efficient in the case of a complex input
+        # The scale can be applied< after abs which is more efficient in the case of a complex input
         signs = inp.tlib.get_transform_signs(
-            dims=inp.dims,
             # Can use input because with a single value no broadcasting happened.
             input_factors_applied=inp._factors_applied,
             target_factors_applied=[True]*len(inp._factors_applied),
-            space=inp.space,
         )
         if not signs is None:
             values = inp.tlib.apply_scale(

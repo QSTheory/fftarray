@@ -3,6 +3,7 @@ import numpy as np
 import jax
 
 from fftarray.fft_array import FFTDimension
+from fftarray.fft_constraint_solver import fft_dim_from_constraints
 from fftarray.backends.jax_backend import JaxTensorLib
 from fftarray.backends.np_backend import NumpyTensorLib
 from fftarray.backends.pyfftw_backend import PyFFTWTensorLib
@@ -192,10 +193,10 @@ def assert_special_fun_equivalence(arr_lazy, arr_ref, eager: bool):
 
 @pytest.mark.parametrize("eager", [False, True])
 def test_lazy(eager: bool) -> None:
-    dim_pos_x = FFTDimension("x", n = 4, d_pos = 1., pos_min = 0.3, freq_min = 0.7, default_eager=eager)
-    dim_pos_y = FFTDimension("y", n = 4, d_pos = 1., pos_min = 1.3, freq_min = 1.7, default_eager=eager)
-    dim_freq_x = FFTDimension("x", n = 4, d_freq = 1., pos_min = 0.7, freq_min = 0.3, default_eager=eager)
-    dim_freq_y = FFTDimension("y", n = 4, d_freq = 1., pos_min = 1.7, freq_min = 1.3, default_eager=eager)
+    dim_pos_x = fft_dim_from_constraints("x", n = 4, d_pos = 1., pos_min = 0.3, freq_min = 0.7, default_eager=eager)
+    dim_pos_y = fft_dim_from_constraints("y", n = 4, d_pos = 1., pos_min = 1.3, freq_min = 1.7, default_eager=eager)
+    dim_freq_x = fft_dim_from_constraints("x", n = 4, d_freq = 1., pos_min = 0.7, freq_min = 0.3, default_eager=eager)
+    dim_freq_y = fft_dim_from_constraints("y", n = 4, d_freq = 1., pos_min = 1.7, freq_min = 1.3, default_eager=eager)
 
     ref_values = np.arange(4).reshape(4,1)+0.3 + np.arange(4).reshape(1,4)+1.3
     arrs = [

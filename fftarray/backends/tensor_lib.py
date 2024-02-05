@@ -44,15 +44,13 @@ class TensorLib(metaclass=ABCMeta):
 
     def get_transform_signs(
                 self,
-                dims: Tuple[FFTDimension, ...],
                 input_factors_applied: Iterable[bool],
                 target_factors_applied: Iterable[bool],
-                space: Iterable[Space],
-            ) -> Optional[List[Optional[int]]]:
+            ) -> Optional[List[Literal[-1, 1, None]]]:
 
         do_return_list = False
-        signs: List[Optional[int]] = []
-        for dim_idx, (dim, input_factor_applied, target_factor_applied) in enumerate(zip(dims, input_factors_applied, target_factors_applied)):
+        signs: List[Literal[-1, 1, None]] = []
+        for input_factor_applied, target_factor_applied in zip(input_factors_applied, target_factors_applied):
             # If both are the same, we do not need to do anything
 
             if input_factor_applied == target_factor_applied:
@@ -61,7 +59,7 @@ class TensorLib(metaclass=ABCMeta):
                 do_return_list = True
                 # 1: Go from applied (external) to not applied (internal)
                 # -1 reverse
-                sign = 1 if input_factor_applied else -1
+                sign: Literal[1, -1] = 1 if input_factor_applied else -1
                 signs.append(sign)
 
         if do_return_list:
@@ -75,7 +73,7 @@ class TensorLib(metaclass=ABCMeta):
             dims: Tuple[FFTDimension, ...],
             input_factors_applied: Iterable[bool],
             target_factors_applied: Iterable[bool],
-            space: Iterable[Space],
+            spaces: Iterable[Space],
         ):
         """
             This function takes all dims so that it has more freedom to optimize the application over all dimensions.
@@ -86,51 +84,69 @@ class TensorLib(metaclass=ABCMeta):
         #       Does the python Array API allow us to do that generically?
 
         signs = self.get_transform_signs(
-            dims=dims,
             input_factors_applied=input_factors_applied,
             target_factors_applied=target_factors_applied,
-            space=space,
         )
 
         if not signs is None:
-            values = self.apply_scale(
+            values = self.apply_scale_phases(
                 values=values,
                 dims=dims,
                 signs=signs,
-                spaces=space,
+                spaces=spaces,
             )
 
-            values = self.apply_phases(
-                values=values,
-                dims=dims,
-                signs=signs,
-                spaces=space,
-            )
+        return values
 
+    def apply_scale_phases(
+            self,
+            values,
+            dims: Tuple[FFTDimension, ...],
+            signs: List[Literal[1,-1,0]],
+            spaces: Iterable[Space],
+        ):
+
+        values = self.apply_scale(
+            values=values,
+            dims=dims,
+            signs=signs,
+            spaces=spaces,
+        )
+
+        values = self.apply_phases(
+            values=values,
+            dims=dims,
+            signs=signs,
+            spaces=spaces,
+        )
         return values
 
     def apply_scale(
         self,
         values,
         dims: Iterable[FFTDimension],
-        signs: List[Optional[int]],
+        signs: List[Literal[-1, 1, None]],
         spaces: Iterable[Space],
     ):
         # Real-numbered scale
         scale: float = 1.
+        do_apply = False
         for dim, sign, dim_space in zip(dims, signs, spaces):
             if not sign is None and dim_space == "freq":
-                    # TODO: Write as separate mul or div?
-                    scale = scale * (dim.d_freq*dim.n)**sign
-        # as array to ensure 32bit precision.
-        values = values * self.as_array(scale)
+                # TODO: Write as separate mul or div?
+                scale = scale * (dim.d_freq*dim.n)**sign
+                do_apply = True
+        # We cannot test for float == 1. because that value might be dynamic under tracing.
+        if do_apply:
+            # as array to ensure correct precision.
+            values = values * self.as_array(scale)
         return values
 
     def apply_phases(
                 self,
                 values,
                 dims: Iterable[FFTDimension],
-                signs: List[Optional[int]],
+                signs: List[Literal[-1, 1, None]],
                 spaces: Iterable[Space],
             ):
 
