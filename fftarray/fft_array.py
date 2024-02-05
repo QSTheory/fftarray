@@ -542,7 +542,6 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
 
         # We pick to always do it on the first one.
         # TODO: Could also pick the smaller one for performance optimisation.
-
         signs[1] = [None]*len(unp_inp.dims)
 
         for dim_idx in range(len(unp_inp.dims)):
@@ -565,33 +564,31 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
                 signs[0].append(None)
                 signs[1].append(None)
                 final_factors_applied.append(False)
-            # if eager True => True/False mapped to True
-            # if eager False => True/Fasle mapped to False
-            elif fac_applied == (True, False):
-                if unp_inp.eager[dim_idx]:
-                    signs[0].append(None)
-                    signs[1].append(-1)
-                    final_factors_applied.append(True)
-                else:
-                    signs[0].append(1)
-                    signs[1].append(None)
-                    final_factors_applied.append(False)
-            elif fac_applied == (False, True):
-                if unp_inp.eager[dim_idx]:
-                    signs[0].append(-1)
-                    signs[1].append(None)
-                    final_factors_applied.append(True)
-                else:
-                    signs[0].append(None)
-                    signs[1].append(1)
-                    final_factors_applied.append(False)
             elif fac_applied == (True, True):
                 # Both factors are applied => do nothing
                 signs[0].append(None)
                 signs[1].append(None)
                 final_factors_applied.append(True)
+            # if eager True => True/False mapped to True
+            # if eager False => True/False mapped to False
             else:
-                assert False, "unreachable"
+                final_factors_applied.append(unp_inp.eager[dim_idx])
+                if fac_applied == (True, False):
+                    if unp_inp.eager[dim_idx]:
+                        signs[0].append(None)
+                        signs[1].append(-1)
+                    else:
+                        signs[0].append(1)
+                        signs[1].append(None)
+                else:
+                    assert fac_applied == (False, True)
+                    if unp_inp.eager[dim_idx]:
+                        signs[0].append(-1)
+                        signs[1].append(None)
+                    else:
+                        signs[0].append(None)
+                        signs[1].append(1)
+
 
     else:
         for op_idx in [0,1]:
