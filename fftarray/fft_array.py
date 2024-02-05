@@ -527,7 +527,7 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
     except:
         return NotImplemented
 
-    signs: List[List[Literal[-1, 1, None]]] = [[], []]
+    signs: List[List[Literal[-1, 1, None]]] = [[None]*len(unp_inp.dims), [None]*len(unp_inp.dims)]
     final_factors_applied: List[bool] = []
 
     if ufunc == np.multiply and len(inputs) == 2 and isinstance(inputs[0], FFTArray) and isinstance(inputs[1], FFTArray):
@@ -546,11 +546,11 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
 
         for dim_idx in range(len(unp_inp.dims)):
             if unp_inp.factors_applied[dim_idx][0] is False and unp_inp.factors_applied[dim_idx][1] is False:
-                signs[0].append(-1)
+                signs[0][dim_idx] = -1
                 final_factors_applied.append(False)
             else:
-                # Does not matter if True or False, as long as they are the same, nothing is done.
-                signs[0].append(None)
+                # Does not matter if True or False, as long as they are the same, nothing is done
+                # leave signs at its default.
                 if unp_inp.factors_applied[dim_idx][0] is False or unp_inp.factors_applied[dim_idx][1] is False:
                     final_factors_applied.append(False)
                 else:
@@ -561,13 +561,9 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
             fac_applied: Tuple[bool, bool] = (unp_inp.factors_applied[dim_idx][0], unp_inp.factors_applied[dim_idx][1])
             if fac_applied == (False, False):
                 # Both factors still need to be applied => factor them out
-                signs[0].append(None)
-                signs[1].append(None)
                 final_factors_applied.append(False)
             elif fac_applied == (True, True):
                 # Both factors are applied => do nothing
-                signs[0].append(None)
-                signs[1].append(None)
                 final_factors_applied.append(True)
             # if eager True => True/False mapped to True
             # if eager False => True/False mapped to False
@@ -575,19 +571,15 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
                 final_factors_applied.append(unp_inp.eager[dim_idx])
                 if fac_applied == (True, False):
                     if unp_inp.eager[dim_idx]:
-                        signs[0].append(None)
-                        signs[1].append(-1)
+                        signs[1][dim_idx] = -1
                     else:
-                        signs[0].append(1)
-                        signs[1].append(None)
+                        signs[0][dim_idx] = 1
                 else:
                     assert fac_applied == (False, True)
                     if unp_inp.eager[dim_idx]:
-                        signs[0].append(-1)
-                        signs[1].append(None)
+                        signs[0][dim_idx] = -1
                     else:
-                        signs[0].append(None)
-                        signs[1].append(1)
+                        signs[1][dim_idx] = 1
 
 
     else:
@@ -597,9 +589,7 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
                     input_factors_applied=[unp_inp.factors_applied[dim_idx][op_idx] for dim_idx in range(len(unp_inp.dims))],
                     target_factors_applied=[True]*len(unp_inp.dims),
                 )
-                if res is None:
-                    signs[op_idx] = [None]*len(unp_inp.dims)
-                else:
+                if not res is None:
                     signs[op_idx] = res
 
         final_factors_applied = [True]*len(unp_inp.dims)
