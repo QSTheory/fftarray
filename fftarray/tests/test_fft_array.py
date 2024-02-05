@@ -206,3 +206,4 @@ def test_lazy(eager: bool) -> None:
     for arr in arrs:
         np.testing.assert_array_almost_equal(arr.into(space="freq").into(space="pos").into(space="freq").values, arr.into(space="freq").values)
         np.testing.assert_array_almost_equal(arr.values, ref_values)
+
