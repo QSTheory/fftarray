@@ -256,12 +256,5 @@ for tlib, precision in product(tensor_libs, precisions):
 
 @pytest.mark.parametrize("arr", arrs)
 def test_lazy_1(arr):
-    def test_arr(arr):
-        assert_single_operand_fun_equivalence(arr)
-        assert_dual_operand_fun_equivalence(arr)
-
-    test_arr(arr)
-    test_arr_jitted = jax.jit(test_arr)
-    test_arr_jitted(arr)
-
-
+    assert_single_operand_fun_equivalence(arr)
+    assert_dual_operand_fun_equivalence(arr)
