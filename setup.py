@@ -38,6 +38,7 @@ setuptools.setup(
     ],
     extras_require={
         "dev": [
+            "numpy>=1.24",
             "xarray",
             "mypy>=0.910",
             "pytest",
