@@ -1,5 +1,6 @@
-from typing import List
+from typing import List, Type
 from functools import reduce
+from itertools import product
 
 import pytest
 import numpy as np
@@ -10,7 +11,7 @@ from fftarray.fft_constraint_solver import fft_dim_from_constraints
 from fftarray.backends.jax_backend import JaxTensorLib
 from fftarray.backends.np_backend import NumpyTensorLib
 from fftarray.backends.pyfftw_backend import PyFFTWTensorLib
-from fftarray.backends.tensor_lib import PrecisionSpec
+from fftarray.backends.tensor_lib import TensorLib, PrecisionSpec
 from fftarray.xr_helpers import as_xr_pos
 
 jax.config.update("jax_enable_x64", True)
@@ -18,8 +19,8 @@ jax.config.update("jax_enable_x64", True)
 def assert_scalars_almost_equal_nulp(x, y, nulp = 1):
     np.testing.assert_array_almost_equal_nulp(np.array([x]), np.array([y]), nulp = nulp)
 
-tensor_libs = [NumpyTensorLib, JaxTensorLib, PyFFTWTensorLib]
-precisions = ["fp32", "fp64", "default"]
+tensor_libs: List[Type[TensorLib]] = [NumpyTensorLib, JaxTensorLib, PyFFTWTensorLib]
+precisions: List[PrecisionSpec] = ["fp32", "fp64", "default"]
 
 @pytest.mark.parametrize("tlib", tensor_libs)
 @pytest.mark.parametrize("do_jit", [False, True])
@@ -198,6 +199,9 @@ def assert_single_operand_fun_equivalence(arr):
     assert_equal_lazy(arr, values, lambda x:  x**2)
     assert_equal_lazy(arr, values, lambda x:  x**3)
 
+def assert_dual_operand_fun_equivalence(arr):
+    values = arr.values
+    assert_equal_lazy(arr, values, lambda x: x+x)
 
 @pytest.mark.parametrize("eager", [False, True])
 def test_lazy_0(eager: bool) -> None:
@@ -227,15 +231,9 @@ def _get_fft_arr(dims: List[FFTDimension], per_dim_values) -> FFTArray:
         for dim in dims
     ])
 
-@pytest.mark.parametrize("tlib", tensor_libs)
-@pytest.mark.parametrize("do_jit", [False, True])
-@pytest.mark.parametrize("precision", precisions)
-def test_lazy_1(tlib, do_jit: bool, precision: PrecisionSpec):
-    if do_jit and type(tlib) != JaxTensorLib:
-        return
-
+arrs = []
+for tlib, precision in product(tensor_libs, precisions):
     tlib_obj = tlib(precision=precision)
-    arrs = []
     x_dim = FFTDimension("x",
         n=4,
         d_pos=1,
@@ -250,18 +248,20 @@ def test_lazy_1(tlib, do_jit: bool, precision: PrecisionSpec):
         freq_min=0.,
         default_tlib=tlib_obj,
     )
-
     for dims in [[x_dim], [x_dim, y_dim]]:
         arrs.append(_get_fft_arr(dims, tlib_obj.array([0., 1., 2., 3.])))
-        arrs.append(_get_fft_arr(dims, tlib_obj.array([0., 1., 2., 3.]) + 1.j))
+        arrs.append(_get_fft_arr(dims, tlib_obj.array([0., 1., 2., 3.]) + 1.j)) # type: ignore
         arrs.append(_get_fft_arr(dims, tlib_obj.array([0, 1, 2, 3])))
 
 
-    def test_arrs(arrs):
-        for arr in arrs:
-            assert_single_operand_fun_equivalence(arr)
+@pytest.mark.parametrize("arr", arrs)
+def test_lazy_1(arr):
+    def test_arr(arr):
+        assert_single_operand_fun_equivalence(arr)
+        assert_dual_operand_fun_equivalence(arr)
 
-    test_arrs(arrs)
-    if do_jit:
-        test_arrs_jitted = jax.jit(test_arrs)
-        test_arrs_jitted(arrs)
+    test_arr(arr)
+    test_arr_jitted = jax.jit(test_arr)
+    test_arr_jitted(arr)
+
+
