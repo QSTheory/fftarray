@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import (
     Optional, Union, List, Any, Tuple, Dict, Hashable,
-    Literal, TypeVar, Iterable, Set, Generic
+    Literal, TypeVar, Iterable, Set, Generic, get_args
 )
 from abc import ABCMeta
 from copy import copy
