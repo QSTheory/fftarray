@@ -490,7 +490,7 @@ class FFTArray(metaclass=ABCMeta):
                 f"Passed in FFTDimension of name {dim.name} twice!"
             dim_names.add(dim.name)
 
-        assert all([dim_space in ["pos", "freq"] for dim_space in self._space])
+        assert all([dim_space in get_args(Space) for dim_space in self._space])
         assert all([isinstance(dim_eager, bool) for dim_eager in self._eager])
         assert all([isinstance(factor_applied, bool) for factor_applied in self._factors_applied])
 
