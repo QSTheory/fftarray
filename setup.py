@@ -51,9 +51,7 @@ setuptools.setup(
             "myst_parser",
             "mistune==0.8.4",
             "m2r2",
-            "ipython",
             "nbformat",
-            "bokeh",
         ] + _jax_packages + _pyFFTW_packages + _helpers + _dashboards,
         "examples": _helpers + _dashboards,
     }
