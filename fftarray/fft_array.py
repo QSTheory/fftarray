@@ -485,7 +485,7 @@ class FFTArray(metaclass=ABCMeta):
         """
         # TODO: Implement new invariants
         assert len(self._dims) == len(self._values.shape)
-        assert len(self._space) == len(self._values.shape)
+        assert len(self._spaces) == len(self._values.shape)
         assert len(self._eager) == len(self._values.shape)
         assert len(self._factors_applied) == len(self._values.shape)
 
@@ -497,7 +497,7 @@ class FFTArray(metaclass=ABCMeta):
                 f"Passed in FFTDimension of name {dim.name} twice!"
             dim_names.add(dim.name)
 
-        assert all([dim_space in ["pos", "freq"] for dim_space in self._space])
+        assert all([dim_space in ["pos", "freq"] for dim_space in self._spaces])
         assert all([isinstance(dim_eager, bool) for dim_eager in self._eager])
         assert all([isinstance(factor_applied, bool) for factor_applied in self._factors_applied])
 
