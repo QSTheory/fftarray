@@ -527,48 +527,37 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
     except:
         return NotImplemented
 
-    signs: List[List[Literal[-1, 1, None]]] = [[None]*len(unp_inp.dims), [None]*len(unp_inp.dims)]
+    phase_transforms: List[List[Literal[-1, 1, None]]] = [[None]*len(unp_inp.dims) for _ in range(2)]
     final_factors_applied: List[bool] = []
 
-    if ufunc == np.multiply and len(inputs) == 2 and isinstance(inputs[0], FFTArray) and isinstance(inputs[1], FFTArray):
+    # TODO: Check that it should work without  and isinstance(inputs[0], FFTArray) and isinstance(inputs[1], FFTArray):
+    if ufunc == np.multiply and len(inputs) == 2:
         # Element-wise multiplication is commutative with the multiplication of the phase factors.
         # So we can always directly multiply with the inner values and can delay up to one set of phase factors per dimension.
 
         # We only handle two operands.
         # If both have a phase factor we must remove it for one of the values.
         # Otherwise we can just take the raw values
-
-        # We need to create both lists because the values have already been reshaped and extended during unpacking.
-
-        # We pick to always do it on the first one.
-        # TODO: Could also pick the smaller one for performance optimisation.
-        signs[1] = [None]*len(unp_inp.dims)
-
-        for dim_idx in range(len(unp_inp.dims)):
-            if unp_inp.factors_applied[dim_idx][0] is False and unp_inp.factors_applied[dim_idx][1] is False:
-                signs[0][dim_idx] = -1
-                final_factors_applied.append(False)
-            else:
-                # Does not matter if True or False, as long as they are the same, nothing is done
-                # leave signs at its default.
-                if unp_inp.factors_applied[dim_idx][0] is False or unp_inp.factors_applied[dim_idx][1] is False:
-                    final_factors_applied.append(False)
-                else:
-                    final_factors_applied.append(True)
-
-    elif ufunc == np.add and len(inputs) == 2 and isinstance(inputs[0], FFTArray) and isinstance(inputs[1], FFTArray):
         for dim_idx in range(len(unp_inp.dims)):
             fac_applied: Tuple[bool, bool] = (unp_inp.factors_applied[dim_idx][0], unp_inp.factors_applied[dim_idx][1])
-            if fac_applied == (False, False):
-                # Both factors still need to be applied => factor them out
-                final_factors_applied.append(False)
-            elif fac_applied == (True, True):
-                # Both factors are applied => do nothing
-                final_factors_applied.append(True)
-            # if eager True => True/False mapped to True
-            # if eager False => True/False mapped to False
-            else:
 
+            # If both are applied we have to apply the factor once
+            if fac_applied == (False, False):
+                # We pick to always do it on the first one.
+                # TODO: Could also pick the smaller one for performance optimisation.
+                phase_transforms[0][dim_idx] = -1
+
+            # If both operands are applied, the final will be too, otherwise it will not.
+            final_factors_applied.append(all(fac_applied))
+
+    # TODO Ceck that it should work without  and isinstance(inputs[0], FFTArray) and isinstance(inputs[1], FFTArray)
+    elif ufunc == np.add and len(inputs) == 2:
+        for dim_idx in range(len(unp_inp.dims)):
+            fac_applied = (unp_inp.factors_applied[dim_idx][0], unp_inp.factors_applied[dim_idx][1])
+            if fac_applied[0] == fac_applied[1]:
+                # Both factors still need to be applied => factor them out
+                final_factors_applied.append(fac_applied[0])
+            else:
                 final_factors_applied.append(unp_inp.eager[dim_idx])
 
                 # Same as the commented out code below.
@@ -577,22 +566,22 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
                 # If the first operand is applied and eager, we convert the second one.
                 # Some if it is not applied and lazy.
                 # Otherwise we convert the first one.
-                sign_idx = int(fac_applied[0] == unp_inp.eager[dim_idx])
+                transformed_op_idx = int(fac_applied[0] == unp_inp.eager[dim_idx])
                 # If we are eager we want to the applied state, so sign=-1
                 # else we want to the internal state so we apply 1.
-                signs[sign_idx][dim_idx] = -1 if unp_inp.eager[dim_idx] else 1
+                phase_transforms[transformed_op_idx][dim_idx] = -1 if unp_inp.eager[dim_idx] else 1
 
                 # if fac_applied == (True, False):
                 #     if unp_inp.eager[dim_idx]:
-                #         signs[1][dim_idx] = -1
+                #         phase_transforms[1][dim_idx] = -1
                 #     else:
-                #         signs[0][dim_idx] = 1
+                #         phase_transforms[0][dim_idx] = 1
                 # else:
                 #     assert fac_applied == (False, True)
                 #     if unp_inp.eager[dim_idx]:
-                #         signs[0][dim_idx] = -1
+                #         phase_transforms[0][dim_idx] = -1
                 #     else:
-                #         signs[1][dim_idx] = 1
+                #         phase_transforms[1][dim_idx] = 1
 
 
     else:
@@ -603,12 +592,12 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
                     target_factors_applied=[True]*len(unp_inp.dims),
                 )
                 if not res is None:
-                    signs[op_idx] = res
+                    phase_transforms[op_idx] = res
 
         final_factors_applied = [True]*len(unp_inp.dims)
 
     # Apply all phase factors because there is no special case applicable
-    for op_idx, signs_op in zip([0,1], signs):
+    for op_idx, signs_op in zip([0,1], phase_transforms):
         if isinstance(inputs[op_idx], FFTArray):
             unp_inp.values[op_idx] = unp_inp.tlib.apply_scale_phases(
                 values=unp_inp.values[op_idx],
@@ -782,7 +771,8 @@ def _unpack_fft_arrays(
     space_list = [dims[dim_name].space.get() for dim_name in dim_names]
     eager_list = [dims[dim_name].eager.get() for dim_name in dim_names]
     factors_applied = [dims[dim_name].factors_applied for dim_name in dim_names]
-    unpacked_values = [tlib.get().as_array(x) for x in unpacked_values]
+    # TODO: Why is this necessary?
+    # unpacked_values = [tlib.get().as_array(x) for x in unpacked_values]
 
     for value in unpacked_values:
         assert not value is None

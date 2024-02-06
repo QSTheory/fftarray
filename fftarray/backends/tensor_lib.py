@@ -172,11 +172,12 @@ class TensorLib(metaclass=ABCMeta):
 
                 per_idx_phase_factors = per_idx_phase_factors + per_idx_values
 
-        # TODO: Figure out typing
-        exponent = self.array(1.j, dtype=self.complex_type) * per_idx_phase_factors # type: ignore
-        # TODO Could optimise exp into cos and sin because exponent is purely complex
-        # Is that faster or more precise? Should we test that or just do it?
-        values = values * self.numpy_ufuncs.exp(exponent)
+        if len(per_idx_phase_factors.shape) > 0: # type: ignore
+            # TODO: Figure out typing
+            exponent = self.array(1.j, dtype=self.complex_type) * per_idx_phase_factors # type: ignore
+            # TODO Could optimise exp into cos and sin because exponent is purely complex
+            # Is that faster or more precise? Should we test that or just do it?
+            values = values * self.numpy_ufuncs.exp(exponent)
         return values
 
     def reduce_multiply(self, values) -> float:
