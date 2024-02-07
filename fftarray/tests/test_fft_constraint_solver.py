@@ -881,6 +881,7 @@ accessors = ["freq_middle", "pos_middle"] # only floats
 for pf in ["pos", "freq"]:
     accessors += [f"d_{pf}", f"{pf}_min", f"{pf}_max", f"{pf}_extent"]
 
+
 @pytest.mark.slow
 @given(
     n=st.one_of(st.sampled_from(["power_of_two", "even"]), st.integers()),
