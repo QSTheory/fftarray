@@ -815,6 +815,7 @@ def test_invalid_values(test_val):
             make_suggestions=False
         )
 
+@pytest.mark.slow
 @given(
     n = st.integers(),
     # Limit to width=32 and no subnormals to keep the exponents small enough to not make z3 take too long.
@@ -847,6 +848,7 @@ def test_with_hypothesis_0(n: int, pos_min: float, pos_max: float, freq_middle: 
     except Exception as e:
         raise e
 
+@pytest.mark.slow
 @given(
     d_pos = st.floats(width=32, allow_subnormal=False),
     d_freq = st.floats(width=32, allow_subnormal=False),
@@ -878,6 +880,8 @@ def test_with_hypothesis_1(d_pos: float, d_freq: float, pos_min: float, freq_mid
 accessors = ["freq_middle", "pos_middle"] # only floats
 for pf in ["pos", "freq"]:
     accessors += [f"d_{pf}", f"{pf}_min", f"{pf}_max", f"{pf}_extent"]
+
+@pytest.mark.slow
 @given(
     n=st.one_of(st.sampled_from(["power_of_two", "even"]), st.integers()),
     **{a: st.one_of(st.none(), st.floats(width=32, allow_subnormal=False)) for a in accessors}
