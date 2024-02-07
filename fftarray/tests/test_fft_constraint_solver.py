@@ -1,11 +1,16 @@
+import sys
+
 import numpy as np
 from numpy.testing import assert_array_almost_equal_nulp
 import pytest
 from hypothesis import given, strategies as st, settings, note
 import jax.numpy as jnp
+from jax import config
 
 from fftarray.fft_constraint_solver import _z3_constraint_solver
 from fftarray.fft_constraint_solver import ConstraintSolverError, NoSolutionFoundError, NoUniqueSolutionError, ConstraintValueError
+
+config.update("jax_enable_x64", True)
 
 """Constant of Rubidium 87"""
 from numpy import pi
@@ -810,70 +815,84 @@ def test_invalid_values(test_val):
             make_suggestions=False
         )
 
-# TODO These tests tend to hang on macOS
-# @given(n = st.integers(), pos_min = st.floats(), pos_max = st.floats(), freq_middle = st.floats())
-# @settings(deadline = 100, max_examples=500)
-# def test_with_hypothesis(n: int, pos_min: float, pos_max: float, freq_middle: float):
-#     user_constraints = dict(
-#         n = n,
-#         pos_min = pos_min,
-#         pos_max = pos_max,
-#         freq_middle = freq_middle
-#     )
-#     note(str(user_constraints))
-#     note(f"int limits: [{-sys.maxsize-1}, {sys.maxsize}]")
-#     note(f"float limits: +-[{sys.float_info.min}, {sys.float_info.max}]")
+@given(
+    n = st.integers(),
+    # Limit to width=32 and no subnormals to keep the exponents small enough to not make z3 take too long.
+    pos_min = st.floats(width=32, allow_subnormal=False),
+    pos_max = st.floats(width=32, allow_subnormal=False),
+    freq_middle = st.floats(width=32, allow_subnormal=False),
+)
+@settings(max_examples=500)
+def test_with_hypothesis_0(n: int, pos_min: float, pos_max: float, freq_middle: float):
+    user_constraints = dict(
+        n = n,
+        pos_min = pos_min,
+        pos_max = pos_max,
+        freq_middle = freq_middle
+    )
+    note(str(user_constraints))
+    note(f"int limits: [{-sys.maxsize-1}, {sys.maxsize}]")
+    note(f"float limits: +-[{sys.float_info.min}, {sys.float_info.max}]")
 
-#     try:
-#         _z3_constraint_solver(
-#             constraints=user_constraints, # type: ignore
-#             loose_params=[],
-#             make_suggestions=False
-#         )
-#     except ConstraintSolverError:
-#         ...
-#     except Exception as e:
-#         raise e
+    try:
+        _z3_constraint_solver(
+            constraints=user_constraints, # type: ignore
+            loose_params=[],
+            make_suggestions=False
+        )
+    except ConstraintSolverError:
+        ...
+    except Exception as e:
+        raise e
 
-# @given(d_pos = st.floats(), d_freq = st.floats(), pos_min = st.floats(), freq_middle = st.floats())
-# @settings(deadline = 100, max_examples=500)
-# def test_with_hypothesis_2(d_pos: float, d_freq: float, pos_min: float, freq_middle: float):
-#     user_constraints = dict(
-#         d_pos = d_pos,
-#         d_freq = d_freq,
-#         pos_min = pos_min,
-#         freq_middle = freq_middle,
-#         n="even"
-#     )
-#     note(str(user_constraints))
-#     note(f"float limits: +-[{sys.float_info.min}, {sys.float_info.max}]")
-#     try:
-#         _z3_constraint_solver(
-#             constraints=user_constraints, # type: ignore
-#             loose_params=['d_pos'],
-#             make_suggestions=False
-#         )
-#     except ConstraintSolverError:
-#         ...
-#     except Exception as e:
-#         raise e
+@given(
+    d_pos = st.floats(width=32, allow_subnormal=False),
+    d_freq = st.floats(width=32, allow_subnormal=False),
+    pos_min = st.floats(width=32, allow_subnormal=False),
+    freq_middle = st.floats(width=32, allow_subnormal=False),
+)
+@settings(max_examples=500)
+def test_with_hypothesis_1(d_pos: float, d_freq: float, pos_min: float, freq_middle: float):
+    user_constraints = dict(
+        d_pos = d_pos,
+        d_freq = d_freq,
+        pos_min = pos_min,
+        freq_middle = freq_middle,
+        n="even"
+    )
+    note(str(user_constraints))
+    note(f"float limits: +-[{sys.float_info.min}, {sys.float_info.max}]")
+    try:
+        _z3_constraint_solver(
+            constraints=user_constraints, # type: ignore
+            loose_params=['d_pos'],
+            make_suggestions=False
+        )
+    except ConstraintSolverError:
+        ...
+    except Exception as e:
+        raise e
 
-# accessors = ["freq_middle", "pos_middle"] # only floats
-# for pf in ["pos", "freq"]:
-#     accessors += [f"d_{pf}", f"{pf}_min", f"{pf}_max", f"{pf}_extent"]
-# @given(n=st.one_of(st.sampled_from(["power_of_two", "even"]), st.integers()), **{a: st.one_of(st.none(), st.floats()) for a in accessors})
-# @settings(deadline = 100, max_examples=500)
-# def test_with_hypothesis_3(**user_constraints):
-#     note(user_constraints)
-#     note(f"int limits: [{-sys.maxsize-1}, {sys.maxsize}]")
-#     note(f"float limits: +-[{sys.float_info.min}, {sys.float_info.max}]")
-#     try:
-#         _z3_constraint_solver(
-#             constraints=user_constraints,
-#             loose_params=[],
-#             make_suggestions=False
-#         )
-#     except ConstraintSolverError:
-#         ...
-#     except Exception as e:
-#         raise e
+accessors = ["freq_middle", "pos_middle"] # only floats
+for pf in ["pos", "freq"]:
+    accessors += [f"d_{pf}", f"{pf}_min", f"{pf}_max", f"{pf}_extent"]
+@given(
+    n=st.one_of(st.sampled_from(["power_of_two", "even"]), st.integers()),
+    **{a: st.one_of(st.none(), st.floats(width=32, allow_subnormal=False)) for a in accessors}
+)
+@settings(max_examples=500)
+def test_with_hypothesis_2(**user_constraints):
+    note(user_constraints)
+    note(f"int limits: [{-sys.maxsize-1}, {sys.maxsize}]")
+    note(f"float limits: +-[{sys.float_info.min}, {sys.float_info.max}]")
+    try:
+        _z3_constraint_solver(
+            constraints=user_constraints,
+            loose_params=[],
+            make_suggestions=False
+        )
+    except ConstraintSolverError:
+        ...
+    except Exception as e:
+        raise e
+

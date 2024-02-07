@@ -15,6 +15,11 @@ if version == "":
 
 assert "." in version
 
+_jax_packages = ["jax>=0.4.2", "jaxlib"]
+_pyFFTW_packages = ["pyFFTW"]
+_helpers = ["z3-solver", "xarray"]
+_dashboards = ["ipython", "bokeh"]
+
 setuptools.setup(
     name="fftarray",
     version=version,
@@ -24,7 +29,7 @@ setuptools.setup(
     long_description="",
     long_description_content_type="text/plain",
     url="",
-    packages=["fftarray"],
+    packages=["fftarray", "fftarray.backends"],
     include_package_data=True,
     package_data={"fftarray": ["py.typed"]},
     zip_safe=False,
@@ -32,13 +37,12 @@ setuptools.setup(
     python_requires=">=3.9",
     install_requires=[
         "numpy>=1.21",
-        "jax>=0.4.2",
-        "jaxlib",
-        "z3-solver",
     ],
     extras_require={
+        "jax": _jax_packages,
+        "pyFFTW": _pyFFTW_packages,
+        "helpers": _helpers,
         "dev": [
-            "xarray",
             "mypy>=0.910",
             "pytest",
             "hypothesis",
@@ -47,14 +51,8 @@ setuptools.setup(
             "myst_parser",
             "mistune==0.8.4",
             "m2r2",
-            "ipython",
             "nbformat",
-            "bokeh",
-            "pyFFTW",
-        ],
-        "examples": [
-            "bokeh",
-            "ipython",
-        ],
+        ] + _jax_packages + _pyFFTW_packages + _helpers + _dashboards,
+        "examples": _helpers + _dashboards,
     }
 )
