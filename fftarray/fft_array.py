@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import (
     Optional, Union, List, Any, Tuple, Dict, Hashable,
-    Literal, TypeVar, Iterable, Set, Generic
+    Literal, TypeVar, Iterable, Set, Generic, get_args
 )
 from abc import ABCMeta
 from copy import copy
@@ -64,9 +64,12 @@ class LocFFTArrayIndexer(Generic[T]):
                 slices.append(dim._index_from_coord(dim_item, method=None, space=space))
         return self._arr.__getitem__(tuple(slices))
 
-def _norm_param(val: Union[T, Iterable[T]], types) -> Tuple[T, ...]:
+def _norm_param(val: Union[T, Iterable[T]], n: int, types) -> Tuple[T, ...]:
+    """
+       `val` has to be immutable.
+    """
     if isinstance(val, types):
-        return tuple([val])
+        return (val,)*n
 
     # TODO: Can we make this type check work?
     return tuple(val) # type: ignore
@@ -103,10 +106,11 @@ class FFTArray(metaclass=ABCMeta):
             Construct new values via the `fft_array()` function of FFTDimension.
         """
         self._dims = tuple(dims)
+        n_dims = len(self._dims)
         self._values = values
-        self._space = _norm_param(space, str)
-        self._eager = _norm_param(eager, bool)
-        self._factors_applied = _norm_param(factors_applied, bool)
+        self._space = _norm_param(space, n_dims, str)
+        self._eager = _norm_param(eager, n_dims, bool)
+        self._factors_applied = _norm_param(factors_applied, n_dims, bool)
         self._tlib = _get_tensor_lib(self._dims)
         self._check_consistency()
 
@@ -265,16 +269,17 @@ class FFTArray(metaclass=ABCMeta):
 
         values = self._values
         dims = self._dims
+        n_dims = len(dims)
 
         if space is None:
             space_norm = self._space
         else:
-            space_norm = _norm_param(space, str)
+            space_norm = _norm_param(space, n_dims, str)
 
         if eager is None:
             eager_norm = self._eager
         else:
-            eager_norm = _norm_param(eager, bool)
+            eager_norm = _norm_param(eager, n_dims, bool)
             dims = tuple(dim.set_default_eager(eager) for dim, eager in zip(dims, eager_norm))
 
 
@@ -331,7 +336,7 @@ class FFTArray(metaclass=ABCMeta):
                     factors_norm_list.append(is_applied)
             factors_norm = tuple(factors_norm_list)
         else:
-            factors_norm = _norm_param(factors_applied, bool)
+            factors_norm = _norm_param(factors_applied, n_dims, bool)
 
         # Bring values into the target form respective lazy state
         values = tlib_norm.get_values_with_lazy_factors(
@@ -473,6 +478,10 @@ class FFTArray(metaclass=ABCMeta):
         """
         # TODO: Implement new invariants
         assert len(self._dims) == len(self._values.shape)
+        assert len(self._space) == len(self._values.shape)
+        assert len(self._eager) == len(self._values.shape)
+        assert len(self._factors_applied) == len(self._values.shape)
+
         dim_names: Set[Hashable] = set()
         for n, dim in zip(self._values.shape, self._dims):
             assert dim.n == n, \
@@ -481,10 +490,9 @@ class FFTArray(metaclass=ABCMeta):
                 f"Passed in FFTDimension of name {dim.name} twice!"
             dim_names.add(dim.name)
 
-        # if self._lazy_state is not None:
-        #     for dim, phase_factors in zip(self._dims, self._lazy_state._phases_per_dim):
-        #         assert isinstance(phase_factors, dict)
-        #         assert dim.name in self._lazy_state._phases_per_dim
+        assert all([dim_space in get_args(Space) for dim_space in self._space])
+        assert all([isinstance(dim_eager, bool) for dim_eager in self._eager])
+        assert all([isinstance(factor_applied, bool) for factor_applied in self._factors_applied])
 
 
 # Implementing NEP 13 https://numpy.org/neps/nep-0013-ufunc-overrides.html
