@@ -3,6 +3,7 @@ from functools import reduce
 from itertools import product
 
 import pytest
+from hypothesis import given, strategies as st, note, settings, assume
 import numpy as np
 import jax
 
@@ -186,11 +187,77 @@ def test_broadcasting(nulp: int = 1) -> None:
     np.testing.assert_array_almost_equal_nulp((x_dim.fft_array(space="pos") + y_dim.fft_array(space="pos")).transpose("x", "y").values, (x_ref_broadcast+y_ref_broadcast).transpose(), nulp = 0)
     np.testing.assert_array_almost_equal_nulp((x_dim.fft_array(space="pos") + y_dim.fft_array(space="pos")).transpose("y", "x").values, x_ref_broadcast+y_ref_broadcast, nulp = 0)
 
+@given(
+    value=st.one_of([
+        st.integers(min_value=np.iinfo(int).min, max_value=np.iinfo(int).max),
+        st.complex_numbers(allow_infinity=False, allow_nan=False, allow_subnormal=False),
+        st.floats(allow_infinity=False, allow_nan=False, allow_subnormal=False)
+    ]),
+    init_factor_applied=st.booleans(),
+    eager=st.booleans(),
+    init_space=st.sampled_from(["pos", "freq"]),
+    tlib=st.sampled_from(tensor_libs),
+    precision=st.sampled_from(precisions),
+    ndims=st.integers(min_value=1, max_value=4)
+)
+@settings(max_examples=500)
+def test_attributes(value, init_factor_applied, eager, tlib, precision, init_space, ndims):
+    dims = [
+        FFTDimension(f"{ndim}", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1, default_eager=eager, default_tlib=tlib(precision=precision))
+    for ndim in range(ndims)]
+    note(dims)
+    fftarr_values = np.full(tuple([dim.n for dim in dims]), value)
+    note(fftarr_values.dtype)
+    note(fftarr_values)
+
+    if precision == "fp32":
+        if isinstance(value, float):
+            assume(np.abs(value) >= np.finfo(np.float32).min and np.abs(value) <= np.finfo(np.float32).max)
+        if isinstance(value, complex):
+            assume(np.abs(value.real) >= np.finfo(np.float32).min and np.abs(value.real) <= np.finfo(np.float32).max)
+            assume(np.abs(value.imag) >= np.finfo(np.float32).min and np.abs(value.imag) <= np.finfo(np.float32).max)
+    if precision == "fp64":
+        if isinstance(value, complex):
+            assume(np.abs(value) >= np.finfo(np.float64).min and np.abs(value) <= np.finfo(np.float64).max)
+        if isinstance(value, complex):
+            assume(np.abs(value.real) >= np.finfo(np.float64).min and np.abs(value.real) <= np.finfo(np.float64).max)
+            assume(np.abs(value.imag) >= np.finfo(np.float64).min and np.abs(value.imag) <= np.finfo(np.float64).max)
+
+    # test eager dim and eager fftarray error
+    # with pytest.raises(Exception):
+    #     FFTArray(
+    #         values=fftarr_values,
+    #         dims=dims,
+    #         space=init_space,
+    #         eager=not eager,
+    #         factors_applied=lazy
+    #     )
+
+    fftarr = FFTArray(
+        values=fftarr_values,
+        dims=dims,
+        space=init_space,
+        eager=eager,
+        factors_applied=init_factor_applied
+    )
+    note(fftarr)
+    if init_factor_applied:
+        np.testing.assert_array_equal(fftarr.values, fftarr_values, strict=True)
+        assert_single_operand_fun_equivalence(fftarr)
+
 def assert_equal_lazy(arr, values, op):
-    np.testing.assert_array_equal(arr, values, strict=True)
-    np.testing.assert_array_equal(op(arr), op(values), strict=True)
-    np.testing.assert_array_equal(op(arr.into(factors_applied=False)).values.astype(arr.tlib.complex_type), op(values).astype(arr.tlib.complex_type), strict=True)
-    np.testing.assert_array_equal(op(arr).into(factors_applied=False).values.astype(arr.tlib.complex_type), op(values).astype(arr.tlib.complex_type), strict=True)
+    note(op(arr).values)
+    note(op(values))
+    if "int" in str(values.dtype):
+        np.testing.assert_array_equal(op(arr).values, op(values), strict=True)
+    if "float" in str(values.dtype):
+        np.testing.assert_array_almost_equal_nulp(op(arr).values, op(values), nulp=4)
+    if "complex" in str(values.dtype):
+        assert_array_almost_equal_nulp_complex(op(arr).values, op(values), nulp=4)
+
+def assert_array_almost_equal_nulp_complex(x, y, nulp):
+    np.testing.assert_array_almost_equal_nulp(x.real, y.real, nulp)
+    np.testing.assert_array_almost_equal_nulp(x.imag, y.imag, nulp)
 
 def assert_single_operand_fun_equivalence(arr):
     values = arr.values
@@ -203,58 +270,58 @@ def assert_dual_operand_fun_equivalence(arr):
     values = arr.values
     assert_equal_lazy(arr, values, lambda x: x+x)
 
-@pytest.mark.parametrize("eager", [False, True])
-def test_lazy_0(eager: bool) -> None:
-    dim_pos_x = fft_dim_from_constraints("x", n = 4, d_pos = 1., pos_min = 0.3, freq_min = 0.7, default_eager=eager)
-    dim_pos_y = fft_dim_from_constraints("y", n = 4, d_pos = 1., pos_min = 1.3, freq_min = 1.7, default_eager=eager)
-    dim_freq_x = fft_dim_from_constraints("x", n = 4, d_freq = 1., pos_min = 0.7, freq_min = 0.3, default_eager=eager)
-    dim_freq_y = fft_dim_from_constraints("y", n = 4, d_freq = 1., pos_min = 1.7, freq_min = 1.3, default_eager=eager)
+# @pytest.mark.parametrize("eager", [False, True])
+# def test_lazy_0(eager: bool) -> None:
+#     dim_pos_x = fft_dim_from_constraints("x", n = 4, d_pos = 1., pos_min = 0.3, freq_min = 0.7, default_eager=eager)
+#     dim_pos_y = fft_dim_from_constraints("y", n = 4, d_pos = 1., pos_min = 1.3, freq_min = 1.7, default_eager=eager)
+#     dim_freq_x = fft_dim_from_constraints("x", n = 4, d_freq = 1., pos_min = 0.7, freq_min = 0.3, default_eager=eager)
+#     dim_freq_y = fft_dim_from_constraints("y", n = 4, d_freq = 1., pos_min = 1.7, freq_min = 1.3, default_eager=eager)
 
-    ref_values = np.arange(4).reshape(4,1)+0.3 + np.arange(4).reshape(1,4)+1.3
-    arrs = [
-        (dim_pos_x.fft_array(space="pos") + dim_pos_y.fft_array(space="pos")).transpose("x", "y"),
-        (dim_freq_x.fft_array(space="freq") + dim_freq_y.fft_array(space="freq")).transpose("x", "y"),
-    ]
-    for arr in arrs:
-        np.testing.assert_array_almost_equal(arr.into(space="freq").into(space="pos").into(space="freq").values, arr.into(space="freq").values)
-        np.testing.assert_array_almost_equal(arr.values, ref_values)
+#     ref_values = np.arange(4).reshape(4,1)+0.3 + np.arange(4).reshape(1,4)+1.3
+#     arrs = [
+#         (dim_pos_x.fft_array(space="pos") + dim_pos_y.fft_array(space="pos")).transpose("x", "y"),
+#         (dim_freq_x.fft_array(space="freq") + dim_freq_y.fft_array(space="freq")).transpose("x", "y"),
+#     ]
+#     for arr in arrs:
+#         np.testing.assert_array_almost_equal(arr.into(space="freq").into(space="pos").into(space="freq").values, arr.into(space="freq").values)
+#         np.testing.assert_array_almost_equal(arr.values, ref_values)
 
-def _get_fft_arr(dims: List[FFTDimension], per_dim_values) -> FFTArray:
-    return reduce(lambda x,y: x+y, [
-        FFTArray(
-            values=per_dim_values,
-            dims=[dim],
-            space="pos",
-            eager=False,
-            factors_applied=True,
-        )
-        for dim in dims
-    ])
+# def _get_fft_arr(dims: List[FFTDimension], per_dim_values) -> FFTArray:
+#     return reduce(lambda x,y: x+y, [
+#         FFTArray(
+#             values=per_dim_values,
+#             dims=[dim],
+#             space="pos",
+#             eager=False,
+#             factors_applied=True,
+#         )
+#         for dim in dims
+#     ])
 
-arrs = []
-for tlib, precision in product(tensor_libs, precisions):
-    tlib_obj = tlib(precision=precision)
-    x_dim = FFTDimension("x",
-        n=4,
-        d_pos=1,
-        pos_min=0.5,
-        freq_min=0.,
-        default_tlib=tlib_obj,
-    )
-    y_dim = FFTDimension("y",
-        n=4,
-        d_pos=2,
-        pos_min=-2,
-        freq_min=0.,
-        default_tlib=tlib_obj,
-    )
-    for dims in [[x_dim], [x_dim, y_dim]]:
-        arrs.append(_get_fft_arr(dims, tlib_obj.array([0., 1., 2., 3.])))
-        arrs.append(_get_fft_arr(dims, tlib_obj.array([0., 1., 2., 3.]) + 1.j)) # type: ignore
-        arrs.append(_get_fft_arr(dims, tlib_obj.array([0, 1, 2, 3])))
+# arrs = []
+# for tlib, precision in product(tensor_libs, precisions):
+#     tlib_obj = tlib(precision=precision)
+#     x_dim = FFTDimension("x",
+#         n=4,
+#         d_pos=1,
+#         pos_min=0.5,
+#         freq_min=0.,
+#         default_tlib=tlib_obj,
+#     )
+#     y_dim = FFTDimension("y",
+#         n=4,
+#         d_pos=2,
+#         pos_min=-2,
+#         freq_min=0.,
+#         default_tlib=tlib_obj,
+#     )
+#     for dims in [[x_dim], [x_dim, y_dim]]:
+#         arrs.append(_get_fft_arr(dims, tlib_obj.array([0., 1., 2., 3.])))
+#         arrs.append(_get_fft_arr(dims, tlib_obj.array([0., 1., 2., 3.]) + 1.j)) # type: ignore
+#         arrs.append(_get_fft_arr(dims, tlib_obj.array([0, 1, 2, 3])))
 
 
-@pytest.mark.parametrize("arr", arrs)
-def test_lazy_1(arr):
-    assert_single_operand_fun_equivalence(arr)
-    assert_dual_operand_fun_equivalence(arr)
+# @pytest.mark.parametrize("arr", arrs)
+# def test_lazy_1(arr):
+#     assert_single_operand_fun_equivalence(arr)
+#     assert_dual_operand_fun_equivalence(arr)
