@@ -67,6 +67,9 @@ def _norm_param(val: Union[T, Iterable[T]], types) -> Tuple[T, ...]:
 
 
 class FFTArrayProps:
+    """
+        This class collects the values needed to construct an `FFTArray` from a `FFTDimension`.
+    """
     _eager: bool
     _tlib: TensorLib
 
