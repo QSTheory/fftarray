@@ -172,7 +172,7 @@ class FFTArray(metaclass=ABCMeta):
     # Selection
     #--------------------
 
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> FFTArray:
         new_dims = []
 
         if isinstance(item, slice):
@@ -205,6 +205,7 @@ class FFTArray(metaclass=ABCMeta):
             space=self._space,
             eager=self._eager,
             factors_applied=self._factors_applied,
+            tlib=self.tlib,
         )
 
     @property
@@ -236,6 +237,7 @@ class FFTArray(metaclass=ABCMeta):
                         kwargs[dim.name], # type: ignore
                         method=method,
                         space=space,
+                        tlib=self.tlib,
                     )
                 )
             else:

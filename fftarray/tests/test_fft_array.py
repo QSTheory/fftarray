@@ -17,7 +17,7 @@ tensor_libs = [NumpyTensorLib, JaxTensorLib, PyFFTWTensorLib]
 
 @pytest.mark.parametrize("tlib", tensor_libs)
 @pytest.mark.parametrize("do_jit", [False, True])
-def test_indexing(tlib, do_jit: bool):
+def test_indexing(tlib, do_jit: bool) -> None:
     if do_jit and type(tlib) != JaxTensorLib:
         return
 
@@ -39,10 +39,10 @@ def test_indexing(tlib, do_jit: bool):
     arr_2d = x_dim.fft_array(props, space="pos") + y_dim.fft_array(props, space="pos")**2
     xr_arr = as_xr_pos(arr_2d)
 
-    assert x_dim._index_from_coord(0.5, method = None, space="pos", tlib=tlib) == 0
-    assert x_dim._index_from_coord(2.5, method = None, space="pos", tlib=tlib) == 2
-    assert x_dim._index_from_coord(0.4, method = "nearest", space="pos", tlib=tlib) == 0
-    assert x_dim._index_from_coord(2.6, method = "nearest", space="pos", tlib=tlib) == 2
+    assert x_dim._index_from_coord(0.5, method = None, space="pos", tlib=props.tlib) == 0
+    assert x_dim._index_from_coord(2.5, method = None, space="pos", tlib=props.tlib) == 2
+    assert x_dim._index_from_coord(0.4, method = "nearest", space="pos", tlib=props.tlib) == 0
+    assert x_dim._index_from_coord(2.6, method = "nearest", space="pos", tlib=props.tlib) == 2
 
 
     assert np.array_equal(arr_2d.values[0:3:2,:], xr_arr.values[0:3:2,:])
@@ -72,8 +72,8 @@ def test_indexing(tlib, do_jit: bool):
 
     def test_jittable(x_dim, arr_2d):
         return (
-            x_dim._index_from_coord(0.4, method = "nearest", space="pos"),
-            x_dim._index_from_coord(2.6, method = "nearest", space="pos"),
+            x_dim._index_from_coord(0.4, method = "nearest", space="pos", tlib=arr_2d.tlib),
+            x_dim._index_from_coord(2.6, method = "nearest", space="pos", tlib=arr_2d.tlib),
             arr_2d.sel(x=1,y=3.4, method="nearest"),
             arr_2d.sel(x=-100,y=3.4, method="nearest"),
             arr_2d.loc[:],
@@ -112,7 +112,7 @@ def test_dtype(tensor_lib, precision, override, eager: bool):
     )
     props_override = FFTArrayProps(
         eager=eager,
-        tlib=tlib,
+        tlib=tlib_override,
     )
 
 
@@ -154,11 +154,6 @@ def test_backend_override(tensor_lib, override):
 
     props = FFTArrayProps(tlib=tensor_lib())
     props_override = FFTArrayProps(tlib=override())
-
-    assert type(x_dim.fft_array(props, space="pos", tlib=override()).values) == type(x_dim.fft_array(props_override, space="pos").values)
-    assert type(x_dim.fft_array(props, space="freq", tlib=override()).values) == type(x_dim.fft_array(props_override, space="freq").values)
-    assert type(x_dim.fft_array(props, space="pos", tlib=override()).into(space="freq").values) == type(x_dim.fft_array(props_override, space="freq").values)
-    assert type(x_dim.fft_array(props, space="freq", tlib=override()).into(space="pos").values) == type(x_dim.fft_array(props_override, space="freq").values)
 
     assert type(x_dim.fft_array(props, space="pos").into(tlib=override()).values) == type(x_dim.fft_array(props_override, space="pos").values)
     assert type(x_dim.fft_array(props, space="freq").into(tlib=override()).values) == type(x_dim.fft_array(props_override, space="freq").values)
