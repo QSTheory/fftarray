@@ -815,6 +815,7 @@ def test_invalid_values(test_val):
             make_suggestions=False
         )
 
+@pytest.mark.slow
 @given(
     n = st.integers(),
     # Limit to width=32 and no subnormals to keep the exponents small enough to not make z3 take too long.
@@ -822,7 +823,9 @@ def test_invalid_values(test_val):
     pos_max = st.floats(width=32, allow_subnormal=False),
     freq_middle = st.floats(width=32, allow_subnormal=False),
 )
-@settings(max_examples=500)
+# Explicitly deactivate deadline because if hypothesis hits a very slow case it can take quite a few seconds.
+# There is no upper bound to the duration so we do not test one.
+@settings(max_examples=500, deadline=None)
 def test_with_hypothesis_0(n: int, pos_min: float, pos_max: float, freq_middle: float):
     user_constraints = dict(
         n = n,
@@ -845,13 +848,14 @@ def test_with_hypothesis_0(n: int, pos_min: float, pos_max: float, freq_middle: 
     except Exception as e:
         raise e
 
+@pytest.mark.slow
 @given(
     d_pos = st.floats(width=32, allow_subnormal=False),
     d_freq = st.floats(width=32, allow_subnormal=False),
     pos_min = st.floats(width=32, allow_subnormal=False),
     freq_middle = st.floats(width=32, allow_subnormal=False),
 )
-@settings(max_examples=500)
+@settings(max_examples=500, deadline=None)
 def test_with_hypothesis_1(d_pos: float, d_freq: float, pos_min: float, freq_middle: float):
     user_constraints = dict(
         d_pos = d_pos,
@@ -876,13 +880,15 @@ def test_with_hypothesis_1(d_pos: float, d_freq: float, pos_min: float, freq_mid
 accessors = ["freq_middle", "pos_middle"] # only floats
 for pf in ["pos", "freq"]:
     accessors += [f"d_{pf}", f"{pf}_min", f"{pf}_max", f"{pf}_extent"]
+
+@pytest.mark.slow
 @given(
     n=st.one_of(st.sampled_from(["power_of_two", "even"]), st.integers()),
     **{a: st.one_of(st.none(), st.floats(width=32, allow_subnormal=False)) for a in accessors}
 )
-@settings(max_examples=500)
+@settings(max_examples=500, deadline=None)
 def test_with_hypothesis_2(**user_constraints):
-    note(user_constraints)
+    note(str(user_constraints))
     note(f"int limits: [{-sys.maxsize-1}, {sys.maxsize}]")
     note(f"float limits: +-[{sys.float_info.min}, {sys.float_info.max}]")
     try:
