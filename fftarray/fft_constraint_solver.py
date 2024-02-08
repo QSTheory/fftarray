@@ -17,8 +17,6 @@ from z3 import (
 import numpy as np
 
 from .fft_array import FFTDimension
-from .backends.tensor_lib import TensorLib
-from .backends.np_backend import NumpyTensorLib
 from .fft_constraint_solver_exceptions import *
 
 # This dict contains all possible user constraints
@@ -69,8 +67,6 @@ def fft_dim_from_constraints(
         freq_extent: Optional[float] = None,
         freq_middle: Optional[float] = None,
         loose_params: Optional[Union[str, List[str]]] = None,
-        default_tlib: TensorLib = NumpyTensorLib(),
-        default_eager: bool = False,
     ) -> FFTDimension:
     """Creates an FFTDimension from an arbitrary subset of all possible grid
     parameters using the z3 constraint solver. Note that the specified grid
@@ -166,8 +162,6 @@ def fft_dim_from_constraints(
         d_pos=params["d_pos"],
         pos_min=params["pos_min"],
         freq_min=params["freq_min"],
-        default_tlib = default_tlib,
-        default_eager = default_eager
     )
 
 def fft_grid_params_from_constraints(

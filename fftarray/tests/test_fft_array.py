@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import jax
 
-from fftarray.fft_array import FFTDimension
+from fftarray.fft_array import FFTDimension, FFTArrayProps
 from fftarray.backends.jax_backend import JaxTensorLib
 from fftarray.backends.np_backend import NumpyTensorLib
 from fftarray.backends.pyfftw_backend import PyFFTWTensorLib
@@ -26,23 +26,23 @@ def test_indexing(tlib, do_jit: bool):
         d_pos=1,
         pos_min=0.5,
         freq_min=0.,
-        default_tlib=tlib(precision="default"),
     )
     y_dim = FFTDimension("y",
         n=4,
         d_pos=2,
         pos_min=-2,
         freq_min=0.,
-        default_tlib=tlib(precision="default"),
     )
 
-    arr_2d = x_dim.fft_array(space="pos") + y_dim.fft_array(space="pos")**2
+    props = FFTArrayProps(tlib=tlib(precision="default"))
+
+    arr_2d = x_dim.fft_array(props, space="pos") + y_dim.fft_array(props, space="pos")**2
     xr_arr = as_xr_pos(arr_2d)
 
-    assert x_dim._index_from_coord(0.5, method = None, space="pos") == 0
-    assert x_dim._index_from_coord(2.5, method = None, space="pos") == 2
-    assert x_dim._index_from_coord(0.4, method = "nearest", space="pos") == 0
-    assert x_dim._index_from_coord(2.6, method = "nearest", space="pos") == 2
+    assert x_dim._index_from_coord(0.5, method = None, space="pos", tlib=tlib) == 0
+    assert x_dim._index_from_coord(2.5, method = None, space="pos", tlib=tlib) == 2
+    assert x_dim._index_from_coord(0.4, method = "nearest", space="pos", tlib=tlib) == 0
+    assert x_dim._index_from_coord(2.6, method = "nearest", space="pos", tlib=tlib) == 2
 
 
     assert np.array_equal(arr_2d.values[0:3:2,:], xr_arr.values[0:3:2,:])
@@ -104,32 +104,42 @@ def test_dtype(tensor_lib, precision, override, eager: bool):
         d_pos=1,
         pos_min=0.,
         freq_min=0.,
-        default_tlib=tlib,
-        default_eager=eager,
     )
 
-    if override is None:
-        assert x_dim.fft_array(space="pos").values.dtype == tlib.real_type
-    else:
-        assert x_dim.fft_array(space="pos", tlib=tlib_override).values.dtype == tlib_override.real_type
-        assert x_dim.fft_array(space="pos").into(tlib=tlib_override).values.dtype == tlib_override.real_type
+    props = FFTArrayProps(
+        eager=eager,
+        tlib=tlib,
+    )
+    props_override = FFTArrayProps(
+        eager=eager,
+        tlib=tlib,
+    )
+
+
 
 
     if override is None:
-        assert x_dim.fft_array(space="freq").values.dtype == tlib.real_type
+        assert x_dim.fft_array(props, space="pos").values.dtype == tlib.real_type
     else:
-        assert x_dim.fft_array(space="freq", tlib=tlib_override).values.dtype == tlib_override.real_type
-        assert x_dim.fft_array(space="freq").into(tlib=tlib_override).values.dtype == tlib_override.real_type
+        assert x_dim.fft_array(props_override, space="pos").values.dtype == tlib_override.real_type
+        assert x_dim.fft_array(props, space="pos").into(tlib=tlib_override).values.dtype == tlib_override.real_type
 
-    assert x_dim.fft_array(space="pos").into(space="freq").values.dtype == tlib.complex_type
-    assert x_dim.fft_array(space="freq").into(space="pos").values.dtype == tlib.complex_type
 
-    assert np.abs(x_dim.fft_array(space="pos").into(space="freq")).values.dtype == tlib.real_type # type: ignore
-    assert np.abs(x_dim.fft_array(space="freq").into(space="pos")).values.dtype == tlib.real_type # type: ignore
+    if override is None:
+        assert x_dim.fft_array(props, space="freq").values.dtype == tlib.real_type
+    else:
+        assert x_dim.fft_array(props_override, space="freq").values.dtype == tlib_override.real_type
+        assert x_dim.fft_array(props, space="freq").into(tlib=tlib_override).values.dtype == tlib_override.real_type
+
+    assert x_dim.fft_array(props, space="pos").into(space="freq").values.dtype == tlib.complex_type
+    assert x_dim.fft_array(props, space="freq").into(space="pos").values.dtype == tlib.complex_type
+
+    assert np.abs(x_dim.fft_array(props, space="pos").into(space="freq")).values.dtype == tlib.real_type # type: ignore
+    assert np.abs(x_dim.fft_array(props, space="freq").into(space="pos")).values.dtype == tlib.real_type # type: ignore
 
     if override is not None:
-        assert x_dim.fft_array(space="pos").into(space="freq", tlib=tlib_override).values.dtype == tlib_override.complex_type
-        assert x_dim.fft_array(space="freq").into(space="pos", tlib=tlib_override).values.dtype == tlib_override.complex_type
+        assert x_dim.fft_array(props, space="pos").into(space="freq", tlib=tlib_override).values.dtype == tlib_override.complex_type
+        assert x_dim.fft_array(props, space="freq").into(space="pos", tlib=tlib_override).values.dtype == tlib_override.complex_type
 
 
 @pytest.mark.parametrize("tensor_lib", tensor_libs)
@@ -140,29 +150,23 @@ def test_backend_override(tensor_lib, override):
         d_pos=1,
         pos_min=0.,
         freq_min=0.,
-        default_tlib=tensor_lib(),
     )
 
-    x_dim_override = FFTDimension("x",
-        n=4,
-        d_pos=1,
-        pos_min=0.,
-        freq_min=0.,
-        default_tlib=override(),
-    )
+    props = FFTArrayProps(tlib=tensor_lib())
+    props_override = FFTArrayProps(tlib=override())
 
-    assert type(x_dim.fft_array(space="pos", tlib=override()).values) == type(x_dim_override.fft_array(space="pos").values)
-    assert type(x_dim.fft_array(space="freq", tlib=override()).values) == type(x_dim_override.fft_array(space="freq").values)
-    assert type(x_dim.fft_array(space="pos", tlib=override()).into(space="freq").values) == type(x_dim_override.fft_array(space="freq").values)
-    assert type(x_dim.fft_array(space="freq", tlib=override()).into(space="pos").values) == type(x_dim_override.fft_array(space="freq").values)
+    assert type(x_dim.fft_array(props, space="pos", tlib=override()).values) == type(x_dim.fft_array(props_override, space="pos").values)
+    assert type(x_dim.fft_array(props, space="freq", tlib=override()).values) == type(x_dim.fft_array(props_override, space="freq").values)
+    assert type(x_dim.fft_array(props, space="pos", tlib=override()).into(space="freq").values) == type(x_dim.fft_array(props_override, space="freq").values)
+    assert type(x_dim.fft_array(props, space="freq", tlib=override()).into(space="pos").values) == type(x_dim.fft_array(props_override, space="freq").values)
 
-    assert type(x_dim.fft_array(space="pos").into(tlib=override()).values) == type(x_dim_override.fft_array(space="pos").values)
-    assert type(x_dim.fft_array(space="freq").into(tlib=override()).values) == type(x_dim_override.fft_array(space="freq").values)
-    assert type(x_dim.fft_array(space="pos").into(tlib=override()).into(space="freq").values) == type(x_dim_override.fft_array(space="freq").values)
-    assert type(x_dim.fft_array(space="freq").into(tlib=override()).into(space="pos").values) == type(x_dim_override.fft_array(space="pos").values)
+    assert type(x_dim.fft_array(props, space="pos").into(tlib=override()).values) == type(x_dim.fft_array(props_override, space="pos").values)
+    assert type(x_dim.fft_array(props, space="freq").into(tlib=override()).values) == type(x_dim.fft_array(props_override, space="freq").values)
+    assert type(x_dim.fft_array(props, space="pos").into(tlib=override()).into(space="freq").values) == type(x_dim.fft_array(props_override, space="freq").values)
+    assert type(x_dim.fft_array(props, space="freq").into(tlib=override()).into(space="pos").values) == type(x_dim.fft_array(props_override, space="pos").values)
 
-    assert type(x_dim.fft_array(space="pos").into(space="freq", tlib=override()).values) == type(x_dim_override.fft_array(space="freq").values)
-    assert type(x_dim.fft_array(space="freq").into(space="pos", tlib=override()).values) == type(x_dim_override.fft_array(space="freq").values)
+    assert type(x_dim.fft_array(props, space="pos").into(space="freq", tlib=override()).values) == type(x_dim.fft_array(props_override, space="freq").values)
+    assert type(x_dim.fft_array(props, space="freq").into(space="pos", tlib=override()).values) == type(x_dim.fft_array(props_override, space="freq").values)
 
 
 def test_broadcasting(nulp: int = 1) -> None:
@@ -171,13 +175,13 @@ def test_broadcasting(nulp: int = 1) -> None:
 
     x_ref = np.arange(0., 4.)
     y_ref = np.arange(0., 8.)
-    np.testing.assert_array_almost_equal_nulp(np.array(x_dim.fft_array(space="pos")), x_ref, nulp = 0)
-    np.testing.assert_array_almost_equal_nulp(np.array(y_dim.fft_array(space="pos")), y_ref, nulp = 0)
+    np.testing.assert_array_almost_equal_nulp(np.array(x_dim.fft_array(FFTArrayProps(), space="pos")), x_ref, nulp = 0)
+    np.testing.assert_array_almost_equal_nulp(np.array(y_dim.fft_array(FFTArrayProps(), space="pos")), y_ref, nulp = 0)
 
     x_ref_broadcast = x_ref.reshape(1,-1)
     y_ref_broadcast = y_ref.reshape(-1,1)
-    np.testing.assert_array_almost_equal_nulp((x_dim.fft_array(space="pos") + y_dim.fft_array(space="pos")).transpose("x", "y").values, (x_ref_broadcast+y_ref_broadcast).transpose(), nulp = 0)
-    np.testing.assert_array_almost_equal_nulp((x_dim.fft_array(space="pos") + y_dim.fft_array(space="pos")).transpose("y", "x").values, x_ref_broadcast+y_ref_broadcast, nulp = 0)
+    np.testing.assert_array_almost_equal_nulp((x_dim.fft_array(FFTArrayProps(), space="pos") + y_dim.fft_array(FFTArrayProps(), space="pos")).transpose("x", "y").values, (x_ref_broadcast+y_ref_broadcast).transpose(), nulp = 0)
+    np.testing.assert_array_almost_equal_nulp((x_dim.fft_array(FFTArrayProps(), space="pos") + y_dim.fft_array(FFTArrayProps(), space="pos")).transpose("y", "x").values, x_ref_broadcast+y_ref_broadcast, nulp = 0)
 
 # TODO: Port and extend to new LazyState impl
 # def assert_special_fun_equivalence(arr_lazy, arr_ref, eager: bool):

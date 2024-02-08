@@ -27,5 +27,5 @@ Example:
    >>> from fftarray import FFTDimension
 
 """
-from .fft_array import FFTDimension, FFTArray, Space
+from .fft_array import FFTDimension, FFTArray, FFTArrayProps, Space
 from .tools import shift_frequency, shift_position
