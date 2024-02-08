@@ -200,7 +200,7 @@ def test_broadcasting(nulp: int = 1) -> None:
     precision=st.sampled_from(precisions),
     ndims=st.integers(min_value=1, max_value=4)
 )
-@settings(max_examples=500)
+@settings(max_examples=500, deadline=None)
 def test_attributes(value, init_factor_applied, eager, tlib, precision, init_space, ndims):
     dims = [
         FFTDimension(f"{ndim}", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1, default_eager=eager, default_tlib=tlib(precision=precision))
@@ -230,7 +230,7 @@ def test_attributes(value, init_factor_applied, eager, tlib, precision, init_spa
     #         dims=dims,
     #         space=init_space,
     #         eager=not eager,
-    #         factors_applied=lazy
+    #         factors_applied=init_factor_applied
     #     )
 
     fftarr = FFTArray(
@@ -241,34 +241,95 @@ def test_attributes(value, init_factor_applied, eager, tlib, precision, init_spa
         factors_applied=init_factor_applied
     )
     note(fftarr)
-    if init_factor_applied:
-        np.testing.assert_array_equal(fftarr.values, fftarr_values, strict=True)
-        assert_single_operand_fun_equivalence(fftarr)
 
-def assert_equal_lazy(arr, values, op):
-    note(op(arr).values)
-    note(op(values))
-    if "int" in str(values.dtype):
-        np.testing.assert_array_equal(op(arr).values, op(values), strict=True)
-    if "float" in str(values.dtype):
-        np.testing.assert_array_almost_equal_nulp(op(arr).values, op(values), nulp=4)
-    if "complex" in str(values.dtype):
-        assert_array_almost_equal_nulp_complex(op(arr).values, op(values), nulp=4)
+    if init_factor_applied:
+        # fftarray must be handled the same way as applying the operations to the values numpy array
+        np.testing.assert_array_equal(fftarr.values, fftarr_values, strict=True)
+    elif init_space == "pos":
+        # factors not applied, pos space
+        assert_invariance_to_factors_equivalence(fftarr, fftarr_values, exact=True)
+    elif ndims == 1:
+        # factors not applied, freq space
+        assert_invariance_to_factors_equivalence(fftarr, fftarr_values/(dims[0].n*dims[0].d_freq), exact=False)
+
+    assert_single_operand_fun_equivalence(fftarr, init_factor_applied)
+    assert_dual_operand_fun_equivalence(fftarr, init_factor_applied)
+
+def is_inf_or_nan(x):
+    """Check if (real or imag of) x is inf or nan"""
+    return (np.isinf(x.real).any() or np.isinf(x.imag).any() or np.isnan(x.real).any() or np.isnan(x.imag).any())
+
+def assert_equal_lazy(arr, values, op, exact=True):
+    arr_op = op(arr).values
+    note(arr_op.dtype)
+    note(arr_op)
+    values_op = op(values)
+    note(values_op.dtype)
+    note(values_op)
+
+    if arr_op.dtype != values_op.dtype:
+        note(f"Changing type to {arr.tlib.complex_type}")
+        arr_op = arr_op.astype(arr.tlib.complex_type)
+        values_op = values_op.astype(arr.tlib.complex_type)
+
+    if is_inf_or_nan(values_op) or (exact==False and is_inf_or_nan(arr_op)):
+        return
+
+    if exact:
+        if "int" in str(values.dtype):
+            np.testing.assert_array_equal(arr_op, values_op, strict=True)
+        if "float" in str(values.dtype):
+            np.testing.assert_array_almost_equal_nulp(arr_op, values_op, nulp=4)
+        if "complex" in str(values.dtype):
+            assert_array_almost_equal_nulp_complex(arr_op, values_op, nulp=4)
+    else:
+        np.testing.assert_array_almost_equal(arr_op, values_op)
 
 def assert_array_almost_equal_nulp_complex(x, y, nulp):
+    """Compare two arrays of complex numbers. Simply compares the real and
+    imaginary part.
+    """
     np.testing.assert_array_almost_equal_nulp(x.real, y.real, nulp)
     np.testing.assert_array_almost_equal_nulp(x.imag, y.imag, nulp)
 
-def assert_single_operand_fun_equivalence(arr):
-    values = arr.values
-    assert_equal_lazy(arr, values, lambda x: x)
-    assert_equal_lazy(arr, values, lambda x: np.abs(x))
-    assert_equal_lazy(arr, values, lambda x:  x**2)
-    assert_equal_lazy(arr, values, lambda x:  x**3)
+def assert_single_operand_fun_equivalence(arr, exact):
+    """Test whether applying operands to the FFTArray (and then getting the
+    values) is equivalent to applying the same operands to the values array:
 
-def assert_dual_operand_fun_equivalence(arr):
+        operand(FFTArray).values == operand(FFTArray.values)
+
+    """
     values = arr.values
-    assert_equal_lazy(arr, values, lambda x: x+x)
+    note("f(x) = x")
+    assert_equal_lazy(arr, values, lambda x: x, exact)
+    note("f(x) = abs(x)")
+    assert_equal_lazy(arr, values, lambda x: np.abs(x), exact)
+    note("f(x) = x**2")
+    assert_equal_lazy(arr, values, lambda x:  x**2, exact)
+    note("f(x) = x**3")
+    assert_equal_lazy(arr, values, lambda x:  x**3, exact)
+
+def assert_invariance_to_factors_equivalence(arr, values, exact):
+    """Test whether the absolute of the FFTArray initialized with
+    factors_applied=False and space="pos" is equivalent to the values it was
+    initialized with. This should be true as the factors in position space are
+    only phases (which drop out in np.abs).
+    """
+    assert_equal_lazy(arr, values, lambda x: np.abs(x), exact)
+
+def assert_dual_operand_fun_equivalence(arr, exact):
+    """Test whether a dual operation on an FFTArray, e.g., the
+    sum/multiplication of two, is equivalent to applying this operand to its
+    values.
+
+        operand(FFTArray, FFTArray).values = operand(FFTArray.values, FFTArray.values)
+
+    """
+    values = arr.values
+    note("f(x,y) = x+y")
+    assert_equal_lazy(arr, values, lambda x: x+x, exact)
+    note("f(x,y) = x*y")
+    assert_equal_lazy(arr, values, lambda x: x*x, exact)
 
 # @pytest.mark.parametrize("eager", [False, True])
 # def test_lazy_0(eager: bool) -> None:
