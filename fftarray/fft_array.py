@@ -322,10 +322,10 @@ class FFTArray(metaclass=ABCMeta):
             tlib_norm = self._tlib
         else:
             tlib_norm = tlib
-            if tlib.numpy_ufuncs.iscomplexobj(self._values):
-                values = tlib.array(values, dtype=tlib.complex_type)
+            if tlib_norm.numpy_ufuncs.iscomplexobj(self._values):
+                values = tlib_norm.array(values, dtype=tlib_norm.complex_type)
             else:
-                values = tlib.array(values, dtype=tlib.real_type)
+                values = tlib_norm.array(values, dtype=tlib_norm.real_type)
 
 
         needs_fft = [old != new for old, new in zip(self._space, space_norm)]
