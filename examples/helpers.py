@@ -92,8 +92,9 @@ def plt_fftarray(
             fig_real_part.add_layout(colorbar, "right")
             fig_imag_part.add_layout(colorbar, "right")
 
-            fig_real_part.title.text = f"Real part of {data_name or 'FFTArray values'} shown in position space" # type: ignore
-            fig_imag_part.title.text = f"Imaginary part of {data_name or 'FFTArray values'} shown in position space" # type: ignore
+            space_name = "position" if space == "pos" else "frequency"
+            fig_real_part.title.text = f"Real part of {data_name or 'FFTArray values'} shown in {space_name} space" # type: ignore
+            fig_imag_part.title.text = f"Imaginary part of {data_name or 'FFTArray values'} shown in {space_name} space" # type: ignore
 
             row_plots.append(column(fig_real_part, fig_imag_part))
 
