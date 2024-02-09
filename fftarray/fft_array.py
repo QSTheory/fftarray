@@ -91,6 +91,7 @@ class FFTArrayProps:
     @property
     def tlib(self) -> TensorLib:
         """
+            # TODO: implement device [#18](https://github.com/QSTheory/fftarray/issues/18)
             Contains the array backend, precision and device to be used for operations.
         """
         return self._tlib
