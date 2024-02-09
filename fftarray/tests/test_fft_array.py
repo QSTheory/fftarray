@@ -1,14 +1,11 @@
-from typing import List, Type
-from functools import reduce
-from itertools import product
+from typing import List, Type, Any, Callable, Union, Tuple
 
 import pytest
 from hypothesis import given, strategies as st, note, settings, assume
 import numpy as np
 import jax
 
-from fftarray.fft_array import FFTArray, FFTDimension
-from fftarray.fft_constraint_solver import fft_dim_from_constraints
+from fftarray.fft_array import FFTArray, FFTDimension, Space
 from fftarray.backends.jax_backend import JaxTensorLib
 from fftarray.backends.np_backend import NumpyTensorLib
 from fftarray.backends.pyfftw_backend import PyFFTWTensorLib
@@ -190,8 +187,8 @@ def test_broadcasting(nulp: int = 1) -> None:
 @given(
     value=st.one_of([
         st.integers(min_value=np.iinfo(np.int32).min, max_value=np.iinfo(np.int32).max),
-        st.complex_numbers(allow_infinity=False, allow_nan=False, allow_subnormal=False),
-        st.floats(allow_infinity=False, allow_nan=False, allow_subnormal=False)
+        st.complex_numbers(allow_infinity=False, allow_nan=False, allow_subnormal=False, width=64),
+        st.floats(allow_infinity=False, allow_nan=False, allow_subnormal=False, width=32)
     ]),
     init_factors_applied=st.booleans(),
     eager=st.booleans(),
@@ -200,7 +197,7 @@ def test_broadcasting(nulp: int = 1) -> None:
     precision=st.sampled_from(precisions),
     ndims=st.integers(min_value=1, max_value=4)
 )
-@settings(max_examples=500, deadline=None)
+@settings(max_examples=1000, deadline=None)
 def test_attributes(value, init_factors_applied, eager, tlib, precision, init_space, ndims):
     dims = [
         FFTDimension(f"{ndim}", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1, default_eager=eager, default_tlib=tlib(precision=precision))
@@ -210,18 +207,18 @@ def test_attributes(value, init_factors_applied, eager, tlib, precision, init_sp
     note(fftarr_values.dtype)
     note(fftarr_values)
 
-    if precision == "fp32":
-        if isinstance(value, float):
-            assume(np.abs(value) >= np.finfo(np.float32).smallest_normal and np.abs(value) <= np.finfo(np.float32).max)
-        if isinstance(value, complex):
-            assume(np.abs(value.real) >= np.finfo(np.float32).smallest_normal and np.abs(value.real) <= np.finfo(np.float32).max)
-            assume(np.abs(value.imag) >= np.finfo(np.float32).smallest_normal and np.abs(value.imag) <= np.finfo(np.float32).max)
-    if precision == "fp64":
-        if isinstance(value, complex):
-            assume(np.abs(value) >= np.finfo(np.float64).smallest_normal and np.abs(value) <= np.finfo(np.float64).max)
-        if isinstance(value, complex):
-            assume(np.abs(value.real) >= np.finfo(np.float64).smallest_normal and np.abs(value.real) <= np.finfo(np.float64).max)
-            assume(np.abs(value.imag) >= np.finfo(np.float64).smallest_normal and np.abs(value.imag) <= np.finfo(np.float64).max)
+    # if precision == "fp32":
+    #     if isinstance(value, float):
+    #         assume(np.abs(value) >= np.finfo(np.float32).smallest_normal and np.abs(value) <= np.finfo(np.float32).max)
+    #     if isinstance(value, complex):
+    #         assume(np.abs(value.real) >= np.finfo(np.float32).smallest_normal and np.abs(value.real) <= np.finfo(np.float32).max)
+    #         assume(np.abs(value.imag) >= np.finfo(np.float32).smallest_normal and np.abs(value.imag) <= np.finfo(np.float32).max)
+    # if precision == "fp64":
+    #     if isinstance(value, complex):
+    #         assume(np.abs(value) >= np.finfo(np.float64).smallest_normal and np.abs(value) <= np.finfo(np.float64).max)
+    #     if isinstance(value, complex):
+    #         assume(np.abs(value.real) >= np.finfo(np.float64).smallest_normal and np.abs(value.real) <= np.finfo(np.float64).max)
+    #         assume(np.abs(value.imag) >= np.finfo(np.float64).smallest_normal and np.abs(value.imag) <= np.finfo(np.float64).max)
 
     # test eager dim and eager fftarray error
     # with pytest.raises(Exception):
@@ -230,7 +227,7 @@ def test_attributes(value, init_factors_applied, eager, tlib, precision, init_sp
     #         dims=dims,
     #         space=init_space,
     #         eager=not eager,
-    #         factors_applied=init_factor_applied
+    #         factors_applied=init_factors_applied
     #     )
 
     fftarr = FFTArray(
@@ -242,6 +239,7 @@ def test_attributes(value, init_factors_applied, eager, tlib, precision, init_sp
     )
     note(fftarr)
 
+    # -- basic tests
     if init_factors_applied:
         # fftarray must be handled the same way as applying the operations to the values numpy array
         np.testing.assert_array_equal(fftarr.values, fftarr_values, strict=True)
@@ -252,14 +250,24 @@ def test_attributes(value, init_factors_applied, eager, tlib, precision, init_sp
         # factors not applied, freq space
         assert_invariance_to_factors_equivalence(fftarr, fftarr_values/(dims[0].n*dims[0].d_freq), exact=False)
 
+    # -- test operands
     assert_single_operand_fun_equivalence(fftarr, init_factors_applied)
     assert_dual_operand_fun_equivalence(fftarr, init_factors_applied)
+
+    # -- test ffts
+    assert_fft_ifft_invariance(fftarr, init_space)
+
+    # -- test fftarray sel
+    assert_fftarray_sel_order(fftarr)
+
+    # -- test eager, factors_applied logic
+    assert_fftarray_eager_factors_applied(fftarr)
 
 def is_inf_or_nan(x):
     """Check if (real or imag of) x is inf or nan"""
     return (np.isinf(x.real).any() or np.isinf(x.imag).any() or np.isnan(x.real).any() or np.isnan(x.imag).any())
 
-def assert_equal_op(arr, values, op, exact=True):
+def assert_equal_op(arr: FFTArray, values: Any, op: Callable[[Any],Any], exact=True):
     """Helper function to test equality between an FFTArray and a values array.
     `op` denotes the operation acting on the FFTArray and on the values before
     comparison.
@@ -289,14 +297,14 @@ def assert_equal_op(arr, values, op, exact=True):
         rtol = 1e-6 if isinstance(arr.tlib, JaxTensorLib) else 1e-7
         np.testing.assert_allclose(arr_op, values_op, rtol=rtol)
 
-def assert_array_almost_equal_nulp_complex(x, y, nulp):
+def assert_array_almost_equal_nulp_complex(x: Any, y: Any, nulp: int):
     """Compare two arrays of complex numbers. Simply compares the real and
     imaginary part.
     """
     np.testing.assert_array_almost_equal_nulp(x.real, y.real, nulp)
     np.testing.assert_array_almost_equal_nulp(x.imag, y.imag, nulp)
 
-def assert_single_operand_fun_equivalence(arr, exact):
+def assert_single_operand_fun_equivalence(arr: FFTArray, exact: bool):
     """Test whether applying operands to the FFTArray (and then getting the
     values) is equivalent to applying the same operands to the values array:
 
@@ -306,6 +314,8 @@ def assert_single_operand_fun_equivalence(arr, exact):
     values = arr.values
     note("f(x) = x")
     assert_equal_op(arr, values, lambda x: x, exact)
+    note("f(x) = pi*x")
+    assert_equal_op(arr, values, lambda x: np.pi*x, exact)
     note("f(x) = abs(x)")
     assert_equal_op(arr, values, lambda x: np.abs(x), exact)
     note("f(x) = x**2")
@@ -313,7 +323,7 @@ def assert_single_operand_fun_equivalence(arr, exact):
     note("f(x) = x**3")
     assert_equal_op(arr, values, lambda x:  x**3, False) # Exact comparison fails
 
-def assert_invariance_to_factors_equivalence(arr, values, exact):
+def assert_invariance_to_factors_equivalence(arr: FFTArray, values: Any, exact: bool):
     """Test whether the absolute of the FFTArray initialized with
     factors_applied=False and space="pos" is equivalent to the values it was
     initialized with. This should be true as the factors in position space are
@@ -321,7 +331,7 @@ def assert_invariance_to_factors_equivalence(arr, values, exact):
     """
     assert_equal_op(arr, values, lambda x: np.abs(x), exact)
 
-def assert_dual_operand_fun_equivalence(arr, exact):
+def assert_dual_operand_fun_equivalence(arr: FFTArray, exact: bool):
     """Test whether a dual operation on an FFTArray, e.g., the
     sum/multiplication of two, is equivalent to applying this operand to its
     values.
@@ -334,6 +344,68 @@ def assert_dual_operand_fun_equivalence(arr, exact):
     assert_equal_op(arr, values, lambda x: x+x, exact)
     note("f(x,y) = x*y")
     assert_equal_op(arr, values, lambda x: x*x, False) # Exact comparison fails
+
+def get_other_space(space: Union[Space, Tuple[Space, ...]]):
+    """Returns the other space. If input space is "pos", "freq" is returned and
+    vice versa. If space is a tuple of Space, a tuple is returned.
+    """
+    if isinstance(space, str):
+        if space == "pos":
+            return "freq"
+        return "pos"
+    return [get_other_space(s) for s in space]
+
+def assert_fft_ifft_invariance(arr: FFTArray, init_space: Space):
+    """Tests whether ifft(fft(*)) is an identity.
+
+       ifft(fft(FFTArray)) == FFTArray
+
+    """
+    note("ifft(fft(x)) == x")
+    assume(len(arr.dims) < 4 or isinstance(arr.tlib, PyFFTWTensorLib))
+    arr_fft = arr.into(space=get_other_space(init_space))
+    arr_fft_ifft = arr_fft.into(space=init_space)
+    if is_inf_or_nan(arr_fft_ifft.values):
+        # edge cases (very large numbers) result in inf after fft
+        return
+    rtol = 1e-5 if arr.tlib.precision == "fp32" else 1e-6
+    np.testing.assert_allclose(arr.values, arr_fft_ifft.values, rtol=rtol, atol=1e-38)
+
+def assert_fftarray_sel_order(arr: FFTArray):
+    """Tests whether the selection order matters. Assuming an input FFTArray of
+    dimensions A and B. Then
+
+        FFTArray.sel(A==a).sel(B==b) == FFTArray.sel(B==b).sel(A==a)
+
+    should be true.
+    """
+    assume(len(arr.dims) > 1)
+    note("fftarray.sel(A).sel(B) == fftarray.sel(B).sel(A)")
+    dimA = arr.dims[0]
+    dimB = arr.dims[1]
+    arrA = arr.sel(**{dimA.name: getattr(dimA, f"{arr.space[0]}_middle")})
+    arrB = arr.sel(**{dimB.name: getattr(dimB, f"{arr.space[1]}_middle")})
+    arrAB = arrA.sel(**{dimB.name: getattr(dimB, f"{arr.space[1]}_middle")})
+    arrBA = arrB.sel(**{dimA.name: getattr(dimA, f"{arr.space[0]}_middle")})
+    rtol = 1e-5 if arr.tlib.precision == "fp32" else 1e-6
+    np.testing.assert_allclose(arrAB.values, arrBA.values)
+
+def assert_fftarray_eager_factors_applied(arr: FFTArray):
+    """Tests whether the FFTArray after performing an FFT has the correct
+    properties. If the initial FFTArray was eager, then the final FFTArray also
+    must be eager and have _factors_apllied=True. If the initial FFTArray was
+    not eager, then the final FFTArray should have eager=False and
+    _factors_applied=False.
+    """
+    assume(len(arr.dims) < 4 or isinstance(arr.tlib, PyFFTWTensorLib))
+    note("Testing eager and factors_applied ...")
+    init_eager = arr.eager
+    arr_fft = arr.into(space=get_other_space(arr.space))
+    final_eager = arr_fft.eager
+    final_factors_applied = arr_fft._factors_applied
+    np.testing.assert_array_equal(init_eager, final_eager)
+    for ffapplied, feager in zip(final_factors_applied, final_eager):
+        assert (feager and ffapplied) or (not feager and not ffapplied)
 
 # @pytest.mark.parametrize("eager", [False, True])
 # def test_lazy_0(eager: bool) -> None:
