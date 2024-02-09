@@ -212,16 +212,16 @@ def test_attributes(value, init_factors_applied, eager, tlib, precision, init_sp
 
     if precision == "fp32":
         if isinstance(value, float):
-            assume(np.abs(value) >= np.finfo(np.float32).min and np.abs(value) <= np.finfo(np.float32).max)
+            assume(np.abs(value) >= np.finfo(np.float32).smallest_normal and np.abs(value) <= np.finfo(np.float32).max)
         if isinstance(value, complex):
-            assume(np.abs(value.real) >= np.finfo(np.float32).min and np.abs(value.real) <= np.finfo(np.float32).max)
-            assume(np.abs(value.imag) >= np.finfo(np.float32).min and np.abs(value.imag) <= np.finfo(np.float32).max)
+            assume(np.abs(value.real) >= np.finfo(np.float32).smallest_normal and np.abs(value.real) <= np.finfo(np.float32).max)
+            assume(np.abs(value.imag) >= np.finfo(np.float32).smallest_normal and np.abs(value.imag) <= np.finfo(np.float32).max)
     if precision == "fp64":
         if isinstance(value, complex):
-            assume(np.abs(value) >= np.finfo(np.float64).min and np.abs(value) <= np.finfo(np.float64).max)
+            assume(np.abs(value) >= np.finfo(np.float64).smallest_normal and np.abs(value) <= np.finfo(np.float64).max)
         if isinstance(value, complex):
-            assume(np.abs(value.real) >= np.finfo(np.float64).min and np.abs(value.real) <= np.finfo(np.float64).max)
-            assume(np.abs(value.imag) >= np.finfo(np.float64).min and np.abs(value.imag) <= np.finfo(np.float64).max)
+            assume(np.abs(value.real) >= np.finfo(np.float64).smallest_normal and np.abs(value.real) <= np.finfo(np.float64).max)
+            assume(np.abs(value.imag) >= np.finfo(np.float64).smallest_normal and np.abs(value.imag) <= np.finfo(np.float64).max)
 
     # test eager dim and eager fftarray error
     # with pytest.raises(Exception):
@@ -259,7 +259,7 @@ def is_inf_or_nan(x):
     """Check if (real or imag of) x is inf or nan"""
     return (np.isinf(x.real).any() or np.isinf(x.imag).any() or np.isnan(x.real).any() or np.isnan(x.imag).any())
 
-def assert_equal_lazy(arr, values, op, exact=True):
+def assert_equal_op(arr, values, op, exact=True):
     """Helper function to test equality between an FFTArray and a values array.
     `op` denotes the operation acting on the FFTArray and on the values before
     comparison.
@@ -268,18 +268,12 @@ def assert_equal_lazy(arr, values, op, exact=True):
     `numpy.testing.allclose`.
     """
     arr_op = op(arr).values
-    note(arr_op.dtype)
-    note(arr_op)
     values_op = op(values)
-    note(values_op.dtype)
-    note(values_op)
 
     if arr_op.dtype != values_op.dtype:
         note(f"Changing type to {values_op.dtype}")
         arr_op = arr_op.astype(values_op.dtype)
         values_op = values_op.astype(values_op.dtype)
-        note(arr_op)
-        note(values_op)
 
     if is_inf_or_nan(values_op) or (exact==False and is_inf_or_nan(arr_op)):
         return
@@ -311,13 +305,13 @@ def assert_single_operand_fun_equivalence(arr, exact):
     """
     values = arr.values
     note("f(x) = x")
-    assert_equal_lazy(arr, values, lambda x: x, exact)
+    assert_equal_op(arr, values, lambda x: x, exact)
     note("f(x) = abs(x)")
-    assert_equal_lazy(arr, values, lambda x: np.abs(x), exact)
+    assert_equal_op(arr, values, lambda x: np.abs(x), exact)
     note("f(x) = x**2")
-    assert_equal_lazy(arr, values, lambda x:  x**2, False) # Exact comparison fails
+    assert_equal_op(arr, values, lambda x:  x**2, False) # Exact comparison fails
     note("f(x) = x**3")
-    assert_equal_lazy(arr, values, lambda x:  x**3, False) # Exact comparison fails
+    assert_equal_op(arr, values, lambda x:  x**3, False) # Exact comparison fails
 
 def assert_invariance_to_factors_equivalence(arr, values, exact):
     """Test whether the absolute of the FFTArray initialized with
@@ -325,7 +319,7 @@ def assert_invariance_to_factors_equivalence(arr, values, exact):
     initialized with. This should be true as the factors in position space are
     only phases (which drop out in np.abs).
     """
-    assert_equal_lazy(arr, values, lambda x: np.abs(x), exact)
+    assert_equal_op(arr, values, lambda x: np.abs(x), exact)
 
 def assert_dual_operand_fun_equivalence(arr, exact):
     """Test whether a dual operation on an FFTArray, e.g., the
@@ -337,9 +331,9 @@ def assert_dual_operand_fun_equivalence(arr, exact):
     """
     values = arr.values
     note("f(x,y) = x+y")
-    assert_equal_lazy(arr, values, lambda x: x+x, exact)
+    assert_equal_op(arr, values, lambda x: x+x, exact)
     note("f(x,y) = x*y")
-    assert_equal_lazy(arr, values, lambda x: x*x, False) # Exact comparison fails
+    assert_equal_op(arr, values, lambda x: x*x, False) # Exact comparison fails
 
 # @pytest.mark.parametrize("eager", [False, True])
 # def test_lazy_0(eager: bool) -> None:
