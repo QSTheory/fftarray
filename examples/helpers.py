@@ -1,11 +1,11 @@
-from typing import Optional
+from typing import List, Optional
 
 import numpy as np
 from bokeh.plotting import figure, row, column, show
 from bokeh.palettes import Turbo256
 from bokeh.models import LinearColorMapper
 
-from fftarray import FFTArray
+from fftarray import FFTArray, Space
 
 def plt_fftarray(
         arr: FFTArray,
@@ -27,7 +27,8 @@ def plt_fftarray(
         plot = row([p_pos, p_freq], sizing_mode="stretch_width") # type: ignore
     elif len(arr.dims) == 2:
         row_plots = []
-        for space in ["pos", "freq"]:
+        spaces: List[Space] = ["pos", "freq"]
+        for space in spaces:
             # Dimension properties
             dim_names = [dim.name for dim in arr.dims]
             dim_1_coord_values, dim_2_coord_values = tuple(np.array(dim.fft_array(space=space)) for dim in arr.dims)
