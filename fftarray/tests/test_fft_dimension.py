@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 import jax
 
-from fftarray import FFTDimension, FFTArrayProps
+from fftarray import FFTDimension
 from fftarray.backends.jax_backend import JaxTensorLib
 from fftarray.backends.np_backend import NumpyTensorLib
 from fftarray.backends.pyfftw_backend import PyFFTWTensorLib
@@ -68,16 +68,15 @@ def test_arrays(tensor_lib) -> None:
         freq_min = 0.,
         n = n,
     )
-    props = FFTArrayProps(tlib=tensor_lib)
 
-    pos_grid = np.array(fftdim.fft_array(props, space="pos"))
+    pos_grid = np.array(fftdim.fft_array(tensor_lib, space="pos"))
     assert_scalars_almost_equal_nulp(fftdim.pos_min, np.min(pos_grid))
     assert_scalars_almost_equal_nulp(fftdim.pos_min, pos_grid[0])
     assert_scalars_almost_equal_nulp(fftdim.pos_max, np.max(pos_grid))
     assert_scalars_almost_equal_nulp(fftdim.pos_max, pos_grid[-1])
     assert_scalars_almost_equal_nulp(fftdim.pos_middle, pos_grid[int(n/2)])
 
-    freq_grid = np.array(fftdim.fft_array(props, space="freq"))
+    freq_grid = np.array(fftdim.fft_array(tensor_lib, space="freq"))
     assert_scalars_almost_equal_nulp(fftdim.freq_min, np.min(freq_grid))
     assert_scalars_almost_equal_nulp(fftdim.freq_min, freq_grid[0])
     assert_scalars_almost_equal_nulp(fftdim.freq_max, np.max(freq_grid))

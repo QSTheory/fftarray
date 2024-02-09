@@ -69,33 +69,6 @@ def _norm_param(val: Union[T, Iterable[T]], n: int, types) -> Tuple[T, ...]:
     return tuple(val) # type: ignore
 
 
-class FFTArrayProps:
-    """
-        This class collects the values needed to construct an `FFTArray` from a `FFTDimension`.
-    """
-    _eager: bool
-    _tlib: TensorLib
-
-    def __init__(
-                self,
-                eager: bool = True,
-                tlib: TensorLib = NumpyTensorLib(),
-            ):
-        self._eager = eager
-        self._tlib = tlib
-
-    @property
-    def eager(self) -> bool:
-        return self._eager
-
-    @property
-    def tlib(self) -> TensorLib:
-        """
-            # TODO: implement device [#18](https://github.com/QSTheory/fftarray/issues/18)
-            Contains the array backend, precision and device to be used for operations.
-        """
-        return self._tlib
-
 class FFTArray(metaclass=ABCMeta):
     """
         The base class of `PosArray` and `FreqArray` that implements all shared behavior.
@@ -112,6 +85,7 @@ class FFTArray(metaclass=ABCMeta):
     _eager: Tuple[bool, ...]
     # Marks each dim whether its phase_factors still need to be applied
     _factors_applied: Tuple[bool, ...]
+    # TODO: implement device [#18](https://github.com/QSTheory/fftarray/issues/18)
     # Contains the array backend, precision and device to be used for operations.
     _tlib: TensorLib
 
@@ -140,16 +114,6 @@ class FFTArray(metaclass=ABCMeta):
     #--------------------
     # Numpy Interfaces
     #--------------------
-
-    @property
-    def props(self) -> Tuple[FFTArrayProps, ...]:
-        return tuple([
-            FFTArrayProps(
-                eager=eager,
-                tlib=self._tlib,
-            )
-            for eager in self._eager
-        ])
 
     # Support numpy ufuncs like np.sin, np.cos, etc.
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
@@ -458,6 +422,15 @@ class FFTArray(metaclass=ABCMeta):
             Enables automatically and easily detecting in which space a generic FFTArray curently is.
         """
         return self._space
+
+    @property
+    def eager(self) -> Tuple[bool, ...]:
+        """
+            If eager is False, the phase factors are not directly applied after an FFT.
+            Otherwise they are always left as is and eager does not have any impact on the behavior of this class.
+        """
+        return self._eager
+
 
     #--------------------
     # Default implementations that may be overriden if there are performance benefits
@@ -1167,10 +1140,30 @@ class FFTDimension:
         """
         return (self.n - 1) * self.d_freq
 
+    def _raw_coord_array(
+                self: FFTDimension,
+                tlib: TensorLib,
+                space: Space,
+            ):
+
+        indices = tlib.numpy_ufuncs.arange(
+            0,
+            self.n,
+            dtype = tlib.real_type,
+        )
+
+        if space == "pos":
+            return indices * self.d_pos + self.pos_min
+        elif space == "freq":
+            return indices * self.d_freq + self.freq_min
+        else:
+            raise ValueError(f"space has to be either 'pos' or 'freq', not {space}.")
+
     def fft_array(
             self: FFTDimension,
-            props: FFTArrayProps,
+            tlib: TensorLib,
             space: Space,
+            eager: bool = False,
         ) -> FFTArray:
         """..
 
@@ -1180,24 +1173,19 @@ class FFTDimension:
             The grid coordinates of the chosen space packed into an FFTArray with self as only dimension.
         """
 
-
-        indices = props.tlib.numpy_ufuncs.arange(
-            0,
-            self.n,
-            dtype = props.tlib.real_type,
+        values = self._raw_coord_array(
+            tlib=tlib,
+            space=space,
         )
 
-        if space == "pos":
-            values = indices * self.d_pos + self.pos_min
-        elif space == "freq":
-            values = indices * self.d_freq + self.freq_min
-        else:
-            raise ValueError(f"space has to be either 'pos' or 'freq', not {space}.")
         return FFTArray(
             values=values,
             dims=[self],
-            eager=props.eager,
+            eager=eager,
             factors_applied=True,
             space=space,
-            tlib=props.tlib,
+            tlib=tlib,
         )
+
+    def np_array(self: FFTDimension, space: Space):
+        return self._raw_coord_array(tlib=NumpyTensorLib(), space=space)

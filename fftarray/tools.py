@@ -32,10 +32,9 @@ def shift_frequency(wf: FFTArray, offsets: Dict[Hashable, float]) -> FFTArray:
     """
     phase_shift = 1.
     dim_names = [dim.name for dim in wf.dims]
-    dim_props = wf.props
     for dim_name, offset in offsets.items():
         dim_idx = dim_names.index(dim_name)
-        phase_shift *= np.exp(1.j * 2.*np.pi * offset * wf.dims[dim_idx].fft_array(dim_props[dim_idx], space="pos"))
+        phase_shift *= np.exp(1.j * 2.*np.pi * offset * wf.dims[dim_idx].fft_array(tlib=wf.tlib, space="pos", eager=wf.eager[dim_idx]))
     return wf.into(space="pos") * phase_shift
 
 def shift_position(wf: FFTArray, offsets: Dict[Hashable, float]) -> FFTArray:
@@ -65,9 +64,8 @@ def shift_position(wf: FFTArray, offsets: Dict[Hashable, float]) -> FFTArray:
     """
     phase_shift = 1.
     dim_names = [dim.name for dim in wf.dims]
-    dim_props = wf.props
     for dim_name, offset in offsets.items():
         dim_idx = dim_names.index(dim_name)
-        phase_shift *= np.exp(-1.j * offset * 2*np.pi * wf.dims_dict[dim_name].fft_array(dim_props[dim_idx], space="freq"))
+        phase_shift *= np.exp(-1.j * offset * 2*np.pi * wf.dims_dict[dim_name].fft_array(wf.tlib, space="freq", eager=wf.eager[dim_idx]))
     return wf.into(space="freq") * phase_shift
 
