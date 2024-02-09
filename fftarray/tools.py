@@ -4,6 +4,7 @@ import numpy as np
 
 from fftarray import FFTArray
 
+# TODO: change names of FFTArray argument here
 def shift_frequency(wf: FFTArray, offsets: Dict[Hashable, float]) -> FFTArray:
     """Shift the wavefunction in frequency space:
     :math:`k_{x,y,z} \mapsto k_{x,y,z} - \Delta k_{x,y,z}`.

@@ -123,12 +123,6 @@ def fft_dim_from_constraints(
         List of loose grid parameters (parameters that can be changed by the
         constraint solver when rounding up to an even or power of two `n`), by
         default None
-    default_tlib : TensorLib, optional
-        Default TensorLib that is used to create the FFTArray in
-        FFTDimension, by default NumpyTensorLib()
-    default_eager : bool, optional
-        Whether FFTArrays created by this FFTDimension are initialized as eager,
-        by default False
 
     Returns
     -------
