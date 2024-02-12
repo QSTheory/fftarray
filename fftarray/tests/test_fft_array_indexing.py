@@ -41,10 +41,10 @@ def test_fftdim_single_element_indexing(tlib_class: TensorLib, do_jit: bool) -> 
 
     def test_functions(dim):
         return (
-            dim._index_from_coord(0.5, method = None, space="pos") == 0,
-            dim._index_from_coord(2.5, method = None, space="pos") == 2,
-            dim._index_from_coord(0.4, method = "nearest", space="pos") == 0,
-            dim._index_from_coord(2.6, method = "nearest", space="pos") == 2,
+            dim._index_from_coord(0.5, method = None, space="pos", tlib=tlib_class()),
+            dim._index_from_coord(2.5, method = None, space="pos", tlib=tlib_class()),
+            dim._index_from_coord(0.4, method = "nearest", space="pos", tlib=tlib_class()),
+            dim._index_from_coord(2.6, method = "nearest", space="pos", tlib=tlib_class()),
         )
 
     if do_jit:
@@ -71,28 +71,28 @@ def test_1d_fftarray_indexing(tlib_class: TensorLib, do_jit: bool) -> None:
     )
     fftarray_1d = dim.fft_array(space="pos", tlib=tlib_class())
 
-@pytest.mark.parametrize("tlib", TENSOR_LIBS)
+@pytest.mark.parametrize("tlib_class", TENSOR_LIBS)
 @pytest.mark.parametrize("do_jit", [False, True])
-def test_indexing(tlib, do_jit: bool):
-    if do_jit and type(tlib) != JaxTensorLib:
+def test_indexing(tlib_class, do_jit: bool):
+    if do_jit and type(tlib_class) != JaxTensorLib:
         return
+
+    tlib = tlib_class()
 
     x_dim = FFTDimension("x",
         n=4,
         d_pos=1,
         pos_min=0.5,
         freq_min=0.,
-        default_tlib=tlib(precision="default"),
     )
     y_dim = FFTDimension("y",
         n=4,
         d_pos=2,
         pos_min=-2,
         freq_min=0.,
-        default_tlib=tlib(precision="default"),
     )
 
-    arr_2d = x_dim.fft_array(space="pos") + y_dim.fft_array(space="pos")**2
+    arr_2d = x_dim.fft_array(tlib, space="pos") + y_dim.fft_array(tlib, space="pos")**2
     xr_arr = as_xr_pos(arr_2d)
 
     assert np.array_equal(arr_2d.values[0:3:2,:], xr_arr.values[0:3:2,:])

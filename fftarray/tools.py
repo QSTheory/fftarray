@@ -4,6 +4,7 @@ import numpy as np
 
 from fftarray import FFTArray
 
+# TODO: change names of FFTArray argument here
 def shift_frequency(wf: FFTArray, offsets: Dict[Hashable, float]) -> FFTArray:
     """Shift the wavefunction in frequency space:
     :math:`k_{x,y,z} \mapsto k_{x,y,z} - \Delta k_{x,y,z}`.
@@ -30,8 +31,10 @@ def shift_frequency(wf: FFTArray, offsets: Dict[Hashable, float]) -> FFTArray:
         The wavefunction with shifted frequency space.
     """
     phase_shift = 1.
+    dim_names = [dim.name for dim in wf.dims]
     for dim_name, offset in offsets.items():
-        phase_shift *= np.exp(1.j * 2.*np.pi * offset * wf.dims_dict[dim_name].fft_array(space="pos"))
+        dim_idx = dim_names.index(dim_name)
+        phase_shift *= np.exp(1.j * 2.*np.pi * offset * wf.dims[dim_idx].fft_array(tlib=wf.tlib, space="pos", eager=wf.eager[dim_idx]))
     return wf.into(space="pos") * phase_shift
 
 def shift_position(wf: FFTArray, offsets: Dict[Hashable, float]) -> FFTArray:
@@ -60,7 +63,9 @@ def shift_position(wf: FFTArray, offsets: Dict[Hashable, float]) -> FFTArray:
         The wavefunction with shifted position space.
     """
     phase_shift = 1.
+    dim_names = [dim.name for dim in wf.dims]
     for dim_name, offset in offsets.items():
-        phase_shift *= np.exp(-1.j * offset * 2*np.pi * wf.dims_dict[dim_name].fft_array(space="freq"))
+        dim_idx = dim_names.index(dim_name)
+        phase_shift *= np.exp(-1.j * offset * 2*np.pi * wf.dims_dict[dim_name].fft_array(wf.tlib, space="freq", eager=wf.eager[dim_idx]))
     return wf.into(space="freq") * phase_shift
 
