@@ -500,9 +500,7 @@ class FFTArray(metaclass=ABCMeta):
             dim_names.add(dim.name)
 
         assert all([dim_space in get_args(Space) for dim_space in self._space])
-        # if self._lazy_state is not None:
         assert all([isinstance(dim_eager, bool) for dim_eager in self._eager])
-        #     for dim, phase_factors in zip(self._dims, self._lazy_state._phases_per_dim):
         assert all([isinstance(factor_applied, bool) for factor_applied in self._factors_applied])
 
 
