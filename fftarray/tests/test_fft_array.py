@@ -331,7 +331,7 @@ def assert_special_behavior_lazy(arr: FFTArray):
     """
     note("abs(x)._factors_applied = True")
     arr_abs = np.abs(arr)
-    np.testing.assert_array_equal(arr_abs._factors_applied, True)
+    np.testing.assert_array_equal(arr_abs._factors_applied, True) # type: ignore
 
 def assert_fft_ifft_invariance(arr: FFTArray, init_space: Space):
     """Tests whether ifft(fft(*)) is an identity.
@@ -360,10 +360,10 @@ def assert_fftarray_sel_order(arr: FFTArray):
     note("fftarray.sel(A).sel(B) == fftarray.sel(B).sel(A)")
     dimA = arr.dims[0]
     dimB = arr.dims[1]
-    arrA = arr.sel(**{dimA.name: getattr(dimA, f"{arr.space[0]}_middle")})
-    arrB = arr.sel(**{dimB.name: getattr(dimB, f"{arr.space[1]}_middle")})
-    arrAB = arrA.sel(**{dimB.name: getattr(dimB, f"{arr.space[1]}_middle")})
-    arrBA = arrB.sel(**{dimA.name: getattr(dimA, f"{arr.space[0]}_middle")})
+    arrA = arr.sel(**{str(dimA.name): getattr(dimA, f"{arr.space[0]}_middle")})
+    arrB = arr.sel(**{str(dimB.name): getattr(dimB, f"{arr.space[1]}_middle")})
+    arrAB = arrA.sel(**{str(dimB.name): getattr(dimB, f"{arr.space[1]}_middle")})
+    arrBA = arrB.sel(**{str(dimA.name): getattr(dimA, f"{arr.space[0]}_middle")})
     np.testing.assert_allclose(arrAB.values, arrBA.values)
 
 def assert_fftarray_eager_factors_applied(arr: FFTArray):
