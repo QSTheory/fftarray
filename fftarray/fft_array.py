@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import (
     Optional, Union, List, Any, Tuple, Dict, Hashable,
-    Literal, TypeVar, Iterable, Set, Generic
+    Literal, TypeVar, Iterable, Set, Generic, get_args
 )
 from abc import ABCMeta
 from copy import copy
@@ -19,12 +19,6 @@ from .helpers import reduce_equal, UniformValue
 T = TypeVar("T")
 
 Space = Literal["pos", "freq"]
-
-def _get_tensor_lib(dims: Iterable[FFTDimension]) -> TensorLib:
-    return reduce_equal(
-        map(lambda dim: dim._default_tlib, dims),
-        "Tried to join arrays with different tensor-libs or precision settings."
-    )
 
 #-------------
 # Helper functions to support type inference on binary and unary functions in FFTArray
@@ -61,10 +55,13 @@ class LocFFTArrayIndexer(Generic[T]):
             if isinstance(dim_item, slice):
                 slices.append(dim_item)
             else:
-                slices.append(dim._index_from_coord(dim_item, method=None, space=space))
+                slices.append(dim._index_from_coord(dim_item, method=None, space=space, tlib=self._arr.tlib))
         return self._arr.__getitem__(tuple(slices))
 
 def _norm_param(val: Union[T, Iterable[T]], n: int, types) -> Tuple[T, ...]:
+    """
+       `val` has to be immutable.
+    """
     """
        `val` has to be immutable.
     """
@@ -73,6 +70,7 @@ def _norm_param(val: Union[T, Iterable[T]], n: int, types) -> Tuple[T, ...]:
 
     # TODO: Can we make this type check work?
     return tuple(val) # type: ignore
+
 
 class FFTArray(metaclass=ABCMeta):
     """
@@ -90,6 +88,7 @@ class FFTArray(metaclass=ABCMeta):
     _eager: Tuple[bool, ...]
     # Marks each dim whether its phase_factors still need to be applied
     _factors_applied: Tuple[bool, ...]
+    # TODO: implement device [#18](https://github.com/QSTheory/fftarray/issues/18)
     # Contains the array backend, precision and device to be used for operations.
     _tlib: TensorLib
 
@@ -100,6 +99,7 @@ class FFTArray(metaclass=ABCMeta):
             space: Union[Space, Iterable[Space]],
             eager: Union[bool, Iterable[bool]],
             factors_applied: Union[bool, Iterable[bool]],
+            tlib: TensorLib,
         ):
         """
             This constructor is not meant for normal usage.
@@ -107,11 +107,12 @@ class FFTArray(metaclass=ABCMeta):
         """
         self._dims = tuple(dims)
         n_dims = len(self._dims)
+        n_dims = len(self._dims)
         self._values = values
         self._spaces = _norm_param(space, n_dims, str)
         self._eager = _norm_param(eager, n_dims, bool)
         self._factors_applied = _norm_param(factors_applied, n_dims, bool)
-        self._tlib = _get_tensor_lib(self._dims)
+        self._tlib = tlib
         self._check_consistency()
 
     #--------------------
@@ -147,7 +148,7 @@ class FFTArray(metaclass=ABCMeta):
     # Selection
     #--------------------
 
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> FFTArray:
         new_dims = []
 
         if isinstance(item, slice):
@@ -180,6 +181,7 @@ class FFTArray(metaclass=ABCMeta):
             space=self._spaces,
             eager=self._eager,
             factors_applied=self._factors_applied,
+            tlib=self.tlib,
         )
 
     @property
@@ -211,6 +213,7 @@ class FFTArray(metaclass=ABCMeta):
                         kwargs[dim.name], # type: ignore
                         method=method,
                         space=space,
+                        tlib=self.tlib,
                     )
                 )
             else:
@@ -280,7 +283,6 @@ class FFTArray(metaclass=ABCMeta):
             eager_norm = self._eager
         else:
             eager_norm = _norm_param(eager, n_dims, bool)
-            dims = tuple(dim.set_default_eager(eager) for dim, eager in zip(dims, eager_norm))
 
 
 
@@ -288,11 +290,10 @@ class FFTArray(metaclass=ABCMeta):
             tlib_norm = self._tlib
         else:
             tlib_norm = tlib
-            dims = tuple(dim.set_default_tlib(tlib) for dim in dims)
-            if tlib.numpy_ufuncs.iscomplexobj(self._values):
-                values = tlib.array(values, dtype=tlib.complex_type)
+            if tlib_norm.numpy_ufuncs.iscomplexobj(self._values):
+                values = tlib_norm.array(values, dtype=tlib_norm.complex_type)
             else:
-                values = tlib.array(values, dtype=tlib.real_type)
+                values = tlib_norm.array(values, dtype=tlib_norm.real_type)
 
 
         needs_fft = [old != new for old, new in zip(self._spaces, space_norm)]
@@ -353,6 +354,7 @@ class FFTArray(metaclass=ABCMeta):
             space=space_norm,
             eager=eager_norm,
             factors_applied=factors_norm,
+            tlib=tlib_norm,
         )
 
     @property
@@ -392,7 +394,8 @@ class FFTArray(metaclass=ABCMeta):
             dims=[self._dims[idx] for idx in axes_transpose],
             space=[self._spaces[idx] for idx in axes_transpose],
             eager=[self._eager[idx] for idx in axes_transpose],
-            factors_applied=[self._factors_applied[idx] for idx in axes_transpose]
+            factors_applied=[self._factors_applied[idx] for idx in axes_transpose],
+            tlib=self.tlib,
         )
         return transposed_arr
 
@@ -427,9 +430,11 @@ class FFTArray(metaclass=ABCMeta):
     @property
     def eager(self) -> Tuple[bool, ...]:
         """
-            Enables automatically and easily detecting in which space a generic FFTArray curently is.
+            If eager is False, the phase factors are not directly applied after an FFT.
+            Otherwise they are always left as is and eager does not have any impact on the behavior of this class.
         """
         return self._eager
+
 
     #--------------------
     # Default implementations that may be overriden if there are performance benefits
@@ -485,10 +490,6 @@ class FFTArray(metaclass=ABCMeta):
         """
         # TODO: Implement new invariants
         assert len(self._dims) == len(self._values.shape)
-        assert len(self._spaces) == len(self._values.shape)
-        assert len(self._eager) == len(self._values.shape)
-        assert len(self._factors_applied) == len(self._values.shape)
-
         dim_names: Set[Hashable] = set()
         for n, dim in zip(self._values.shape, self._dims):
             assert dim.n == n, \
@@ -497,9 +498,10 @@ class FFTArray(metaclass=ABCMeta):
                 f"Passed in FFTDimension of name {dim.name} twice!"
             dim_names.add(dim.name)
 
-        assert all([dim_space in ["pos", "freq"] for dim_space in self._spaces])
-        assert all([isinstance(dim_eager, bool) for dim_eager in self._eager])
-        assert all([isinstance(factor_applied, bool) for factor_applied in self._factors_applied])
+        # if self._lazy_state is not None:
+        #     for dim, phase_factors in zip(self._dims, self._lazy_state._phases_per_dim):
+        #         assert isinstance(phase_factors, dict)
+        #         assert dim.name in self._lazy_state._phases_per_dim
 
 
 # Implementing NEP 13 https://numpy.org/neps/nep-0013-ufunc-overrides.html
@@ -621,6 +623,7 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
         dims=unp_inp.dims,
         eager=unp_inp.eager,
         factors_applied=final_factors_applied,
+        tlib=unp_inp.tlib,
     )
 
 def _single_element_ufunc(ufunc, inp: FFTArray, kwargs):
@@ -634,7 +637,7 @@ def _single_element_ufunc(ufunc, inp: FFTArray, kwargs):
         # since they would have evaluated to one.
         values = tensor_lib_ufunc(inp._values, **kwargs)
         # The scale can be applied< after abs which is more efficient in the case of a complex input
-        signs = inp.tlib.get_transform_signs(
+        signs: List[Literal[-1, 1] | None] | None = inp.tlib.get_transform_signs(
             # Can use input because with a single value no broadcasting happened.
             input_factors_applied=inp._factors_applied,
             target_factors_applied=[True]*len(inp._factors_applied),
@@ -653,6 +656,7 @@ def _single_element_ufunc(ufunc, inp: FFTArray, kwargs):
             dims=inp.dims,
             eager=inp.eager,
             factors_applied=True,
+            tlib=inp.tlib,
         )
 
     # Fallback if no special case applies
@@ -663,6 +667,7 @@ def _single_element_ufunc(ufunc, inp: FFTArray, kwargs):
         dims=inp.dims,
         eager=inp.eager,
         factors_applied=True,
+        tlib=inp.tlib,
     )
 
 @dataclass
@@ -923,8 +928,6 @@ class FFTDimension:
     _d_pos: float
     _n: int
     _name: Hashable
-    _default_tlib: TensorLib
-    _default_eager: bool
 
     def __init__(
             self,
@@ -933,23 +936,18 @@ class FFTDimension:
             d_pos: float,
             pos_min: float,
             freq_min: float,
-            default_tlib: TensorLib = NumpyTensorLib(),
-            default_eager: bool = False,
         ):
         self._name = name
         self._n = n
         self._d_pos = d_pos
         self._pos_min = pos_min
         self._freq_min = freq_min
-        self._default_tlib = default_tlib
-        self._default_eager = default_eager
 
     def __repr__(self: FFTDimension) -> str:
         arg_str = ", ".join([f"{name[1:]}={repr(value)}" for name, value in self.__dict__.items()])
         return f"FFTDimension({arg_str})"
 
     def __str__(self: FFTDimension) -> str:
-        evaluated = 'eagerly' if self._default_eager else 'lazily'
         properties = (
             f"\t Number of grid points n: {self.n} \n\t " +
             f"Position space: min={self.pos_min}, middle={self.pos_middle}, " +
@@ -958,28 +956,9 @@ class FFTDimension:
             f"max={self.freq_max}, extent={self.freq_extent}, d_freq={self.d_freq}"
         )
         return (
-            f"FFTDimension with name '{self.name}' on backend " +
-            f"'{self.default_tlib}' evaluated {evaluated} with the " +
+            f"FFTDimension with name '{self.name}' and the " +
             f"following properties:\n{properties}"
         )
-
-    def set_default_tlib(self, tlib: TensorLib) -> FFTDimension:
-        dim = copy(self)
-        dim._default_tlib = tlib
-        return dim
-
-    @property
-    def default_tlib(self) -> TensorLib:
-        return self._default_tlib
-
-    def set_default_eager(self, eager: bool) -> FFTDimension:
-        dim = copy(self)
-        dim._default_eager = eager
-        return dim
-
-    @property
-    def default_eager(self) -> bool:
-        return self._default_eager
 
     @property
     def n(self: FFTDimension) -> int:
@@ -1089,8 +1068,6 @@ class FFTDimension:
         ) -> FFTDimension:
         new = self.__class__.__new__(self.__class__)
         new._name = self.name
-        new._default_tlib = self._default_tlib
-        new._default_eager = self._default_eager
         new._n = n
 
         # d_freq * d_pos * n == 1,
@@ -1112,14 +1089,15 @@ class FFTDimension:
             x,
             method: Optional[Literal["nearest", "min", "max"]],
             space: Space,
+            tlib: TensorLib,
         ):
         """
             Compute index from given coordinate `x`.
         """
         if isinstance(x, tuple):
             sel_min, sel_max = x
-            idx_min = self._index_from_coord(sel_min, method="min", space=space)
-            idx_max = self._index_from_coord(sel_max, method="max", space=space)
+            idx_min = self._index_from_coord(sel_min, method="min", space=space, tlib=tlib)
+            idx_max = self._index_from_coord(sel_max, method="max", space=space, tlib=tlib)
             # The max is an open intervel, therefore add one.
             return slice(idx_min, idx_max+1)
 
@@ -1133,7 +1111,7 @@ class FFTDimension:
             # TODO This is not jittable.
             # Either fix it or document it.
             # Would probably need a tlib if...
-            if self.default_tlib.numpy_ufuncs.round(raw_idx) != raw_idx:
+            if tlib.numpy_ufuncs.round(raw_idx) != raw_idx:
                 raise KeyError(
                     f"No exact index found for {x} in {space}-space of dim " +
                     f'"{self.name}". Try the keyword argument ' +
@@ -1142,20 +1120,20 @@ class FFTDimension:
             idx = raw_idx
         elif method in ["nearest", "min", "max"]:
             # Clamp index into valid range
-            raw_idx = self.default_tlib.numpy_ufuncs.max(self.default_tlib.array([0, raw_idx]))
-            raw_idx = self.default_tlib.numpy_ufuncs.min(self.default_tlib.array([self.n, raw_idx]))
+            raw_idx = tlib.numpy_ufuncs.max(tlib.array([0, raw_idx]))
+            raw_idx = tlib.numpy_ufuncs.min(tlib.array([self.n, raw_idx]))
             if  method == "nearest":
                 # The combination of floor and +0.5 prevents the "ties to even" rounding of floating point numbers.
                 # We only need one branch since our indices are always positive.
-                idx = self.default_tlib.numpy_ufuncs.floor(raw_idx + 0.5)
+                idx = tlib.numpy_ufuncs.floor(raw_idx + 0.5)
             elif method == "min":
-                idx = self.default_tlib.numpy_ufuncs.ceil(raw_idx)
+                idx = tlib.numpy_ufuncs.ceil(raw_idx)
             elif method == "max":
-                idx = self.default_tlib.numpy_ufuncs.floor(raw_idx)
+                idx = tlib.numpy_ufuncs.floor(raw_idx)
         else:
             raise ValueError("Specified unsupported look-up method.")
 
-        return self.default_tlib.array(idx, dtype=int)
+        return tlib.array(idx, dtype=int)
 
     # ---------------------------- Frequency Space --------------------------- #
 
@@ -1217,10 +1195,30 @@ class FFTDimension:
         """
         return (self.n - 1) * self.d_freq
 
+    def _raw_coord_array(
+                self: FFTDimension,
+                tlib: TensorLib,
+                space: Space,
+            ):
+
+        indices = tlib.numpy_ufuncs.arange(
+            0,
+            self.n,
+            dtype = tlib.real_type,
+        )
+
+        if space == "pos":
+            return indices * self.d_pos + self.pos_min
+        elif space == "freq":
+            return indices * self.d_freq + self.freq_min
+        else:
+            raise ValueError(f"space has to be either 'pos' or 'freq', not {space}.")
+
     def fft_array(
             self: FFTDimension,
+            tlib: TensorLib,
             space: Space,
-            tlib: Optional[TensorLib] = None
+            eager: bool = False,
         ) -> FFTArray:
         """..
 
@@ -1230,26 +1228,19 @@ class FFTDimension:
             The grid coordinates of the chosen space packed into an FFTArray with self as only dimension.
         """
 
-        dim = self
-        if tlib is not None:
-            dim = dim.set_default_tlib(tlib)
-
-        indices = dim.default_tlib.numpy_ufuncs.arange(
-            0,
-            dim.n,
-            dtype = dim.default_tlib.real_type,
-        )
-
-        if space == "pos":
-            values = indices * dim.d_pos + dim.pos_min
-        elif space == "freq":
-            values = indices * dim.d_freq + dim.freq_min
-        else:
-            raise ValueError(f"space has to be either 'pos' or 'freq', not {space}.")
-        return FFTArray(
-            values=values,
-            dims=[dim],
-            eager=dim._default_eager,
-            factors_applied=True,
+        values = self._raw_coord_array(
+            tlib=tlib,
             space=space,
         )
+
+        return FFTArray(
+            values=values,
+            dims=[self],
+            eager=eager,
+            factors_applied=True,
+            space=space,
+            tlib=tlib,
+        )
+
+    def np_array(self: FFTDimension, space: Space):
+        return self._raw_coord_array(tlib=NumpyTensorLib(), space=space)
