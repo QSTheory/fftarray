@@ -1,7 +1,7 @@
 from typing import List, Type, Any, Callable, Union, Tuple
 
 import pytest
-from hypothesis import given, strategies as st, note, settings, assume
+from hypothesis import given, strategies as st, note, settings
 import numpy as np
 import jax
 
@@ -207,19 +207,6 @@ def test_attributes(value, init_factors_applied, eager, tlib, precision, init_sp
     note(fftarr_values.dtype)
     note(fftarr_values)
 
-    # if precision == "fp32":
-    #     if isinstance(value, float):
-    #         assume(np.abs(value) >= np.finfo(np.float32).smallest_normal and np.abs(value) <= np.finfo(np.float32).max)
-    #     if isinstance(value, complex):
-    #         assume(np.abs(value.real) >= np.finfo(np.float32).smallest_normal and np.abs(value.real) <= np.finfo(np.float32).max)
-    #         assume(np.abs(value.imag) >= np.finfo(np.float32).smallest_normal and np.abs(value.imag) <= np.finfo(np.float32).max)
-    # if precision == "fp64":
-    #     if isinstance(value, complex):
-    #         assume(np.abs(value) >= np.finfo(np.float64).smallest_normal and np.abs(value) <= np.finfo(np.float64).max)
-    #     if isinstance(value, complex):
-    #         assume(np.abs(value.real) >= np.finfo(np.float64).smallest_normal and np.abs(value.real) <= np.finfo(np.float64).max)
-    #         assume(np.abs(value.imag) >= np.finfo(np.float64).smallest_normal and np.abs(value.imag) <= np.finfo(np.float64).max)
-
     # test eager dim and eager fftarray error
     # with pytest.raises(Exception):
     #     FFTArray(
@@ -254,14 +241,20 @@ def test_attributes(value, init_factors_applied, eager, tlib, precision, init_sp
     assert_single_operand_fun_equivalence(fftarr, init_factors_applied)
     assert_dual_operand_fun_equivalence(fftarr, init_factors_applied)
 
-    # -- test ffts
-    assert_fft_ifft_invariance(fftarr, init_space)
+    # Max 4 dimensions (or PyFFTWTensorLib)
+    if (ndims < 4 or isinstance(tlib, PyFFTWTensorLib)):
 
-    # -- test fftarray sel
-    assert_fftarray_sel_order(fftarr)
+        # -- test ffts
+        assert_fft_ifft_invariance(fftarr, init_space)
 
-    # -- test eager, factors_applied logic
-    assert_fftarray_eager_factors_applied(fftarr)
+        # -- test eager, factors_applied logic
+        assert_fftarray_eager_factors_applied(fftarr)
+
+    # Multidimensional
+    if ndims > 1:
+        # -- test fftarray sel
+        assert_fftarray_sel_order(fftarr)
+
 
 def is_inf_or_nan(x):
     """Check if (real or imag of) x is inf or nan"""
@@ -362,8 +355,8 @@ def assert_fft_ifft_invariance(arr: FFTArray, init_space: Space):
 
     """
     note("ifft(fft(x)) == x")
-    assume(len(arr.dims) < 4 or isinstance(arr.tlib, PyFFTWTensorLib))
-    arr_fft = arr.into(space=get_other_space(init_space))
+    other_space = get_other_space(init_space)
+    arr_fft = arr.into(space=other_space)
     arr_fft_ifft = arr_fft.into(space=init_space)
     if is_inf_or_nan(arr_fft_ifft.values):
         # edge cases (very large numbers) result in inf after fft
@@ -379,7 +372,6 @@ def assert_fftarray_sel_order(arr: FFTArray):
 
     should be true.
     """
-    assume(len(arr.dims) > 1)
     note("fftarray.sel(A).sel(B) == fftarray.sel(B).sel(A)")
     dimA = arr.dims[0]
     dimB = arr.dims[1]
@@ -387,7 +379,6 @@ def assert_fftarray_sel_order(arr: FFTArray):
     arrB = arr.sel(**{dimB.name: getattr(dimB, f"{arr.space[1]}_middle")})
     arrAB = arrA.sel(**{dimB.name: getattr(dimB, f"{arr.space[1]}_middle")})
     arrBA = arrB.sel(**{dimA.name: getattr(dimA, f"{arr.space[0]}_middle")})
-    rtol = 1e-5 if arr.tlib.precision == "fp32" else 1e-6
     np.testing.assert_allclose(arrAB.values, arrBA.values)
 
 def assert_fftarray_eager_factors_applied(arr: FFTArray):
@@ -397,7 +388,6 @@ def assert_fftarray_eager_factors_applied(arr: FFTArray):
     not eager, then the final FFTArray should have eager=False and
     _factors_applied=False.
     """
-    assume(len(arr.dims) < 4 or isinstance(arr.tlib, PyFFTWTensorLib))
     note("Testing eager and factors_applied ...")
     init_eager = arr.eager
     arr_fft = arr.into(space=get_other_space(arr.space))
@@ -406,59 +396,3 @@ def assert_fftarray_eager_factors_applied(arr: FFTArray):
     np.testing.assert_array_equal(init_eager, final_eager)
     for ffapplied, feager in zip(final_factors_applied, final_eager):
         assert (feager and ffapplied) or (not feager and not ffapplied)
-
-# @pytest.mark.parametrize("eager", [False, True])
-# def test_lazy_0(eager: bool) -> None:
-#     dim_pos_x = fft_dim_from_constraints("x", n = 4, d_pos = 1., pos_min = 0.3, freq_min = 0.7, default_eager=eager)
-#     dim_pos_y = fft_dim_from_constraints("y", n = 4, d_pos = 1., pos_min = 1.3, freq_min = 1.7, default_eager=eager)
-#     dim_freq_x = fft_dim_from_constraints("x", n = 4, d_freq = 1., pos_min = 0.7, freq_min = 0.3, default_eager=eager)
-#     dim_freq_y = fft_dim_from_constraints("y", n = 4, d_freq = 1., pos_min = 1.7, freq_min = 1.3, default_eager=eager)
-
-#     ref_values = np.arange(4).reshape(4,1)+0.3 + np.arange(4).reshape(1,4)+1.3
-#     arrs = [
-#         (dim_pos_x.fft_array(space="pos") + dim_pos_y.fft_array(space="pos")).transpose("x", "y"),
-#         (dim_freq_x.fft_array(space="freq") + dim_freq_y.fft_array(space="freq")).transpose("x", "y"),
-#     ]
-#     for arr in arrs:
-#         np.testing.assert_array_almost_equal(arr.into(space="freq").into(space="pos").into(space="freq").values, arr.into(space="freq").values)
-#         np.testing.assert_array_almost_equal(arr.values, ref_values)
-
-# def _get_fft_arr(dims: List[FFTDimension], per_dim_values) -> FFTArray:
-#     return reduce(lambda x,y: x+y, [
-#         FFTArray(
-#             values=per_dim_values,
-#             dims=[dim],
-#             space="pos",
-#             eager=False,
-#             factors_applied=True,
-#         )
-#         for dim in dims
-#     ])
-
-# arrs = []
-# for tlib, precision in product(tensor_libs, precisions):
-#     tlib_obj = tlib(precision=precision)
-#     x_dim = FFTDimension("x",
-#         n=4,
-#         d_pos=1,
-#         pos_min=0.5,
-#         freq_min=0.,
-#         default_tlib=tlib_obj,
-#     )
-#     y_dim = FFTDimension("y",
-#         n=4,
-#         d_pos=2,
-#         pos_min=-2,
-#         freq_min=0.,
-#         default_tlib=tlib_obj,
-#     )
-#     for dims in [[x_dim], [x_dim, y_dim]]:
-#         arrs.append(_get_fft_arr(dims, tlib_obj.array([0., 1., 2., 3.])))
-#         arrs.append(_get_fft_arr(dims, tlib_obj.array([0., 1., 2., 3.]) + 1.j)) # type: ignore
-#         arrs.append(_get_fft_arr(dims, tlib_obj.array([0, 1, 2, 3])))
-
-
-# @pytest.mark.parametrize("arr", arrs)
-# def test_lazy_1(arr):
-#     assert_single_operand_fun_equivalence(arr)
-#     assert_dual_operand_fun_equivalence(arr)
