@@ -16,6 +16,7 @@ from .backends.tensor_lib import TensorLib
 from .backends.np_backend import NumpyTensorLib
 from .helpers import reduce_equal, UniformValue
 
+# TODO: instead: T_FFTArray = TypeVar("T_FFTArray", bound="FFTArray")
 T = TypeVar("T")
 
 Space = Literal["pos", "freq"]
@@ -43,7 +44,7 @@ def _unary_ufunc(op):
 
 class LocFFTArrayIndexer(Generic[T]):
     """
-        `wf.loc` allows indexing by dim index but by coordinate position.
+        `FFTArray.loc` allows indexing by dim index but by coordinate position.
         In order to support the indexing operator on a property
         we need this indexable helper class to be returned by the property `loc`.
     """
@@ -61,6 +62,7 @@ class LocFFTArrayIndexer(Generic[T]):
             if isinstance(dim_item, slice):
                 slices.append(dim_item)
             else:
+                # TODO: check for length!=2 tuples
                 slices.append(dim._index_from_coord(dim_item, method=None, space=space))
         return self._arr.__getitem__(tuple(slices))
 
@@ -74,6 +76,7 @@ def _norm_param(val: Union[T, Iterable[T]], n: int, types) -> Tuple[T, ...]:
     # TODO: Can we make this type check work?
     return tuple(val) # type: ignore
 
+# TODO: think about if we
 class FFTArray(metaclass=ABCMeta):
     """
         The base class of `PosArray` and `FreqArray` that implements all shared behavior.
