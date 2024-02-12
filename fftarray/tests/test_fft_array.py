@@ -240,6 +240,7 @@ def test_attributes(value, init_factors_applied, eager, tlib, precision, init_sp
     # -- test operands
     assert_single_operand_fun_equivalence(fftarr, init_factors_applied)
     assert_dual_operand_fun_equivalence(fftarr, init_factors_applied)
+    assert_special_behavior_lazy(fftarr)
 
     # Max 4 dimensions (or PyFFTWTensorLib)
     if (ndims < 4 or isinstance(tlib, PyFFTWTensorLib)):
@@ -347,6 +348,15 @@ def get_other_space(space: Union[Space, Tuple[Space, ...]]):
             return "freq"
         return "pos"
     return [get_other_space(s) for s in space]
+
+def assert_special_behavior_lazy(arr: FFTArray):
+    """Tests whether the factors are only applied when necessary. E.g., they
+    should not be applied when taking the absolute value of an FFTArray (but
+    the resulting FFTArray should behave as they have been applied)
+    """
+    note("abs(x)._factors_applied = True")
+    arr_abs = np.abs(arr)
+    np.testing.assert_array_equal(arr_abs._factors_applied, True)
 
 def assert_fft_ifft_invariance(arr: FFTArray, init_space: Space):
     """Tests whether ifft(fft(*)) is an identity.
