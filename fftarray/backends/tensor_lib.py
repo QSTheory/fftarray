@@ -36,6 +36,11 @@ class TensorLib(metaclass=ABCMeta):
     def array(self) -> Callable[..., ArrayLike]:
         ...
 
+    @property
+    @abstractmethod
+    def array_type(self):
+        ...
+
     def __eq__(self, other) -> bool:
         return isinstance(other, self.__class__) and self.precision == other.precision
 

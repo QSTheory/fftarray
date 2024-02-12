@@ -29,6 +29,10 @@ class JaxTensorLib(TensorLib):
     def array(self) -> Callable[..., jax.Array]:
         return jnp.array
 
+    @property
+    def array_type(self):
+        return jax.Array
+
     def reduce_multiply(self, values) -> Any:
         """Based on :func:`jax.lax.reduce`.
 

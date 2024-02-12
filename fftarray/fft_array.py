@@ -486,11 +486,16 @@ class FFTArray(metaclass=ABCMeta):
         """
             Check some invariants of FFTArray.
         """
-        # TODO: Implement new invariants
         assert len(self._dims) == len(self._values.shape)
         assert len(self._space) == len(self._values.shape)
         assert len(self._eager) == len(self._values.shape)
         assert len(self._factors_applied) == len(self._values.shape)
+        if not isinstance(self._values, self._tlib.array_type):
+            raise ValueError(
+                f"Passed in values of type '{type(self._values)}' "
+                + f"which is not the array type '{self._tlib.array_type}'"
+                + f" of the tensor-lib '{self._tlib}'."
+            )
 
         dim_names: Set[Hashable] = set()
         for n, dim in zip(self._values.shape, self._dims):

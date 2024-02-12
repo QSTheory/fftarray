@@ -1,6 +1,9 @@
 import pytest
 import numpy as np
 import jax
+jax.config.update("jax_enable_x64", True)
+
+import jax.numpy as jnp
 
 from fftarray.fft_array import FFTArray, FFTDimension
 from fftarray.backends.jax_backend import JaxTensorLib
@@ -8,7 +11,6 @@ from fftarray.backends.np_backend import NumpyTensorLib
 from fftarray.backends.pyfftw_backend import PyFFTWTensorLib
 from fftarray.xr_helpers import as_xr_pos
 
-jax.config.update("jax_enable_x64", True)
 
 def assert_scalars_almost_equal_nulp(x, y, nulp = 1):
     np.testing.assert_array_almost_equal_nulp(np.array([x]), np.array([y]), nulp = nulp)
@@ -153,6 +155,10 @@ def test_dtype(tensor_lib, precision, override, eager: bool) -> None:
     )
     assert bool_arr.values.dtype == bool_arr.into(tlib=tlib_override).values.dtype
 
+def test_construction_checks() -> None:
+    dim = FFTDimension("x", n=4, d_pos=1., pos_min=0., freq_min=0.)
+    with pytest.raises(ValueError):
+        arr = FFTArray(jnp.array([1,2,3,4]), dims=[dim], space="pos", eager=False, tlib=NumpyTensorLib("fp32"), factors_applied=True)
 
 @pytest.mark.parametrize("tensor_lib", tensor_libs)
 @pytest.mark.parametrize("override", tensor_libs)
