@@ -103,8 +103,6 @@ def fft_dimension_flatten(v: FFTDimension) -> Tuple[List[Any], List[Any]]:
     aux_data: List[Any] = [
         v._n,
         v._name,
-        v._default_tlib,
-        v._default_eager,
         v._pos_min,
         v._freq_min,
         v._d_pos,
@@ -137,11 +135,9 @@ def fft_dimension_unflatten(aux_data, children) -> FFTDimension:
     fftdim = FFTDimension.__new__(FFTDimension)
     fftdim._n = aux_data[0]
     fftdim._name = aux_data[1]
-    fftdim._default_tlib = aux_data[2]
-    fftdim._default_eager = aux_data[3]
-    fftdim._pos_min = aux_data[4]
-    fftdim._freq_min = aux_data[5]
-    fftdim._d_pos = aux_data[6]
+    fftdim._pos_min = aux_data[2]
+    fftdim._freq_min = aux_data[3]
+    fftdim._d_pos = aux_data[4]
     return fftdim
 
 from jax.tree_util import register_pytree_node
