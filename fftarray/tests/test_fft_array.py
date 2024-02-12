@@ -182,7 +182,7 @@ def test_broadcasting(nulp: int = 1) -> None:
     ndims=st.integers(min_value=1, max_value=4)
 )
 @settings(max_examples=1000, deadline=None)
-def test_attributes(value, init_factors_applied, eager, tlib, precision, init_space, ndims):
+def test_fftarray_lazyness(value, init_factors_applied, eager, tlib, precision, init_space, ndims):
     dims = [
         FFTDimension(f"{ndim}", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
     for ndim in range(ndims)]
@@ -215,7 +215,6 @@ def test_attributes(value, init_factors_applied, eager, tlib, precision, init_sp
     # -- test operands
     assert_single_operand_fun_equivalence(fftarr, init_factors_applied)
     assert_dual_operand_fun_equivalence(fftarr, init_factors_applied)
-    assert_special_behavior_lazy(fftarr)
 
     # Max 4 dimensions (or PyFFTWTensorLib)
     if (ndims < 4 or isinstance(tlib, PyFFTWTensorLib)):
@@ -324,15 +323,6 @@ def get_other_space(space: Union[Space, Tuple[Space, ...]]):
         return "pos"
     return [get_other_space(s) for s in space]
 
-def assert_special_behavior_lazy(arr: FFTArray):
-    """Tests whether the factors are only applied when necessary. E.g., they
-    should not be applied when taking the absolute value of an FFTArray (but
-    the resulting FFTArray should behave as they have been applied)
-    """
-    note("abs(x)._factors_applied = True")
-    arr_abs = np.abs(arr)
-    np.testing.assert_array_equal(arr_abs._factors_applied, True) # type: ignore
-
 def assert_fft_ifft_invariance(arr: FFTArray, init_space: Space):
     """Tests whether ifft(fft(*)) is an identity.
 
@@ -367,17 +357,39 @@ def assert_fftarray_sel_order(arr: FFTArray):
     np.testing.assert_allclose(arrAB.values, arrBA.values)
 
 def assert_fftarray_eager_factors_applied(arr: FFTArray):
-    """Tests whether the FFTArray after performing an FFT has the correct
-    properties. If the initial FFTArray was eager, then the final FFTArray also
-    must be eager and have _factors_apllied=True. If the initial FFTArray was
-    not eager, then the final FFTArray should have eager=False and
-    _factors_applied=False.
+    """Tests whether the factors are only applied when necessary and whether
+    the FFTArray after performing an FFT has the correct properties. If the
+    initial FFTArray was eager, then the final FFTArray also must be eager and
+    have _factors_apllied=True. If the initial FFTArray was not eager, then the
+    final FFTArray should have eager=False and _factors_applied=False.
     """
-    note("Testing eager and factors_applied ...")
-    init_eager = arr.eager
+    note("arr._factors_applied == (arr**2)._factors_applied")
+    arr_sq = arr * arr
+    np.testing.assert_array_equal(arr_sq.eager, arr.eager) # type: ignore
+    np.testing.assert_array_equal(arr_sq._factors_applied, arr._factors_applied) # type: ignore
+
+    note("abs(x)._factors_applied == True")
+    arr_abs = np.abs(arr)
+    np.testing.assert_array_equal(arr_abs.eager, arr.eager) # type: ignore
+    np.testing.assert_array_equal(arr_abs._factors_applied, True) # type: ignore
+
+    note("(x*abs(x))._factors_applied == x._factors_applied")
+    # if both _factors_applied=True, the resulting FFTArray will also have it
+    # True, otherwise False (if not eager)
+    arr_abs_sq = arr * arr_abs
+    np.testing.assert_array_equal(arr_abs_sq.eager, arr.eager) # type: ignore
+    np.testing.assert_array_equal(arr_abs_sq._factors_applied, arr._factors_applied) # type: ignore
+
+    note("(x+abs(x))._factors_applied == x._factors_applied")
+    arr_abs_sum = arr + arr_abs
+    np.testing.assert_array_equal(arr_abs_sum.eager, arr.eager) # type: ignore
+    for ea, ifa, ffa in zip(arr_abs_sum.eager, arr._factors_applied, arr_abs_sum._factors_applied):
+        # True+True=True
+        # False+True=eager
+        assert (ifa == ffa) or (ffa == ea)
+
+    note("fft(x)._factors_applied ...")
     arr_fft = arr.into(space=get_other_space(arr.space))
-    final_eager = arr_fft.eager
-    final_factors_applied = arr_fft._factors_applied
-    np.testing.assert_array_equal(init_eager, final_eager)
-    for ffapplied, feager in zip(final_factors_applied, final_eager):
+    np.testing.assert_array_equal(arr.eager, arr_fft.eager)
+    for ffapplied, feager in zip(arr_fft._factors_applied, arr_fft.eager):
         assert (feager and ffapplied) or (not feager and not ffapplied)
