@@ -62,9 +62,6 @@ def _norm_param(val: Union[T, Iterable[T]], n: int, types) -> Tuple[T, ...]:
     """
        `val` has to be immutable.
     """
-    """
-       `val` has to be immutable.
-    """
     if isinstance(val, types):
         return (val,)*n
 
@@ -490,6 +487,10 @@ class FFTArray(metaclass=ABCMeta):
         """
         # TODO: Implement new invariants
         assert len(self._dims) == len(self._values.shape)
+        assert len(self._space) == len(self._values.shape)
+        assert len(self._eager) == len(self._values.shape)
+        assert len(self._factors_applied) == len(self._values.shape)
+
         dim_names: Set[Hashable] = set()
         for n, dim in zip(self._values.shape, self._dims):
             assert dim.n == n, \
@@ -498,10 +499,12 @@ class FFTArray(metaclass=ABCMeta):
                 f"Passed in FFTDimension of name {dim.name} twice!"
             dim_names.add(dim.name)
 
+        assert all([dim_space in get_args(Space) for dim_space in self._space])
         # if self._lazy_state is not None:
+        assert all([isinstance(dim_eager, bool) for dim_eager in self._eager])
         #     for dim, phase_factors in zip(self._dims, self._lazy_state._phases_per_dim):
-        #         assert isinstance(phase_factors, dict)
-        #         assert dim.name in self._lazy_state._phases_per_dim
+        assert all([isinstance(factor_applied, bool) for factor_applied in self._factors_applied])
+
 
 
 # Implementing NEP 13 https://numpy.org/neps/nep-0013-ufunc-overrides.html
