@@ -288,8 +288,10 @@ class FFTArray(metaclass=ABCMeta):
             tlib_norm = tlib
             if tlib_norm.numpy_ufuncs.iscomplexobj(self._values):
                 values = tlib_norm.array(values, dtype=tlib_norm.complex_type)
-            else:
+            elif np.issubdtype(values.dtype, np.floating):
                 values = tlib_norm.array(values, dtype=tlib_norm.real_type)
+            else:
+                values = tlib_norm.array(values)
 
 
         needs_fft = [old != new for old, new in zip(self._space, space_norm)]
