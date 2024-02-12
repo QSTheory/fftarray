@@ -380,7 +380,7 @@ def assert_fftarray_eager_factors_applied(arr: FFTArray):
     np.testing.assert_array_equal(arr_abs_sq.eager, arr.eager) # type: ignore
     np.testing.assert_array_equal(arr_abs_sq._factors_applied, arr._factors_applied) # type: ignore
 
-    note("(x+abs(x))._factors_applied == x._factors_applied")
+    note("(x+abs(x))._factors_applied == (x._factors_applied or x._eager)")
     arr_abs_sum = arr + arr_abs
     np.testing.assert_array_equal(arr_abs_sum.eager, arr.eager) # type: ignore
     for ea, ifa, ffa in zip(arr_abs_sum.eager, arr._factors_applied, arr_abs_sum._factors_applied):
