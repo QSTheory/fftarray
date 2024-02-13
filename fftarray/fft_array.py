@@ -604,7 +604,7 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
                     input_factors_applied=[unp_inp.factors_applied[dim_idx][op_idx] for dim_idx in range(len(unp_inp.dims))],
                     target_factors_applied=[True]*len(unp_inp.dims),
                 )
-                if not res is None:
+                if res is not None:
                     phase_transforms[op_idx] = res
 
         final_factors_applied = [True]*len(unp_inp.dims)
@@ -645,7 +645,7 @@ def _single_element_ufunc(ufunc, inp: FFTArray, kwargs):
             input_factors_applied=inp._factors_applied,
             target_factors_applied=[True]*len(inp._factors_applied),
         )
-        if not signs is None:
+        if signs is not None:
             values = inp.tlib.apply_scale(
                 values=values,
                 dims=inp.dims,
@@ -791,7 +791,7 @@ def _unpack_fft_arrays(
     # unpacked_values = [tlib.get().as_array(x) for x in unpacked_values]
 
     for value in unpacked_values:
-        assert not value is None
+        assert value is not None
 
     return UnpackedValues(
         dims = tuple(dims_list),

@@ -88,7 +88,7 @@ class TensorLib(metaclass=ABCMeta):
             target_factors_applied=target_factors_applied,
         )
 
-        if not signs is None:
+        if signs is not None:
             values = self.apply_scale_phases(
                 values=values,
                 dims=dims,
@@ -132,7 +132,7 @@ class TensorLib(metaclass=ABCMeta):
         scale: float = 1.
         do_apply = False
         for dim, sign, dim_space in zip(dims, signs, spaces):
-            if not sign is None and dim_space == "freq":
+            if sign is not None and dim_space == "freq":
                 # TODO: Write as separate mul or div?
                 scale = scale * (dim.d_freq*dim.n)**sign
                 do_apply = True
@@ -154,7 +154,7 @@ class TensorLib(metaclass=ABCMeta):
         for dim_idx, (dim, sign, dim_space) in enumerate(zip(dims, signs, spaces)):
             # If both are the same, we do not need to do anything
 
-            if not sign is None:
+            if sign is not None:
                 # Create indices with correct shape
                 indices = self.numpy_ufuncs.arange(0, dim.n, dtype=self.real_type)
                 extended_shape = np.ones(len(values.shape), dtype=int)
