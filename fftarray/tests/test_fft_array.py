@@ -274,17 +274,18 @@ def test_fftarray_lazyness(fftarr):
         assert_fftarray_eager_factors_applied(fftarr, note)
 
 @pytest.mark.parametrize("tensor_lib", tensor_libs)
+@pytest.mark.parametrize("precision", precisions)
 @pytest.mark.parametrize("space", spaces)
 @pytest.mark.parametrize("eager", [True, False])
 @pytest.mark.parametrize("factors_applied", [True, False])
-def test_fftarray_lazyness_reduced(tensor_lib, space, eager, factors_applied):
+def test_fftarray_lazyness_reduced(tensor_lib, precision, space, eager, factors_applied):
     """Tests the lazyness of a FFTArray, i.e., the correct behavior of
     factors_applied and eager. This is the reduced/faster version of the test
     using hypothesis.
     """
     xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
     ydim = FFTDimension("y", n=8, d_pos=0.03, pos_min=-0.5, freq_min=-4.7)
-    tlib=tensor_lib(precision="default")
+    tlib = tensor_lib(precision=precision)
     fftarr = xdim.fft_array(tlib, space, eager) + ydim.fft_array(tlib, space, eager)
     fftarr._factors_applied = (factors_applied, factors_applied)
     assert_basic_lazy_logic(fftarr, print)
@@ -343,7 +344,7 @@ def assert_equal_op(arr: FFTArray, values: Any, op: Callable[[Any],Any], precise
         if "complex" in str(values.dtype):
             assert_array_almost_equal_nulp_complex(arr_op, values_op, nulp=4)
     else:
-        rtol = 1e-6 if isinstance(arr.tlib, JaxTensorLib) else 1e-7
+        rtol = 1e-6 if arr.tlib.precision == "fp32" else 1e-7
         np.testing.assert_allclose(arr_op, values_op, rtol=rtol)
 
 def assert_array_almost_equal_nulp_complex(x: Any, y: Any, nulp: int):
