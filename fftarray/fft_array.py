@@ -543,7 +543,6 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
     phase_transforms: List[List[Literal[-1, 1, None]]] = [[None]*len(unp_inp.dims) for _ in range(2)]
     final_factors_applied: List[bool] = []
 
-    # TODO: Check that it should work without  and isinstance(inputs[0], FFTArray) and isinstance(inputs[1], FFTArray):
     if ufunc == np.multiply and len(inputs) == 2:
         # Element-wise multiplication is commutative with the multiplication of the phase factors.
         # So we can always directly multiply with the inner values and can delay up to one set of phase factors per dimension.
@@ -563,7 +562,6 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
             # If both operands are applied, the final will be too, otherwise it will not.
             final_factors_applied.append(all(fac_applied))
 
-    # TODO Ceck that it should work without  and isinstance(inputs[0], FFTArray) and isinstance(inputs[1], FFTArray)
     elif ufunc == np.add and len(inputs) == 2:
         for dim_idx in range(len(unp_inp.dims)):
             fac_applied = (unp_inp.factors_applied[dim_idx][0], unp_inp.factors_applied[dim_idx][1])
