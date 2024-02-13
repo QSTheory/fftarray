@@ -368,7 +368,7 @@ def assert_dual_operand_fun_equivalence(arr: FFTArray, exact: bool):
 
 def get_other_space(space: Union[Space, Tuple[Space, ...]]):
     """Returns the other space. If input space is "pos", "freq" is returned and
-    vice versa. If space is a tuple of Space, a tuple is returned.
+    vice versa. If space is a `Tuple[Space]`, a tuple is returned.
     """
     if isinstance(space, str):
         if space == "pos":
