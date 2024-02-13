@@ -388,7 +388,7 @@ def get_other_space(space: Union[Space, Tuple[Space, ...]]):
         if space == "pos":
             return "freq"
         return "pos"
-    return [get_other_space(s) for s in space]
+    return tuple(get_other_space(s) for s in space)
 
 def assert_fftarray_eager_factors_applied(arr: FFTArray):
     """Tests whether the factors are only applied when necessary and whether
