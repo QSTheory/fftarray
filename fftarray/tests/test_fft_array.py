@@ -276,7 +276,8 @@ def test_fftarray_lazyness(fftarr):
 @pytest.mark.parametrize("tensor_lib", tensor_libs)
 @pytest.mark.parametrize("space", spaces)
 @pytest.mark.parametrize("eager", [True, False])
-def test_fftarray_lazyness_reduced(tensor_lib, space, eager):
+@pytest.mark.parametrize("factors_applied", [True, False])
+def test_fftarray_lazyness_reduced(tensor_lib, space, eager, factors_applied):
     """Tests the lazyness of a FFTArray, i.e., the correct behavior of
     factors_applied and eager. This is the reduced/faster version of the test
     using hypothesis.
@@ -285,6 +286,7 @@ def test_fftarray_lazyness_reduced(tensor_lib, space, eager):
     ydim = FFTDimension("y", n=8, d_pos=0.03, pos_min=-0.5, freq_min=-4.7)
     tlib=tensor_lib(precision="default")
     fftarr = xdim.fft_array(tlib, space, eager) + ydim.fft_array(tlib, space, eager)
+    fftarr._factors_applied = (factors_applied, factors_applied)
     assert_basic_lazy_logic(fftarr, print)
     assert_single_operand_fun_equivalence(fftarr, all(fftarr._factors_applied), print)
     assert_dual_operand_fun_equivalence(fftarr, all(fftarr._factors_applied), print)
