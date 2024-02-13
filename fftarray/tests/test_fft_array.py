@@ -209,7 +209,7 @@ def test_sel_order(tensor_lib, space):
     should be true.
     """
     xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
-    ydim = FFTDimension("y", n=8, d_pos=0.03, pos_min=-0.4, freq_min=-4.2)
+    ydim = FFTDimension("y", n=8, d_pos=0.03, pos_min=-0.5, freq_min=-4.7)
     arr = xdim.fft_array(tlib=tensor_lib(), space=space) + ydim.fft_array(tlib=tensor_lib(), space=space)
     arr_selx = arr.sel(**{"x": getattr(xdim, f"{space}_middle")})
     arr_sely = arr.sel(**{"y": getattr(ydim, f"{space}_middle")})
