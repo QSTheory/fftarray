@@ -223,18 +223,18 @@ def get_hypothesis_array(draw, st_type, lengths):
     return draw(st.lists(st_type, min_size=lengths[0], max_size=lengths[0]))
 
 @st.composite
-def get_fftarray(draw):
-    ndims=draw(st.integers(min_value=1, max_value=4))
-    value=st.one_of([
+def fftarray_strategy(draw):
+    ndims = draw(st.integers(min_value=1, max_value=4))
+    value = st.one_of([
         st.integers(min_value=np.iinfo(np.int32).min, max_value=np.iinfo(np.int32).max),
         st.complex_numbers(allow_infinity=False, allow_nan=False, allow_subnormal=False, width=64),
         st.floats(allow_infinity=False, allow_nan=False, allow_subnormal=False, width=32)
     ])
-    factors_applied=draw(st.lists(st.booleans(), min_size=ndims, max_size=ndims))
-    eager=draw(st.lists(st.booleans(), min_size=ndims, max_size=ndims))
-    init_space=draw(st.sampled_from(["pos", "freq"]))
-    tlib=draw(st.sampled_from(tensor_libs))
-    precision=draw(st.sampled_from(precisions))
+    factors_applied = draw(st.lists(st.booleans(), min_size=ndims, max_size=ndims))
+    eager = draw(st.lists(st.booleans(), min_size=ndims, max_size=ndims))
+    init_space = draw(st.sampled_from(["pos", "freq"]))
+    tlib = draw(st.sampled_from(tensor_libs))
+    precision = draw(st.sampled_from(precisions))
 
     tensor_lib = tlib(precision=precision)
     note(tensor_lib)
@@ -256,7 +256,7 @@ def get_fftarray(draw):
     )
 
 @settings(max_examples=1000, deadline=None)
-@given(get_fftarray())
+@given(fftarray_strategy())
 def test_fftarray_lazyness(fftarr):
     """Tests the lazyness of a FFTArray, i.e., the correct behavior of
     factors_applied and eager.
