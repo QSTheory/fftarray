@@ -243,9 +243,6 @@ def test_fftarray_lazyness(value, factors_applied_list, eager_list, tlib, precis
     # Max 4 dimensions (or PyFFTWTensorLib) for FFT
     if (ndims < 4 or isinstance(tlib, PyFFTWTensorLib)):
 
-        # -- test ffts
-        assert_fft_ifft_invariance(fftarr, init_space)
-
         # -- test eager, factors_applied logic
         assert_fftarray_eager_factors_applied(fftarr)
 
@@ -342,22 +339,6 @@ def get_other_space(space: Union[Space, Tuple[Space, ...]]):
         return "pos"
     return [get_other_space(s) for s in space]
 
-def assert_fft_ifft_invariance(arr: FFTArray, init_space: Space):
-    """Tests whether ifft(fft(*)) is an identity.
-
-       ifft(fft(FFTArray)) == FFTArray
-
-    """
-    note("ifft(fft(x)) == x")
-    other_space = get_other_space(init_space)
-    arr_fft = arr.into(space=other_space)
-    arr_fft_ifft = arr_fft.into(space=init_space)
-    if is_inf_or_nan(arr_fft_ifft.values):
-        # edge cases (very large numbers) result in inf after fft
-        return
-    rtol = 1e-5 if arr.tlib.precision == "fp32" else 1e-6
-    np.testing.assert_allclose(arr.values, arr_fft_ifft.values, rtol=rtol, atol=1e-38)
-
 def assert_fftarray_eager_factors_applied(arr: FFTArray):
     """Tests whether the factors are only applied when necessary and whether
     the FFTArray after performing an FFT has the correct properties. If the
@@ -396,3 +377,23 @@ def assert_fftarray_eager_factors_applied(arr: FFTArray):
     np.testing.assert_array_equal(arr.eager, arr_fft.eager)
     for ffapplied, feager in zip(arr_fft._factors_applied, arr_fft.eager):
         assert (feager and ffapplied) or (not feager and not ffapplied)
+
+@pytest.mark.parametrize("tensor_lib", tensor_libs)
+@pytest.mark.parametrize("space", spaces)
+def test_fft_ifft_invariance(tensor_lib, space: Space):
+    """Tests whether ifft(fft(*)) is an identity.
+
+       ifft(fft(FFTArray)) == FFTArray
+
+    """
+    xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
+    ydim = FFTDimension("y", n=8, d_pos=0.03, pos_min=-0.4, freq_min=-4.2)
+    arr = xdim.fft_array(tlib=tensor_lib(), space=space) + ydim.fft_array(tlib=tensor_lib(), space=space)
+    other_space = get_other_space(space)
+    arr_fft = arr.into(space=other_space)
+    arr_fft_ifft = arr_fft.into(space=space)
+    if is_inf_or_nan(arr_fft_ifft.values):
+        # edge cases (very large numbers) result in inf after fft
+        return
+    rtol = 1e-5 if arr.tlib.precision == "fp32" else 1e-6
+    np.testing.assert_allclose(arr.values, arr_fft_ifft.values, rtol=rtol, atol=1e-38)
