@@ -288,7 +288,7 @@ class FFTArray(metaclass=ABCMeta):
             tlib_norm = tlib
             if tlib_norm.numpy_ufuncs.iscomplexobj(self._values):
                 values = tlib_norm.array(values, dtype=tlib_norm.complex_type)
-            elif np.issubdtype(values.dtype, np.floating):
+            elif tlib_norm.numpy_ufuncs.issubdtype(values.dtype, tlib_norm.numpy_ufuncs.floating):
                 values = tlib_norm.array(values, dtype=tlib_norm.real_type)
             else:
                 values = tlib_norm.array(values)
