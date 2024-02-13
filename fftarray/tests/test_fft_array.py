@@ -380,7 +380,7 @@ def assert_fftarray_eager_factors_applied(arr: FFTArray):
     """Tests whether the factors are only applied when necessary and whether
     the FFTArray after performing an FFT has the correct properties. If the
     initial FFTArray was eager, then the final FFTArray also must be eager and
-    have _factors_apllied=True. If the initial FFTArray was not eager, then the
+    have _factors_applied=True. If the initial FFTArray was not eager, then the
     final FFTArray should have eager=False and _factors_applied=False.
     """
 
