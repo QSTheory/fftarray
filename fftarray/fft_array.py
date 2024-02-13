@@ -554,7 +554,7 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
         for dim_idx in range(len(unp_inp.dims)):
             fac_applied: Tuple[bool, bool] = (unp_inp.factors_applied[dim_idx][0], unp_inp.factors_applied[dim_idx][1])
 
-            # If both are applied we have to apply the factor once
+            # If both are not applied we have to apply the factor once
             if fac_applied == (False, False):
                 # We pick to always do it on the first one.
                 # TODO: Could also pick the smaller one for performance optimisation.
