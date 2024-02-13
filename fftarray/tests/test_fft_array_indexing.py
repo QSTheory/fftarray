@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 import jax
 
-from fftarray.fft_array import FFTDimension
+from fftarray.fft_array import FFTArray, FFTDimension
 from fftarray.backends.tensor_lib import TensorLib
 from fftarray.backends.jax_backend import JaxTensorLib
 from fftarray.backends.np_backend import NumpyTensorLib
@@ -32,6 +32,8 @@ def test_fftdim_single_element_indexing(tlib_class: TensorLib, do_jit: bool) -> 
     if do_jit and type(tlib_class) != JaxTensorLib:
         return
 
+    tlib = tlib_class()
+
     dim = FFTDimension("x",
         n=4,
         d_pos=1,
@@ -41,10 +43,10 @@ def test_fftdim_single_element_indexing(tlib_class: TensorLib, do_jit: bool) -> 
 
     def test_functions(dim):
         return (
-            dim._index_from_coord(0.5, method = None, space="pos", tlib=tlib_class()),
-            dim._index_from_coord(2.5, method = None, space="pos", tlib=tlib_class()),
-            dim._index_from_coord(0.4, method = "nearest", space="pos", tlib=tlib_class()),
-            dim._index_from_coord(2.6, method = "nearest", space="pos", tlib=tlib_class()),
+            dim._index_from_coord(0.5, method = None, space="pos", tlib=tlib),
+            dim._index_from_coord(2.5, method = None, space="pos", tlib=tlib),
+            dim._index_from_coord(0.4, method = "nearest", space="pos", tlib=tlib),
+            dim._index_from_coord(2.6, method = "nearest", space="pos", tlib=tlib),
         )
 
     if do_jit:
@@ -63,13 +65,33 @@ def test_1d_fftarray_indexing(tlib_class: TensorLib, do_jit: bool) -> None:
     if do_jit and type(tlib_class) != JaxTensorLib:
         return
 
+    tlib=tlib_class()
+
     dim = FFTDimension("x",
         n=4,
         d_pos=1,
-        pos_min=0.5,
+        pos_min=0.,
         freq_min=0.,
     )
-    fftarray_1d = dim.fft_array(space="pos", tlib=tlib_class())
+    fftarray_1d = 2*dim.fft_array(space="pos", tlib=tlib)
+
+    def test_functions(fftarray: FFTArray):
+        return (
+            fftarray[0],
+            fftarray[1],
+            fftarray[0:3],
+            fftarray.__getitem__(0),
+            fftarray.isel(x=0)
+        )
+
+    if do_jit:
+        test_functions = jax.jit(test_functions)
+
+    results = test_functions(fftarray_1d)
+
+    assert results[0].values == 0
+    assert results[1].values == 0
+    # assert
 
 @pytest.mark.parametrize("tlib_class", TENSOR_LIBS)
 @pytest.mark.parametrize("do_jit", [False, True])
