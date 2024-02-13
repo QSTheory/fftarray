@@ -348,9 +348,13 @@ def assert_single_operand_fun_equivalence(arr: FFTArray, precise: bool):
     note("f(x) = abs(x)")
     assert_equal_op(arr, values, lambda x: np.abs(x), precise)
     note("f(x) = x**2")
-    assert_equal_op(arr, values, lambda x:  x**2, False) # precise comparison fails
+    assert_equal_op(arr, values, lambda x:  x**2, precise)
     note("f(x) = x**3")
-    assert_equal_op(arr, values, lambda x:  x**3, False) # precise comparison fails
+    assert_equal_op(arr, values, lambda x:  x**3, precise)
+    note("f(x) = exp(x)")
+    assert_equal_op(arr, values, lambda x:  np.exp(x), precise)
+    note("f(x) = sqrt(x)")
+    assert_equal_op(arr, values, lambda x:  np.sqrt(x), False) # precise comparison fails
 
 def assert_dual_operand_fun_equivalence(arr: FFTArray, precise: bool):
     """Test whether a dual operation on an FFTArray, e.g., the
@@ -363,8 +367,18 @@ def assert_dual_operand_fun_equivalence(arr: FFTArray, precise: bool):
     values = arr.values
     note("f(x,y) = x+y")
     assert_equal_op(arr, values, lambda x: x+x, precise)
+    note("f(x,y) = x-2*y")
+    assert_equal_op(arr, values, lambda x: x-2*x, precise)
     note("f(x,y) = x*y")
-    assert_equal_op(arr, values, lambda x: x*x, False) # precise comparison fails
+    assert_equal_op(arr, values, lambda x: x*x, precise)
+    note("f(x,y) = x/y")
+    assert_equal_op(arr, values, lambda x: x/x, precise)
+    note("f(x,y) = x**y")
+    # integers to negative integer powers are not allowed
+    if "int" in str(values.dtype):
+        assert_equal_op(arr, values, lambda x: x**np.abs(x), precise)
+    else:
+        assert_equal_op(arr, values, lambda x: x**x, precise)
 
 def get_other_space(space: Union[Space, Tuple[Space, ...]]):
     """Returns the other space. If input space is "pos", "freq" is returned and
