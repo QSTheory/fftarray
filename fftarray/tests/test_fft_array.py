@@ -133,6 +133,10 @@ def test_dtype(tensor_lib, precision, override, eager: bool) -> None:
         assert x_dim.fft_array(tlib, space="pos", eager=eager).into(space="freq", tlib=tlib_override).values.dtype == tlib_override.complex_type
         assert x_dim.fft_array(tlib, space="freq", eager=eager).into(space="pos", tlib=tlib_override).values.dtype == tlib_override.complex_type
 
+    # For non-float and non-complex dtypes, we do not force the tlib precision types
+    # onto the values. Therefore, the FFTArray.values dtype should not be affected by the
+    # tlib_override precision for both integer values and boolean values
+    
     int_arr = FFTArray(
         values=tlib.array([1,2,3,4]),
         dims=[x_dim],
