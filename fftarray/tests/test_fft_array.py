@@ -255,6 +255,7 @@ def fftarray_strategy(draw):
         tlib=tensor_lib
     )
 
+@pytest.mark.slow
 @settings(max_examples=1000, deadline=None)
 @given(fftarray_strategy())
 def test_fftarray_lazyness(fftarr):
@@ -263,16 +264,33 @@ def test_fftarray_lazyness(fftarr):
     """
     note(fftarr)
     # -- basic tests
-    assert_basic_lazy_logic(fftarr)
+    assert_basic_lazy_logic(fftarr, note)
     # -- test operands
-    assert_single_operand_fun_equivalence(fftarr, all(fftarr._factors_applied))
-    assert_dual_operand_fun_equivalence(fftarr, all(fftarr._factors_applied))
+    assert_single_operand_fun_equivalence(fftarr, all(fftarr._factors_applied), note)
+    assert_dual_operand_fun_equivalence(fftarr, all(fftarr._factors_applied), note)
     # Jax and Numpy only support FFT for dim<4
     if (len(fftarr.dims) < 4 or isinstance(fftarr.tlib, PyFFTWTensorLib)):
         # -- test eager, factors_applied logic
-        assert_fftarray_eager_factors_applied(fftarr)
+        assert_fftarray_eager_factors_applied(fftarr, note)
 
-def assert_basic_lazy_logic(arr):
+@pytest.mark.parametrize("tensor_lib", tensor_libs)
+@pytest.mark.parametrize("space", spaces)
+@pytest.mark.parametrize("eager", [True, False])
+def test_fftarray_lazyness_reduced(tensor_lib, space, eager):
+    """Tests the lazyness of a FFTArray, i.e., the correct behavior of
+    factors_applied and eager. This is the reduced/faster version of the test
+    using hypothesis.
+    """
+    xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
+    ydim = FFTDimension("y", n=8, d_pos=0.03, pos_min=-0.5, freq_min=-4.7)
+    tlib=tensor_lib(precision="default")
+    fftarr = xdim.fft_array(tlib, space, eager) + ydim.fft_array(tlib, space, eager)
+    assert_basic_lazy_logic(fftarr, print)
+    assert_single_operand_fun_equivalence(fftarr, all(fftarr._factors_applied), print)
+    assert_dual_operand_fun_equivalence(fftarr, all(fftarr._factors_applied), print)
+    assert_fftarray_eager_factors_applied(fftarr, print)
+
+def assert_basic_lazy_logic(arr, log):
     """Tests whether FFTArray.values is equal to the internal _values for the
     special cases where factors_applied=True, space="pos" and comparing the
     absolute values, and where space="freq" and comparing values to
@@ -280,11 +298,11 @@ def assert_basic_lazy_logic(arr):
     """
     if all(arr._factors_applied):
         # fftarray must be handled the same way as applying the operations to the values numpy array
-        note("factors_applied=True -> x.values == x._values")
+        log("factors_applied=True -> x.values == x._values")
         np.testing.assert_array_equal(arr.values, arr._values, strict=True)
 
-    note("space='pos' -> abs(x.values) == abs(x._values)")
-    note("space='freq' -> abs(x.values) == abs(x._values)/(n*d_freq)")
+    log("space='pos' -> abs(x.values) == abs(x._values)")
+    log("space='freq' -> abs(x.values) == abs(x._values)/(n*d_freq)")
     scale = 1
     for dim, space, fa in zip(arr.dims, arr.space, arr._factors_applied):
         if space == "freq" and not fa:
@@ -296,7 +314,7 @@ def is_inf_or_nan(x):
     """Check if (real or imag of) x is inf or nan"""
     return (np.isinf(x.real).any() or np.isinf(x.imag).any() or np.isnan(x.real).any() or np.isnan(x.imag).any())
 
-def assert_equal_op(arr: FFTArray, values: Any, op: Callable[[Any],Any], precise=True):
+def assert_equal_op(arr: FFTArray, values: Any, op: Callable[[Any],Any], precise: bool, log):
     """Helper function to test equality between an FFTArray and a values array.
     `op` denotes the operation acting on the FFTArray and on the values before
     comparison.
@@ -308,7 +326,7 @@ def assert_equal_op(arr: FFTArray, values: Any, op: Callable[[Any],Any], precise
     values_op = op(values)
 
     if arr_op.dtype != values_op.dtype:
-        note(f"Changing type to {values_op.dtype}")
+        log(f"Changing type to {values_op.dtype}")
         arr_op = arr_op.astype(values_op.dtype)
         values_op = values_op.astype(values_op.dtype)
 
@@ -333,7 +351,7 @@ def assert_array_almost_equal_nulp_complex(x: Any, y: Any, nulp: int):
     np.testing.assert_array_almost_equal_nulp(x.real, y.real, nulp)
     np.testing.assert_array_almost_equal_nulp(x.imag, y.imag, nulp)
 
-def assert_single_operand_fun_equivalence(arr: FFTArray, precise: bool):
+def assert_single_operand_fun_equivalence(arr: FFTArray, precise: bool, log):
     """Test whether applying operands to the FFTArray (and then getting the
     values) is equivalent to applying the same operands to the values array:
 
@@ -341,22 +359,22 @@ def assert_single_operand_fun_equivalence(arr: FFTArray, precise: bool):
 
     """
     values = arr.values
-    note("f(x) = x")
-    assert_equal_op(arr, values, lambda x: x, precise)
-    note("f(x) = pi*x")
-    assert_equal_op(arr, values, lambda x: np.pi*x, precise)
-    note("f(x) = abs(x)")
-    assert_equal_op(arr, values, lambda x: np.abs(x), precise)
-    note("f(x) = x**2")
-    assert_equal_op(arr, values, lambda x:  x**2, precise)
-    note("f(x) = x**3")
-    assert_equal_op(arr, values, lambda x:  x**3, precise)
-    note("f(x) = exp(x)")
-    assert_equal_op(arr, values, lambda x:  np.exp(x), precise)
-    note("f(x) = sqrt(x)")
-    assert_equal_op(arr, values, lambda x:  np.sqrt(x), False) # precise comparison fails
+    log("f(x) = x")
+    assert_equal_op(arr, values, lambda x: x, precise, log)
+    log("f(x) = pi*x")
+    assert_equal_op(arr, values, lambda x: np.pi*x, precise, log)
+    log("f(x) = abs(x)")
+    assert_equal_op(arr, values, lambda x: np.abs(x), precise, log)
+    log("f(x) = x**2")
+    assert_equal_op(arr, values, lambda x:  x**2, precise, log)
+    log("f(x) = x**3")
+    assert_equal_op(arr, values, lambda x:  x**3, precise, log)
+    log("f(x) = exp(x)")
+    assert_equal_op(arr, values, lambda x:  np.exp(x), precise, log)
+    log("f(x) = sqrt(x)")
+    assert_equal_op(arr, values, lambda x:  np.sqrt(x), False, log) # precise comparison fails
 
-def assert_dual_operand_fun_equivalence(arr: FFTArray, precise: bool):
+def assert_dual_operand_fun_equivalence(arr: FFTArray, precise: bool, log):
     """Test whether a dual operation on an FFTArray, e.g., the
     sum/multiplication of two, is equivalent to applying this operand to its
     values.
@@ -365,20 +383,20 @@ def assert_dual_operand_fun_equivalence(arr: FFTArray, precise: bool):
 
     """
     values = arr.values
-    note("f(x,y) = x+y")
-    assert_equal_op(arr, values, lambda x: x+x, precise)
-    note("f(x,y) = x-2*y")
-    assert_equal_op(arr, values, lambda x: x-2*x, precise)
-    note("f(x,y) = x*y")
-    assert_equal_op(arr, values, lambda x: x*x, precise)
-    note("f(x,y) = x/y")
-    assert_equal_op(arr, values, lambda x: x/x, precise)
-    note("f(x,y) = x**y")
+    log("f(x,y) = x+y")
+    assert_equal_op(arr, values, lambda x: x+x, precise, log)
+    log("f(x,y) = x-2*y")
+    assert_equal_op(arr, values, lambda x: x-2*x, precise, log)
+    log("f(x,y) = x*y")
+    assert_equal_op(arr, values, lambda x: x*x, precise, log)
+    log("f(x,y) = x/y")
+    assert_equal_op(arr, values, lambda x: x/x, precise, log)
+    log("f(x,y) = x**y")
     # integers to negative integer powers are not allowed
     if "int" in str(values.dtype):
-        assert_equal_op(arr, values, lambda x: x**np.abs(x), precise)
+        assert_equal_op(arr, values, lambda x: x**np.abs(x), precise, log)
     else:
-        assert_equal_op(arr, values, lambda x: x**x, precise)
+        assert_equal_op(arr, values, lambda x: x**x, precise, log)
 
 def get_other_space(space: Union[Space, Tuple[Space, ...]]):
     """Returns the other space. If input space is "pos", "freq" is returned and
@@ -390,7 +408,7 @@ def get_other_space(space: Union[Space, Tuple[Space, ...]]):
         return "pos"
     return tuple(get_other_space(s) for s in space)
 
-def assert_fftarray_eager_factors_applied(arr: FFTArray):
+def assert_fftarray_eager_factors_applied(arr: FFTArray, log):
     """Tests whether the factors are only applied when necessary and whether
     the FFTArray after performing an FFT has the correct properties. If the
     initial FFTArray was eager, then the final FFTArray also must be eager and
@@ -398,24 +416,24 @@ def assert_fftarray_eager_factors_applied(arr: FFTArray):
     final FFTArray should have eager=False and _factors_applied=False.
     """
 
-    note("arr._factors_applied == (arr**2)._factors_applied")
+    log("arr._factors_applied == (arr**2)._factors_applied")
     arr_sq = arr * arr
     np.testing.assert_array_equal(arr_sq.eager, arr.eager) # type: ignore
     np.testing.assert_array_equal(arr_sq._factors_applied, arr._factors_applied) # type: ignore
 
-    note("abs(x)._factors_applied == True")
+    log("abs(x)._factors_applied == True")
     arr_abs = np.abs(arr)
     np.testing.assert_array_equal(arr_abs.eager, arr.eager) # type: ignore
     np.testing.assert_array_equal(arr_abs._factors_applied, True) # type: ignore
 
-    note("(x*abs(x))._factors_applied == x._factors_applied")
+    log("(x*abs(x))._factors_applied == x._factors_applied")
     # if both _factors_applied=True, the resulting FFTArray will also have it
     # True, otherwise False (if not eager)
     arr_abs_sq = arr * arr_abs
     np.testing.assert_array_equal(arr_abs_sq.eager, arr.eager) # type: ignore
     np.testing.assert_array_equal(arr_abs_sq._factors_applied, arr._factors_applied) # type: ignore
 
-    note("(x+abs(x))._factors_applied == (x._factors_applied or x._eager)")
+    log("(x+abs(x))._factors_applied == (x._factors_applied or x._eager)")
     arr_abs_sum = arr + arr_abs
     np.testing.assert_array_equal(arr_abs_sum.eager, arr.eager) # type: ignore
     for ea, ifa, ffa in zip(arr_abs_sum.eager, arr._factors_applied, arr_abs_sum._factors_applied):
@@ -423,7 +441,7 @@ def assert_fftarray_eager_factors_applied(arr: FFTArray):
         # False+True=eager
         assert (ifa == ffa) or (ffa == ea)
 
-    note("fft(x)._factors_applied ...")
+    log("fft(x)._factors_applied ...")
     arr_fft = arr.into(space=get_other_space(arr.space))
     np.testing.assert_array_equal(arr.eager, arr_fft.eager)
     for ffapplied, feager in zip(arr_fft._factors_applied, arr_fft.eager):
