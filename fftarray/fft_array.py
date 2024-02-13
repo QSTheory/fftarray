@@ -147,10 +147,20 @@ class FFTArray(metaclass=ABCMeta):
     #--------------------
 
     def __getitem__(self, item) -> FFTArray:
-        new_dims = []
+        # Parse item to tuple of different dimensions where for each dimension
+        # there can be different indexers: either int or slice or no appearance
+        # If the length of the item as a tuple is smaller than the
+        # length(FFTArray.dims), then add slice(None, None, None) for missing dimensions.
+        tuple_indexers: Tuple[Union[int, slice]]
+        if not isinstance(item, tuple):
+            tuple_indexers = (item,)
+        else:
+            tuple_indexers = item
+        print(f"\nIndexers: {type(tuple_indexers)} {tuple_indexers}")
 
-        if isinstance(item, slice):
-            item = [item]
+        #TODO: Ensure correct dimension of tuple_indexers
+
+        new_dims = []
         for index, dimension, space in zip(item, self._dims, self._space):
             if not isinstance(index, slice):
                 new_dim = dimension._dim_from_start_and_n(
@@ -992,19 +1002,42 @@ class FFTDimension:
         """
             Get a new FFTDimension for a interval selection in a given space.
             Does not support steps!=1.
+
+            Indexing behaviour is the same as for a numpy array with the
+            difference that we raise an IndexError if the resulting size
+            is not at least 1. We require n>=1 to create a valid FFTDimension.
         """
         if not(range.step is None or range.step == 1):
-            raise ValueError(
-                "Substepping is not supported because it is not well defined " +
-                "how to cut frequency space with an arbitrary offset."
+            raise IndexError(
+                f"You can't index using {range} but only " +
+                f"slice({range.start}, {range.stop}) with implicit index step 1. " +
+                "Substepping requires reducing the respective other space " +
+                "which is not well defined due to the arbitrary choice of " +
+                "which part of the space to keep (constant min, middle or max?). "
             )
-        start = range.start
-        if range.stop is None:
-            stop = start+1
-        else:
-            stop = range.stop
-        n = stop - start
-        assert n >= 1
+
+        def _remap_index_check_int(index: int, dim_n: int, if_none: int) -> int:
+            if index is None:
+                return if_none
+            if not isinstance(index, int):
+                raise IndexError("only integers, slices (`:`), ellipsis (`...`) are valid indices.")
+            if index >= dim_n:
+                raise IndexError(f"index {index} is out of bounds for axis with size {dim_n}.")
+            if index < 0:
+                return index + dim_n
+            return index
+
+        start = _remap_index_check_int(range.start, self.n, if_none=0)
+        end = _remap_index_check_int(range.stop, self.n, if_none=self.n)
+
+        n = end - start
+        if n < 1:
+            raise IndexError(
+                f"Your indexing {range} is not valid. To create a valid "
+                + "FFTDimension, the stop index must be bigger than the start "
+                + " index in order to keep at least one sample (n>=1)."
+            )
+
         return self._dim_from_start_and_n(start=start, n=n, space=space)
 
     def _dim_from_start_and_n(
@@ -1013,11 +1046,12 @@ class FFTDimension:
             n: int,
             space: Space,
         ) -> FFTDimension:
+        # TODO: do we still require to skip FFTDimension.__init__? I Think not
+        # because we moved the constraint solver out of the class init.
         new = self.__class__.__new__(self.__class__)
         new._name = self.name
         new._n = n
 
-        # d_freq * d_pos * n == 1,
         if space == "pos":
             new._pos_min = self.pos_min + start*self.d_pos
             new._freq_min = self.freq_min
