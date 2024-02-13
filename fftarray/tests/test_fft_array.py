@@ -296,11 +296,11 @@ def is_inf_or_nan(x):
     """Check if (real or imag of) x is inf or nan"""
     return (np.isinf(x.real).any() or np.isinf(x.imag).any() or np.isnan(x.real).any() or np.isnan(x.imag).any())
 
-def assert_equal_op(arr: FFTArray, values: Any, op: Callable[[Any],Any], exact=True):
+def assert_equal_op(arr: FFTArray, values: Any, op: Callable[[Any],Any], precise=True):
     """Helper function to test equality between an FFTArray and a values array.
     `op` denotes the operation acting on the FFTArray and on the values before
     comparison.
-    `exact` denotes whether the comparison is performed using nulp (number of
+    `precise` denotes whether the comparison is performed using nulp (number of
     unit in the last place for tolerance) or using the less stringent
     `numpy.testing.allclose`.
     """
@@ -312,10 +312,10 @@ def assert_equal_op(arr: FFTArray, values: Any, op: Callable[[Any],Any], exact=T
         arr_op = arr_op.astype(values_op.dtype)
         values_op = values_op.astype(values_op.dtype)
 
-    if is_inf_or_nan(values_op) or (exact==False and is_inf_or_nan(arr_op)):
+    if is_inf_or_nan(values_op) or (precise==False and is_inf_or_nan(arr_op)):
         return
 
-    if exact and ("int" in str(values.dtype) or arr.tlib.precision == "fp64"):
+    if precise and ("int" in str(values.dtype) or arr.tlib.precision == "fp64"):
         if "int" in str(values.dtype):
             np.testing.assert_array_equal(arr_op, values_op, strict=True)
         if "float" in str(values.dtype):
@@ -333,7 +333,7 @@ def assert_array_almost_equal_nulp_complex(x: Any, y: Any, nulp: int):
     np.testing.assert_array_almost_equal_nulp(x.real, y.real, nulp)
     np.testing.assert_array_almost_equal_nulp(x.imag, y.imag, nulp)
 
-def assert_single_operand_fun_equivalence(arr: FFTArray, exact: bool):
+def assert_single_operand_fun_equivalence(arr: FFTArray, precise: bool):
     """Test whether applying operands to the FFTArray (and then getting the
     values) is equivalent to applying the same operands to the values array:
 
@@ -342,17 +342,17 @@ def assert_single_operand_fun_equivalence(arr: FFTArray, exact: bool):
     """
     values = arr.values
     note("f(x) = x")
-    assert_equal_op(arr, values, lambda x: x, exact)
+    assert_equal_op(arr, values, lambda x: x, precise)
     note("f(x) = pi*x")
-    assert_equal_op(arr, values, lambda x: np.pi*x, exact)
+    assert_equal_op(arr, values, lambda x: np.pi*x, precise)
     note("f(x) = abs(x)")
-    assert_equal_op(arr, values, lambda x: np.abs(x), exact)
+    assert_equal_op(arr, values, lambda x: np.abs(x), precise)
     note("f(x) = x**2")
-    assert_equal_op(arr, values, lambda x:  x**2, False) # Exact comparison fails
+    assert_equal_op(arr, values, lambda x:  x**2, False) # precise comparison fails
     note("f(x) = x**3")
-    assert_equal_op(arr, values, lambda x:  x**3, False) # Exact comparison fails
+    assert_equal_op(arr, values, lambda x:  x**3, False) # precise comparison fails
 
-def assert_dual_operand_fun_equivalence(arr: FFTArray, exact: bool):
+def assert_dual_operand_fun_equivalence(arr: FFTArray, precise: bool):
     """Test whether a dual operation on an FFTArray, e.g., the
     sum/multiplication of two, is equivalent to applying this operand to its
     values.
@@ -362,9 +362,9 @@ def assert_dual_operand_fun_equivalence(arr: FFTArray, exact: bool):
     """
     values = arr.values
     note("f(x,y) = x+y")
-    assert_equal_op(arr, values, lambda x: x+x, exact)
+    assert_equal_op(arr, values, lambda x: x+x, precise)
     note("f(x,y) = x*y")
-    assert_equal_op(arr, values, lambda x: x*x, False) # Exact comparison fails
+    assert_equal_op(arr, values, lambda x: x*x, False) # precise comparison fails
 
 def get_other_space(space: Union[Space, Tuple[Space, ...]]):
     """Returns the other space. If input space is "pos", "freq" is returned and
