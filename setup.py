@@ -19,6 +19,15 @@ _jax_packages = ["jax>=0.4.2", "jaxlib"]
 _pyFFTW_packages = ["pyFFTW"]
 _helpers = ["z3-solver", "xarray"]
 _dashboards = ["ipython", "bokeh"]
+_docs = [
+    "sphinx>=4.2",
+    "sphinx-autodoc-typehints",
+    "sphinx-book-theme>=1.0.1",
+    "sphinx-design",
+    "myst-nb",
+    "m2r2",
+    "matplotlib"
+]
 
 setuptools.setup(
     name="fftarray",
@@ -46,13 +55,8 @@ setuptools.setup(
             "mypy>=0.910",
             "pytest",
             "hypothesis",
-            "sphinx>=4.2",
-            "sphinx_rtd_theme",
-            "myst_parser",
-            "mistune==0.8.4",
-            "m2r2",
             "nbformat",
-        ] + _jax_packages + _pyFFTW_packages + _helpers + _dashboards,
+        ] + _jax_packages + _pyFFTW_packages + _helpers + _dashboards + _docs,
         "examples": _helpers + _dashboards,
     }
 )
