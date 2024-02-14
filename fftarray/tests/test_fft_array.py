@@ -231,8 +231,11 @@ def fftarray_strategy(draw):
         st.floats(allow_infinity=False, allow_nan=False, allow_subnormal=False, width=32)
     ])
     factors_applied = draw(st.lists(st.booleans(), min_size=ndims, max_size=ndims))
+    note(f"factors_applied={factors_applied}") # TODO: remove when FFTArray.__repr__ is implemented
     eager = draw(st.lists(st.booleans(), min_size=ndims, max_size=ndims))
+    note(f"eager={eager}") # TODO: remove when FFTArray.__repr__ is implemented
     init_space = draw(st.sampled_from(["pos", "freq"]))
+    note(f"space={init_space}") # TODO: remove when FFTArray.__repr__ is implemented
     tlib = draw(st.sampled_from(tensor_libs))
     precision = draw(st.sampled_from(precisions))
 
@@ -357,7 +360,7 @@ def assert_equal_op(
         rtol = 1e-6 if arr.tlib.precision == "fp32" else 1e-7
         np.testing.assert_allclose(arr_op, values_op, rtol=rtol)
 
-    if not op_forces_factors_applied and any([not ea and not fa for ea, fa in zip(arr.eager, arr._factors_applied)]):
+    if not op_forces_factors_applied and any([not ea and not fa and not (arr.tlib.numpy_ufuncs.take(arr._values, np.arange(1,arr.dims[i].n), axis=i)==0).all() for ea, fa, i in zip(arr.eager, arr._factors_applied, range(len(arr.dims)))]):
         with pytest.raises(AssertionError):
             _arr_op = op(arr)._values
             rtol = 1e-6 if arr.tlib.precision == "fp32" else 1e-7
