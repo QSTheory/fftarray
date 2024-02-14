@@ -1,4 +1,4 @@
-## Installing FFTArray
+# Installing FFTArray
 
 There are different versions of fftarray available for installation, enabling different capabilities and thus, coming with different external packages as requirements.
 The bare version features the core capabilities. For example, there are no helper methods to define a `FFTDimension` or export into/import from an `xarray.DataArray`. There is also no automatic installation of required packages for accelerated FFT implementations on CPUs (`pyFFTW`) or GPUs (`jax`). Additinally, there is a version to enable the execution of the examples.
