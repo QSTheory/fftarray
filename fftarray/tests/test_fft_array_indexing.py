@@ -72,7 +72,7 @@ def test_valid_fftdim_dim_from_slice(do_jit: bool, space: Space) -> None:
     )
 
     valid_test_slices = [
-        slice(None, None), slice(0, None), slice(None, -1),
+        slice(None, None), slice(0, None), slice(None, -1), slice(-8, None),
         slice(1,4), slice(-3,-1), slice(-3,6), slice(-1, None)
     ]
 
@@ -96,7 +96,7 @@ def test_valid_fftdim_dim_from_slice(do_jit: bool, space: Space) -> None:
         )
 
 invalid_slices = [
-    slice(1, 1), slice(1, 0), slice(-2, 0), slice(7, -1),
+    slice(1, 1), slice(1, 0), slice(-2, 0), slice(7, -1), slice(-9, None),
     slice(0, 6, 2), slice(None, None, 2), slice(None,20), slice(0., 5.)
 ]
 

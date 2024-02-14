@@ -1021,7 +1021,7 @@ class FFTDimension:
                 return if_none
             if not isinstance(index, int):
                 raise IndexError("only integers, slices (`:`), ellipsis (`...`) are valid indices.")
-            if index >= dim_n:
+            if index >= dim_n or index < -dim_n:
                 raise IndexError(f"index {index} is out of bounds for axis with size {dim_n}.")
             if index < 0:
                 return index + dim_n
