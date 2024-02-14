@@ -633,8 +633,8 @@ def _single_element_ufunc(ufunc, inp: FFTArray, kwargs):
         return NotImplemented
 
     if ufunc == np.abs:
-        # For abs we can drop the phases without ever applying them
-        # since they would have evaluated to one.
+        # For abs the final result does not change if we apply the phases
+        # to the values so we can simply ignore the phases.
         values = tensor_lib_ufunc(inp._values, **kwargs)
         # The scale can be applied after abs which is more efficient in the case of a complex input
         signs: List[Literal[-1, 1, None]] | None = inp.tlib.get_transform_signs(
