@@ -104,7 +104,6 @@ class FFTArray(metaclass=ABCMeta):
         """
         self._dims = tuple(dims)
         n_dims = len(self._dims)
-        n_dims = len(self._dims)
         self._values = values
         self._spaces = _norm_param(space, n_dims, str)
         self._eager = _norm_param(eager, n_dims, bool)
