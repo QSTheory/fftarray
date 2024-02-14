@@ -7,10 +7,18 @@ on:
     branches: [ "main" ]
 
 
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: read
   pages: write
   id-token: write
+
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 
 jobs:
@@ -40,22 +48,9 @@ jobs:
         run: |
           sphinx-build --color -W --keep-going -b html -D nb_execution_mode=off docs docs/build/html
 
-      - name: Fix permissions
-        run: |
-          chmod -R 0777 docs/build/html
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: docs/build/html
-
   deploy:
 
     needs: build
-
-    permissions:
-      pages: write
-      id-token: write
 
     environment:
       name: github-pages
@@ -64,6 +59,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'docs/build/html'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
