@@ -637,7 +637,7 @@ def _single_element_ufunc(ufunc, inp: FFTArray, kwargs):
         # since they would have evaluated to one.
         values = tensor_lib_ufunc(inp._values, **kwargs)
         # The scale can be applied after abs which is more efficient in the case of a complex input
-        signs: List[Literal[-1, 1] | None] | None = inp.tlib.get_transform_signs(
+        signs: List[Literal[-1, 1, None]] | None = inp.tlib.get_transform_signs(
             # Can use input because with a single value no broadcasting happened.
             input_factors_applied=inp._factors_applied,
             target_factors_applied=[True]*len(inp._factors_applied),
