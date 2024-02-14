@@ -697,7 +697,7 @@ class UnpackedDimProperties:
         # We broadcast the values with the phase factors applied
         # (Each element should have the same value just duplicated along the new dimension.)
         # If factors_applied is True we prevent multiplying the phase-factor of the new dimension
-        # unto the values.
+        # with the values.
         self.factors_applied = [True]*n_operands
         self.eager = UniformValue()
         self.space = UniformValue()
