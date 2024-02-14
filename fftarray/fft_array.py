@@ -744,7 +744,7 @@ def _unpack_fft_arrays(
                     dim_props.dim.set(fft_dim)
                 except ValueError:
                     raise ValueError(
-                        "Tried to call ufunc on two FFTArrays with " +
+                        "Tried to call ufunc on FFTArrays with " +
                         "different dimension of name " +
                         f"{fft_dim.name}."
                     )
@@ -753,18 +753,18 @@ def _unpack_fft_arrays(
                     dim_props.space.set(x._spaces[dim_idx])
                 except ValueError:
                     raise ValueError(
-                        "Tried to call ufunc on two FFTArrays with " +
+                        "Tried to call ufunc on FFTArrays with " +
                         "different spaces in dimension of name " +
                         f"{fft_dim.name}." +
-                        "One of them has to be explicitly converted " +
-                        "into the other space to ensure the correct space."
+                        "They have to be explicitly converted " +
+                        "into an identical space."
                     )
 
                 try:
                     dim_props.eager.set(x._eager[dim_idx])
                 except ValueError:
                     raise ValueError(
-                        "Tried to call ufunc on two FFTArrays with " +
+                        "Tried to call ufunc on FFTArrays with " +
                         "different eager settings in dimension of name " +
                         f"{fft_dim.name}."
                     )
