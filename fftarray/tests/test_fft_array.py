@@ -317,13 +317,23 @@ def is_inf_or_nan(x):
     """Check if (real or imag of) x is inf or nan"""
     return (np.isinf(x.real).any() or np.isinf(x.imag).any() or np.isnan(x.real).any() or np.isnan(x.imag).any())
 
-def assert_equal_op(arr: FFTArray, values: Any, op: Callable[[Any],Any], precise: bool, log):
+def assert_equal_op(
+        arr: FFTArray,
+        values: Any,
+        op: Callable[[Any],Any],
+        precise: bool,
+        op_forces_factors_applied: bool,
+        log
+    ):
     """Helper function to test equality between an FFTArray and a values array.
     `op` denotes the operation acting on the FFTArray and on the values before
     comparison.
     `precise` denotes whether the comparison is performed using nulp (number of
     unit in the last place for tolerance) or using the less stringent
     `numpy.testing.allclose`.
+    If `op_forces_factors_applied` is False, it will be tested whether
+    op(FFTArray)._values deviates from op(FFTArray).values (which is the case
+    when the factors have not been applied after operation).
     """
     arr_op = op(arr).values
     values_op = op(values)
@@ -347,6 +357,12 @@ def assert_equal_op(arr: FFTArray, values: Any, op: Callable[[Any],Any], precise
         rtol = 1e-6 if arr.tlib.precision == "fp32" else 1e-7
         np.testing.assert_allclose(arr_op, values_op, rtol=rtol)
 
+    if not op_forces_factors_applied and any([not ea and not fa for ea, fa in zip(arr.eager, arr._factors_applied)]):
+        with pytest.raises(AssertionError):
+            _arr_op = op(arr)._values
+            rtol = 1e-6 if arr.tlib.precision == "fp32" else 1e-7
+            np.testing.assert_allclose(_arr_op, values_op, rtol=rtol)
+
 def assert_array_almost_equal_nulp_complex(x: Any, y: Any, nulp: int):
     """Compare two arrays of complex numbers. Simply compares the real and
     imaginary part.
@@ -363,19 +379,19 @@ def assert_single_operand_fun_equivalence(arr: FFTArray, precise: bool, log):
     """
     values = arr.values
     log("f(x) = x")
-    assert_equal_op(arr, values, lambda x: x, precise, log)
+    assert_equal_op(arr, values, lambda x: x, precise, False, log)
     log("f(x) = pi*x")
-    assert_equal_op(arr, values, lambda x: np.pi*x, precise, log)
+    assert_equal_op(arr, values, lambda x: np.pi*x, precise, False, log)
     log("f(x) = abs(x)")
-    assert_equal_op(arr, values, lambda x: np.abs(x), precise, log)
+    assert_equal_op(arr, values, np.abs, precise, True, log)
     log("f(x) = x**2")
-    assert_equal_op(arr, values, lambda x:  x**2, precise, log)
+    assert_equal_op(arr, values, lambda x: x**2, precise, True, log)
     log("f(x) = x**3")
-    assert_equal_op(arr, values, lambda x:  x**3, precise, log)
+    assert_equal_op(arr, values, lambda x: x**3, precise, True, log)
     log("f(x) = exp(x)")
-    assert_equal_op(arr, values, lambda x:  np.exp(x), False, log) # precise comparison fails
+    assert_equal_op(arr, values, np.exp, False, True, log) # precise comparison fails
     log("f(x) = sqrt(x)")
-    assert_equal_op(arr, values, lambda x:  np.sqrt(x), False, log) # precise comparison fails
+    assert_equal_op(arr, values, np.sqrt, False, True, log) # precise comparison fails
 
 def assert_dual_operand_fun_equivalence(arr: FFTArray, precise: bool, log):
     """Test whether a dual operation on an FFTArray, e.g., the
@@ -387,19 +403,19 @@ def assert_dual_operand_fun_equivalence(arr: FFTArray, precise: bool, log):
     """
     values = arr.values
     log("f(x,y) = x+y")
-    assert_equal_op(arr, values, lambda x: x+x, precise, log)
+    assert_equal_op(arr, values, lambda x: x+x, precise, False, log)
     log("f(x,y) = x-2*y")
-    assert_equal_op(arr, values, lambda x: x-2*x, precise, log)
+    assert_equal_op(arr, values, lambda x: x-2*x, precise, True, log)
     log("f(x,y) = x*y")
-    assert_equal_op(arr, values, lambda x: x*x, precise, log)
+    assert_equal_op(arr, values, lambda x: x*x, precise, False, log)
     log("f(x,y) = x/y")
-    assert_equal_op(arr, values, lambda x: x/x, precise, log)
+    assert_equal_op(arr, values, lambda x: x/x, precise, True, log)
     log("f(x,y) = x**y")
     # integers to negative integer powers are not allowed
     if "int" in str(values.dtype):
-        assert_equal_op(arr, values, lambda x: x**np.abs(x), precise, log)
+        assert_equal_op(arr, values, lambda x: x**np.abs(x), precise, True, log)
     else:
-        assert_equal_op(arr, values, lambda x: x**x, precise, log)
+        assert_equal_op(arr, values, lambda x: x**x, precise, True, log)
 
 def get_other_space(space: Union[Space, Tuple[Space, ...]]):
     """Returns the other space. If input space is "pos", "freq" is returned and
