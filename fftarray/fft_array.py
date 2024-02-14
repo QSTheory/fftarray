@@ -723,7 +723,7 @@ def _unpack_fft_arrays(
                 unpacked_values[op_idx] = x
             else:
                 raise ValueError(
-                    "Cannot multiply coordinate-less arrays with a FFTArray."
+                    "Cannot multiply coordinate-less arrays with an FFTArray."
                 )
         else:
             array_indices.append(op_idx)
