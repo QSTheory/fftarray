@@ -51,7 +51,7 @@ class LocFFTArrayIndexer(Generic[T]):
             assert item == slice(None, None, None)
             return self._arr.values
         slices = []
-        for dim, dim_item, space in zip(self._arr.dims, item, self._arr._space):
+        for dim, dim_item, space in zip(self._arr.dims, item, self._arr._spaces):
             if isinstance(dim_item, slice):
                 slices.append(dim_item)
             else:
@@ -80,7 +80,7 @@ class FFTArray(metaclass=ABCMeta):
     # Contains an array instance of _tlib with _lazy_state not yet applied.
     _values: Any
     # Marks each dimension whether it is in position or frequency space
-    _space: Tuple[Space, ...]
+    _spaces: Tuple[Space, ...]
     # Marks each dimension whether the phase-factors should be applied directly after executing a fft or ifft
     _eager: Tuple[bool, ...]
     # Marks each dim whether its phase_factors still need to be applied
@@ -105,7 +105,7 @@ class FFTArray(metaclass=ABCMeta):
         self._dims = tuple(dims)
         n_dims = len(self._dims)
         self._values = values
-        self._space = _norm_param(space, n_dims, str)
+        self._spaces = _norm_param(space, n_dims, str)
         self._eager = _norm_param(eager, n_dims, bool)
         self._factors_applied = _norm_param(factors_applied, n_dims, bool)
         self._tlib = tlib
@@ -149,7 +149,7 @@ class FFTArray(metaclass=ABCMeta):
 
         if isinstance(item, slice):
             item = [item]
-        for index, dimension, space in zip(item, self._dims, self._space):
+        for index, dimension, space in zip(item, self._dims, self._spaces):
             if not isinstance(index, slice):
                 new_dim = dimension._dim_from_start_and_n(
                     start=index,
@@ -174,7 +174,7 @@ class FFTArray(metaclass=ABCMeta):
         return FFTArray(
             values=selected_values,
             dims=new_dims,
-            space=self._space,
+            space=self._spaces,
             eager=self._eager,
             factors_applied=self._factors_applied,
             tlib=self.tlib,
@@ -198,7 +198,7 @@ class FFTArray(metaclass=ABCMeta):
             Supports in addition to its xarray-counterpart tuples for ranges.
         """
         slices = []
-        for dim, space in zip(self.dims, self._space):
+        for dim, space in zip(self.dims, self._spaces):
             if dim.name in kwargs:
                 slices.append(
                     # mypy error: kwargs is of type "Dict[str, Any]" but
@@ -255,7 +255,7 @@ class FFTArray(metaclass=ABCMeta):
             dims=self._dims,
             input_factors_applied=self._factors_applied,
             target_factors_applied=[True]*len(self._dims),
-            space=self._space,
+            spaces=self._spaces,
         )
 
     def into(
@@ -271,7 +271,7 @@ class FFTArray(metaclass=ABCMeta):
         n_dims = len(dims)
 
         if space is None:
-            space_norm = self._space
+            space_norm = self._spaces
         else:
             space_norm = _norm_param(space, n_dims, str)
 
@@ -294,7 +294,7 @@ class FFTArray(metaclass=ABCMeta):
                 values = tlib_norm.array(values)
 
 
-        needs_fft = [old != new for old, new in zip(self._space, space_norm)]
+        needs_fft = [old != new for old, new in zip(self._spaces, space_norm)]
         current_factors_applied = list(self._factors_applied)
         if any(needs_fft):
             pre_fft_applied = [
@@ -306,11 +306,11 @@ class FFTArray(metaclass=ABCMeta):
                 dims=dims,
                 input_factors_applied=self._factors_applied,
                 target_factors_applied=pre_fft_applied,
-                space=self._space,
+                spaces=self._spaces,
             )
             fft_axes = []
             ifft_axes = []
-            for dim_idx, (old_space, new_space) in enumerate(zip(self._space, space_norm)):
+            for dim_idx, (old_space, new_space) in enumerate(zip(self._spaces, space_norm)):
                 if old_space != new_space:
                     if old_space == "pos":
                         fft_axes.append(dim_idx)
@@ -343,7 +343,7 @@ class FFTArray(metaclass=ABCMeta):
             dims=dims,
             input_factors_applied=current_factors_applied,
             target_factors_applied=factors_norm,
-            space=space_norm,
+            spaces=space_norm,
         )
 
         return FFTArray(
@@ -390,7 +390,7 @@ class FFTArray(metaclass=ABCMeta):
         transposed_arr = FFTArray(
             values=transposed_values,
             dims=[self._dims[idx] for idx in axes_transpose],
-            space=[self._space[idx] for idx in axes_transpose],
+            space=[self._spaces[idx] for idx in axes_transpose],
             eager=[self._eager[idx] for idx in axes_transpose],
             factors_applied=[self._factors_applied[idx] for idx in axes_transpose],
             tlib=self.tlib,
@@ -423,7 +423,7 @@ class FFTArray(metaclass=ABCMeta):
         """
             Enables automatically and easily detecting in which space a generic FFTArray curently is.
         """
-        return self._space
+        return self._spaces
 
     @property
     def eager(self) -> Tuple[bool, ...]:
@@ -488,7 +488,7 @@ class FFTArray(metaclass=ABCMeta):
         """
         # TODO: Implement new invariants
         assert len(self._dims) == len(self._values.shape)
-        assert len(self._space) == len(self._values.shape)
+        assert len(self._spaces) == len(self._values.shape)
         assert len(self._eager) == len(self._values.shape)
         assert len(self._factors_applied) == len(self._values.shape)
 
@@ -500,9 +500,10 @@ class FFTArray(metaclass=ABCMeta):
                 f"Passed in FFTDimension of name {dim.name} twice!"
             dim_names.add(dim.name)
 
-        assert all([dim_space in get_args(Space) for dim_space in self._space])
+        assert all([dim_space in get_args(Space) for dim_space in self._spaces])
         assert all([isinstance(dim_eager, bool) for dim_eager in self._eager])
         assert all([isinstance(factor_applied, bool) for factor_applied in self._factors_applied])
+
 
 
 # Implementing NEP 13 https://numpy.org/neps/nep-0013-ufunc-overrides.html
@@ -519,117 +520,175 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
     if len(inputs) > 2:
         return NotImplemented
 
-    # These special functions have shortcuts for the evaluation of lazy state.
-    # Therefore the lazy_state is not applied on unpacking.
-    # if ufunc == np.abs or ufunc == np.multiply :
-    #     unpacked_inputs = _unpack_fft_arrays(inputs, True)
-    # else:
-    # Apply all lazy state because we have no shortcuts.
-    unpacked_inputs = _unpack_fft_arrays(inputs)
+    # Split out the single-element case because we can then skip the whole unpacking.
+    if len(inputs) == 1:
+        inp = inputs[0]
+        assert isinstance(inp, FFTArray)
+        return _single_element_ufunc(ufunc=ufunc, inp=inp, kwargs=kwargs)
+
+    unp_inp: UnpackedValues = _unpack_fft_arrays(inputs)
 
     # Returning NotImplemented gives other operands a chance to see if they support interacting with us.
     # Not really necessary here.
-    if not all(isinstance(x, (Number, FFTArray)) or hasattr(x, "__array__") for x in unpacked_inputs.values):
+    if not all(isinstance(x, (Number, FFTArray)) or hasattr(x, "__array__") for x in unp_inp.values):
         return NotImplemented
 
     # Look up the actual ufunc
     try:
-        tensor_lib_ufunc = getattr(unpacked_inputs.tlib.numpy_ufuncs, ufunc.__name__)
+        tensor_lib_ufunc = getattr(unp_inp.tlib.numpy_ufuncs, ufunc.__name__)
     except:
         return NotImplemented
 
-    # Element-wise multiplication is commutative with the multiplication of the phase factor.
-    # So we can always directly multiply with the inner values and keep the outer wrapper class as is
-    # We can also shortcut the multiplication of a scalar into the lazy_scale. (Commented out at the moment)
-    # if ufunc == np.abs and unpacked_inputs.lazy_state is not None:
-    #     # For abs we can drop the phases without ever applying them
-    #     # since they would have evaluated to one.
-    #     values = tensor_lib_ufunc(*unpacked_inputs.values, **kwargs)
-    #     # TODO: Apply scale
-    #     assert False
-    #     return FFTArray(
-    #         values=values,
-    #         space=unpacked_inputs.space,
-    #         dims=unpacked_inputs.dims,
-    #         eager=unpacked_inputs.eager,
-    #         factors_applied=True,
-    #     )
-    # if ufunc == np.multiply and unpacked_inputs.lazy_state is not None:
-    #     values = tensor_lib_ufunc(*unpacked_inputs.values, **kwargs)
-    #     return _pack_values(
-    #         values,
-    #         unpacked_inputs.space,
-    #         unpacked_inputs.dims,
-    #         unpacked_inputs.lazy_state,
-    #     )
-    # Further ops: conj, both lazy factors in addition, would need different unpacking...?
-    assert all(unpacked_inputs.factors_applied)
-    values = tensor_lib_ufunc(*unpacked_inputs.values, **kwargs)
+    factor_transforms: List[List[Literal[-1, 1, None]]] = [[None]*len(unp_inp.dims) for _ in range(2)]
+    final_factors_applied: List[bool] = []
+
+    if (ufunc == np.multiply or ufunc == np.divide) and len(inputs) == 2:
+        # Element-wise multiplication is commutative with the multiplication of the phase factors.
+        # So we can always directly multiply with the inner values and can delay up to one set of phase factors per dimension.
+
+        # We only handle two operands.
+        # If both have a phase factor we must remove it for one of the values.
+        # Otherwise we can just take the raw values
+        for dim_idx in range(len(unp_inp.dims)):
+            fac_applied: Tuple[bool, bool] = (unp_inp.factors_applied[dim_idx][0], unp_inp.factors_applied[dim_idx][1])
+
+            # If both are not applied we have to apply the factor once
+            if fac_applied == (False, False):
+                # We pick to always do it on the second one.
+                # Divide requires this, multiply could also choose the first.
+                factor_transforms[1][dim_idx] = -1
+
+            # If both operands are applied, the final will be too, otherwise it will not.
+            final_factors_applied.append(all(fac_applied))
+
+    elif (ufunc == np.add or ufunc == np.subtract) and len(inputs) == 2:
+        for dim_idx in range(len(unp_inp.dims)):
+            fac_applied = (unp_inp.factors_applied[dim_idx][0], unp_inp.factors_applied[dim_idx][1])
+            if fac_applied[0] == fac_applied[1]:
+                # Both factors still need to be applied => factor them out
+                final_factors_applied.append(fac_applied[0])
+            else:
+                final_factors_applied.append(unp_inp.eager[dim_idx])
+
+                # Same as the commented out code below.
+                # Not sure if it is readable enough.
+
+                # If the first operand is applied and eager, we convert the second one.
+                # Same if it is not applied and lazy.
+                # Otherwise we convert the first one.
+                transformed_op_idx = int(fac_applied[0] == unp_inp.eager[dim_idx])
+                # If we are eager we want to the applied state, so sign=-1
+                # else we want to the internal state so we apply 1.
+                factor_transforms[transformed_op_idx][dim_idx] = -1 if unp_inp.eager[dim_idx] else 1
+
+    else:
+        # Define factor_transforms such that factors are applied for
+        # both operators because there is no special case applicable
+        for op_idx in [0,1]:
+            if isinstance(inputs[op_idx], FFTArray):
+                res = unp_inp.tlib.get_transform_signs(
+                    input_factors_applied=[unp_inp.factors_applied[dim_idx][op_idx] for dim_idx in range(len(unp_inp.dims))],
+                    target_factors_applied=[True]*len(unp_inp.dims),
+                )
+                if res is not None:
+                    factor_transforms[op_idx] = res
+
+        final_factors_applied = [True]*len(unp_inp.dims)
+
+    # Apply above defined scale and phase factors depending on the specific case
+    for op_idx, signs_op in zip([0,1], factor_transforms):
+        if isinstance(inputs[op_idx], FFTArray):
+            unp_inp.values[op_idx] = unp_inp.tlib.apply_scale_phases(
+                values=unp_inp.values[op_idx],
+                dims=unp_inp.dims,
+                signs=signs_op,
+                spaces=unp_inp.space,
+            )
+
+    values = tensor_lib_ufunc(*unp_inp.values, **kwargs)
     return FFTArray(
         values=values,
-        space=unpacked_inputs.space,
-        dims=unpacked_inputs.dims,
-        eager=unpacked_inputs.eager,
-        factors_applied=unpacked_inputs.factors_applied,
-        tlib=unpacked_inputs.tlib,
+        space=unp_inp.space,
+        dims=unp_inp.dims,
+        eager=unp_inp.eager,
+        factors_applied=final_factors_applied,
+        tlib=unp_inp.tlib,
     )
 
-# def _pack_values(
-#         values,
-#         space: Space,
-#         dims: List[FFTDimension],
-#         tlib: TensorLib,
-#         lazy_state: Optional[LazyState],
-#     ) -> FFTArray:
-#     """
-#         Finish up a value after a ufunc.
-#         Internally it is more parametrized and this puts it back together.
-#     """
-#     assert tlib == _get_tensor_lib(dims)
-#     assert tlib.has_precision(values, tlib.precision)
-#     # eager does not matter here because it is overwritten with a concrete lazy_state
-#     return FFTArray(
-#         values=values,
-#         dims=dims,
+def _single_element_ufunc(ufunc, inp: FFTArray, kwargs):
+    try:
+        tensor_lib_ufunc = getattr(inp.tlib.numpy_ufuncs, ufunc.__name__)
+    except:
+        return NotImplemented
 
-#     )
-#     if space == "pos":
-#         arr: FFTArray = PosArray(values, dims=dims, eager=True)
-#     else:
-#         assert space == "freq"
-#         arr = FreqArray(values, dims=dims, eager=True)
-#     arr._lazy_state = lazy_state
-#     return arr
+    if ufunc == np.abs:
+        # For abs the final result does not change if we apply the phases
+        # to the values so we can simply ignore the phases.
+        values = tensor_lib_ufunc(inp._values, **kwargs)
+        # The scale can be applied after abs which is more efficient in the case of a complex input
+        signs: List[Literal[-1, 1, None]] | None = inp.tlib.get_transform_signs(
+            # Can use input because with a single value no broadcasting happened.
+            input_factors_applied=inp._factors_applied,
+            target_factors_applied=[True]*len(inp._factors_applied),
+        )
+        if signs is not None:
+            values = inp.tlib.apply_scale(
+                values=values,
+                dims=inp.dims,
+                signs=signs,
+                spaces=inp.space,
+            )
 
+        return FFTArray(
+            values=values,
+            space=inp.space,
+            dims=inp.dims,
+            eager=inp.eager,
+            factors_applied=True,
+            tlib=inp.tlib,
+        )
 
-
+    # Fallback if no special case applies
+    values = tensor_lib_ufunc(inp.values, **kwargs)
+    return FFTArray(
+        values=values,
+        space=inp.space,
+        dims=inp.dims,
+        eager=inp.eager,
+        factors_applied=True,
+        tlib=inp.tlib,
+    )
 
 @dataclass
 class UnpackedValues:
     # FFTDimensions in the order in which they appear in each non-scalar value.
-    dims: List[FFTDimension]
+    dims: Tuple[FFTDimension, ...]
     # Values without any dimensions, etc.
     values: List[Union[Number, Any]]
-    # Space nper dimension in which all values were
-    space: List[Space]
-    # True => all factors applied, False factors missing in exactly one of the values.
-    factors_applied: List[bool]
-    # Fails if not homogeneous in all values.
-    eager: List[bool]
     # Shared tensor-lib between all values.
     tlib: TensorLib
+    # outer list: dim_idx, inner_list: op_idx, None: dim does not appear in operand
+    factors_applied: List[List[bool]]
+    # Space per dimension, must be homogeneous over all values
+    space: List[Space]
+    # eager per dimension, must be homogeneous over all values
+    eager: List[bool]
+
 
 @dataclass
 class UnpackedDimProperties:
     dim: UniformValue[FFTDimension]
-    # factors_applied: bool
+    factors_applied: List[bool]
     eager: UniformValue[bool]
     space: UniformValue[Space]
 
-    def __init__(self):
+    def __init__(self, n_operands: int):
         self.dim = UniformValue()
-        # self.input_factors_applied = True
-        # self.target_factors_applied = True
+        # We broadcast the values with the phase factors applied
+        # (Each element should have the same value just duplicated along the new dimension.)
+        # If factors_applied is True we prevent multiplying the phase-factor of the new dimension
+        # with the values.
+        self.factors_applied = [True]*n_operands
         self.eager = UniformValue()
         self.space = UniformValue()
 
@@ -646,18 +705,18 @@ def _unpack_fft_arrays(
     unpacked_values: List[Optional[Union[Number, Any]]] = [None]*len(values)
     tlib: UniformValue[TensorLib] = UniformValue()
 
-    for idx, x in enumerate(values):
+    for op_idx, x in enumerate(values):
         if isinstance(x, Number):
-            unpacked_values[idx] = x
+            unpacked_values[op_idx] = x
         elif hasattr(x, "shape") and not isinstance(x, FFTArray):
             if x.shape == ():
-                unpacked_values[idx] = x
+                unpacked_values[op_idx] = x
             else:
                 raise ValueError(
-                    "Cannot multiply coordinate-less arrays with a FFTArray."
+                    "Cannot multiply coordinate-less arrays with an FFTArray."
                 )
         else:
-            array_indices.append(idx)
+            array_indices.append(op_idx)
             assert isinstance(x, FFTArray)
 
             tlib.set(x.tlib)
@@ -666,7 +725,7 @@ def _unpack_fft_arrays(
 
             for dim_idx, fft_dim in enumerate(x._dims):
                 if not fft_dim.name in dims:
-                    dim_props = UnpackedDimProperties()
+                    dim_props = UnpackedDimProperties(len(values))
                     dims[fft_dim.name] = dim_props
                 else:
                     dim_props = dims[fft_dim.name]
@@ -675,73 +734,57 @@ def _unpack_fft_arrays(
                     dim_props.dim.set(fft_dim)
                 except ValueError:
                     raise ValueError(
-                        "Tried to call ufunc on two FFTArrays with " +
+                        "Tried to call ufunc on FFTArrays with " +
                         "different dimension of name " +
                         f"{fft_dim.name}."
                     )
 
                 try:
-                    dim_props.space.set(x._space[dim_idx])
+                    dim_props.space.set(x._spaces[dim_idx])
                 except ValueError:
                     raise ValueError(
-                        "Tried to call ufunc on two FFTArrays with " +
+                        "Tried to call ufunc on FFTArrays with " +
                         "different spaces in dimension of name " +
                         f"{fft_dim.name}." +
-                        "One of them has to be explicitly converted " +
-                        "into the other space to ensure the correct space."
+                        "They have to be explicitly converted " +
+                        "into an identical space."
                     )
 
                 try:
                     dim_props.eager.set(x._eager[dim_idx])
                 except ValueError:
                     raise ValueError(
-                        "Tried to call ufunc on two FFTArrays with " +
+                        "Tried to call ufunc on FFTArrays with " +
                         "different eager settings in dimension of name " +
                         f"{fft_dim.name}."
                     )
 
-                # if not keep_lazy this will just be overwritten later.
-                # if dim_props.factors_applied:
-                #     dim_props.factors_applied = x._factors_applied[dim_idx]
-                # else:
-                #     # need to apply this factor
-                #     target_factors_applied[dim_idx] = True
-
-            # if not keep_lazy:
-            #     target_factors_applied = [True]*len(target_factors_applied)
-
-            # Very cheap, if nothing changes.
-            raw_arr = tlib.get().get_values_with_lazy_factors(
-                values = x._values,
-                dims=x._dims,
-                input_factors_applied=x._factors_applied,
-                # TODO: This needs more thought, do it in a later refactor.
-                target_factors_applied=[True]*len(x._factors_applied),
-                space=x._space,
-            )
+                dim_props.factors_applied[op_idx] = x._factors_applied[dim_idx]
 
             elem_dim_names = [fft_dim.name for fft_dim in x._dims]
-            arrays_to_align.append((elem_dim_names, raw_arr))
+            arrays_to_align.append((elem_dim_names, x._values))
 
 
     # Broadcasting
     dim_names, aligned_arrs = align_named_arrays(arrays_to_align, tlib=tlib.get())
-    for idx, arr in zip(array_indices, aligned_arrs):
-        unpacked_values[idx] = arr
+    for op_idx, arr in zip(array_indices, aligned_arrs):
+        unpacked_values[op_idx] = arr
 
     dims_list = [dims[dim_name].dim.get() for dim_name in dim_names]
     space_list = [dims[dim_name].space.get() for dim_name in dim_names]
     eager_list = [dims[dim_name].eager.get() for dim_name in dim_names]
-    unpacked_values = [tlib.get().as_array(x) for x in unpacked_values]
+    factors_applied = [dims[dim_name].factors_applied for dim_name in dim_names]
+    # TODO: Why is this necessary?
+    # unpacked_values = [tlib.get().as_array(x) for x in unpacked_values]
 
     for value in unpacked_values:
-        assert not value is None
+        assert value is not None
 
     return UnpackedValues(
-        dims = dims_list,
+        dims = tuple(dims_list),
         values = unpacked_values, # type: ignore
         space = space_list,
-        factors_applied=[True]*len(dims_list),
+        factors_applied=factors_applied,
         eager=eager_list,
         tlib = tlib.get(),
     )
