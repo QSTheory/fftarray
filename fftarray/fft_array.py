@@ -209,6 +209,7 @@ class FFTArray(metaclass=ABCMeta):
         """
             Supports in addition to its xarray-counterpart tuples for ranges.
         """
+        #TODO: check that kwargs are float or slice
         slices = []
         for dim, space in zip(self.dims, self._space):
             if dim.name in kwargs:
@@ -1016,19 +1017,31 @@ class FFTDimension:
                 "which part of the space to keep (constant min, middle or max?). "
             )
 
-        def _remap_index_check_int(index: int, dim_n: int, if_none: int) -> int:
+        def _remap_index_check_int(
+                index: int,
+                dim_n: int,
+                index_kind: Literal["start", "stop"],
+            ) -> int:
+            # TODO: this version yields analog indexing to xarray and numpy
+            # but does not work with jitted functions, should the behaviour depend
+            # on the tensorlib? however, there is no tlib associated with a FFTDimension
             if index is None:
-                return if_none
+                if index_kind == "start":
+                    return 0
+                else:
+                    return dim_n
             if not isinstance(index, int):
                 raise IndexError("only integers, slices (`:`), ellipsis (`...`) are valid indices.")
-            if index >= dim_n or index < -dim_n:
-                raise IndexError(f"index {index} is out of bounds for axis with size {dim_n}.")
+            if index < -dim_n:
+                return 0
             if index < 0:
                 return index + dim_n
+            if index >= dim_n:
+                return dim_n
             return index
 
-        start = _remap_index_check_int(range.start, self.n, if_none=0)
-        end = _remap_index_check_int(range.stop, self.n, if_none=self.n)
+        start = _remap_index_check_int(range.start, self.n, index_kind="start")
+        end = _remap_index_check_int(range.stop, self.n, index_kind="stop")
 
         n = end - start
         if n < 1:
@@ -1067,25 +1080,28 @@ class FFTDimension:
 
     def _index_from_coord(
             self,
-            x,
-            method: Optional[Literal["nearest", "min", "max"]],
+            coord: Union[float, slice],
+            method: Optional[Literal["nearest", "pad", "ffill", "backfill", "bfill"]],
             space: Space,
             tlib: TensorLib,
         ):
         """
-            Compute index from given coordinate `x`.
+            Compute index from given coordinate `x` which can be float or Tuple[float, float].
+            In case of tuple input, return slice object
+
+            min maps 2.5 to index 3 (bfill, backfill), max currently maps 2.5 to index 2 (pad, ffill)
         """
-        if isinstance(x, tuple):
-            sel_min, sel_max = x
-            idx_min = self._index_from_coord(sel_min, method="min", space=space, tlib=tlib)
-            idx_max = self._index_from_coord(sel_max, method="max", space=space, tlib=tlib)
+        if isinstance(coord, slice):
+            assert coord.step is None
+            idx_min = self._index_from_coord(coord.start, method="bfill", space=space, tlib=tlib)
+            idx_max = self._index_from_coord(coord.stop, method="ffill", space=space, tlib=tlib)
             # The max is an open intervel, therefore add one.
             return slice(idx_min, idx_max+1)
 
         if space == "pos":
-            raw_idx = (x - self.pos_min) / self.d_pos
+            raw_idx = (coord - self.pos_min) / self.d_pos
         else:
-            raw_idx = (x - self.freq_min) / self.d_freq
+            raw_idx = (coord - self.freq_min) / self.d_freq
 
 
         if method is None:
@@ -1094,12 +1110,12 @@ class FFTDimension:
             # Would probably need a tlib if...
             if tlib.numpy_ufuncs.round(raw_idx) != raw_idx:
                 raise KeyError(
-                    f"No exact index found for {x} in {space}-space of dim " +
+                    f"No exact index found for {coord} in {space}-space of dim " +
                     f'"{self.name}". Try the keyword argument ' +
                     'method="nearest".'
                 )
             idx = raw_idx
-        elif method in ["nearest", "min", "max"]:
+        elif method in ["nearest", "pad", "ffill", "backfill", "bfill"]:
             # Clamp index into valid range
             raw_idx = tlib.numpy_ufuncs.max(tlib.array([0, raw_idx]))
             raw_idx = tlib.numpy_ufuncs.min(tlib.array([self.n, raw_idx]))
@@ -1107,9 +1123,9 @@ class FFTDimension:
                 # The combination of floor and +0.5 prevents the "ties to even" rounding of floating point numbers.
                 # We only need one branch since our indices are always positive.
                 idx = tlib.numpy_ufuncs.floor(raw_idx + 0.5)
-            elif method == "min":
+            elif method in ["bfill", "backfill"]:
                 idx = tlib.numpy_ufuncs.ceil(raw_idx)
-            elif method == "max":
+            elif method in ["ffill", "pad"]:
                 idx = tlib.numpy_ufuncs.floor(raw_idx)
         else:
             raise ValueError("Specified unsupported look-up method.")

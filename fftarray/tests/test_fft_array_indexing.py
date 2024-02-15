@@ -60,56 +60,42 @@ def test_fftdim_single_element_indexing(tlib_class: TensorLib, do_jit: bool) -> 
     assert results[2] == 0
     assert results[3] == 2
 
-@pytest.mark.parametrize("do_jit", [False, True])
+valid_test_slices = [
+    slice(None, None), slice(0, None), slice(None, -1), slice(-8, None),
+    slice(1,4), slice(-3,-1), slice(-3,6), slice(-1, None), slice(None,20)
+]
+
+@pytest.mark.parametrize("valid_slice", valid_test_slices)
 @pytest.mark.parametrize("space", ["pos", "freq"])
-def test_valid_fftdim_dim_from_slice(do_jit: bool, space: Space) -> None:
+@pytest.mark.parametrize("do_jit", [False, True])
+def test_valid_fftdim_dim_from_slice(do_jit: bool, space: Space, valid_slice: slice) -> None:
 
-    dim = FFTDimension("x",
-        n=8,
-        pos_min=0,
-        freq_min=0.,
-        d_pos=1,
-    )
+    dim = FFTDimension("x", n=8, pos_min=0, freq_min=0., d_pos=1)
 
-    valid_test_slices = [
-        slice(None, None), slice(0, None), slice(None, -1), slice(-8, None),
-        slice(1,4), slice(-3,-1), slice(-3,6), slice(-1, None)
-    ]
-
-    def test_functions(dim):
-        result_collection = []
-        for _slice in valid_test_slices:
-            result_collection.append(
-                dim._dim_from_slice(range=_slice, space=space)
-            )
-        return result_collection
+    def test_function(dim, _slice):
+        return dim._dim_from_slice(range=_slice, space=space)
 
     if do_jit:
-        test_functions = jax.jit(test_functions)
+        test_function = jax.jit(test_function)
 
-    results = test_functions(dim)
+    result_dim = test_function(dim, valid_slice)
 
-    for _slice, result_dim in zip(valid_test_slices, results):
-        assert np.array_equal(
-            result_dim.np_array(space),
-            dim.np_array(space)[_slice]
-        )
+    assert np.array_equal(
+        result_dim.np_array(space),
+        dim.np_array(space)[valid_slice]
+    )
 
 invalid_slices = [
-    slice(1, 1), slice(1, 0), slice(-2, 0), slice(7, -1), slice(-9, None),
-    slice(0, 6, 2), slice(None, None, 2), slice(None,20), slice(0., 5.)
+    slice(1, 1), slice(1, 0), slice(-2, 0), slice(7, -1),
+    slice(0, 6, 2), slice(None, None, 2), slice(0., 5.),
+    slice(10,None)
 ]
 
 @pytest.mark.parametrize("space", ["pos", "freq"])
 @pytest.mark.parametrize("invalid_slice", invalid_slices)
 def test_errors_fftdim_dim_from_slice(space: Space, invalid_slice: slice) -> None:
 
-    dim = FFTDimension("x",
-        n=8,
-        pos_min=0,
-        freq_min=0.,
-        d_pos=1,
-    )
+    dim = FFTDimension("x", n=8, pos_min=0, freq_min=0., d_pos=1)
 
     with pytest.raises(IndexError):
         dim._dim_from_slice(invalid_slice, space=space)
@@ -149,6 +135,8 @@ def not_implemented(tlib_class: TensorLib, do_jit: bool) -> None:
     assert results[0].values == 0
     assert results[1].values == 0
     # assert
+
+
 
 @pytest.mark.parametrize("tlib_class", TENSOR_LIBS)
 @pytest.mark.parametrize("do_jit", [False, True])
