@@ -561,7 +561,7 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
             # If both operands are applied, the final will be too, otherwise it will not.
             final_factors_applied.append(all(fac_applied))
 
-    elif ufunc == np.add and len(inputs) == 2:
+    elif (ufunc == np.add or ufunc == np.subtract) and len(inputs) == 2:
         for dim_idx in range(len(unp_inp.dims)):
             fac_applied = (unp_inp.factors_applied[dim_idx][0], unp_inp.factors_applied[dim_idx][1])
             if fac_applied[0] == fac_applied[1]:
