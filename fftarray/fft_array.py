@@ -581,19 +581,6 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
                 # else we want to the internal state so we apply 1.
                 factor_transforms[transformed_op_idx][dim_idx] = -1 if unp_inp.eager[dim_idx] else 1
 
-                # if fac_applied == (True, False):
-                #     if unp_inp.eager[dim_idx]:
-                #         phase_transforms[1][dim_idx] = -1
-                #     else:
-                #         phase_transforms[0][dim_idx] = 1
-                # else:
-                #     assert fac_applied == (False, True)
-                #     if unp_inp.eager[dim_idx]:
-                #         phase_transforms[0][dim_idx] = -1
-                #     else:
-                #         phase_transforms[1][dim_idx] = 1
-
-
     else:
         for op_idx in [0,1]:
             if isinstance(inputs[op_idx], FFTArray):
