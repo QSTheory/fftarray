@@ -104,3 +104,49 @@ def plt_fftarray(
         show(plot)
     else:
         return plot
+
+def plt_complex_comparison(
+        title: str,
+        arr1: FFTArray,
+        name1: str,
+        arr2: FFTArray,
+        name2: str,
+        show_plot: bool = True,
+    ):
+
+    assert len(arr1.dims) == 1
+    assert len(arr2.dims) == 1
+    assert arr1.dims[0] == arr2.dims[0]
+
+    dim = arr1.dims[0]
+    plots = []
+    for name, ufunc in [("Real", np.real), ("Imag", np.imag)]:
+        p=figure(
+            title=f"{title} {name} Part",
+            width=450,
+            height=400,
+            x_axis_label = f"{dim.name} pos coordinate",
+        )
+        p.line(
+            x=dim.np_array("pos"),
+            y=np.array(ufunc(arr1)),
+            legend_label=name1,
+            color="navy",
+            line_width=2,
+        )
+        p.line(
+            x=dim.np_array("pos"),
+            y=np.array(ufunc(arr2)),
+            legend_label=name2,
+            color="firebrick",
+            line_width=2,
+        )
+        p.legend.click_policy="hide"
+        plots.append(p)
+
+    figs = row(plots)
+
+    if show_plot:
+        show(figs)
+    else:
+        return figs

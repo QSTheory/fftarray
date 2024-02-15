@@ -105,3 +105,6 @@ def test_gaussians():
 def test_multi_dimensional():
     # The import statements automatically evaluate all cells.
     from examples import multi_dimensional
+
+def test_derivative():
+    from examples import Derivative
