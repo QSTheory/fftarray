@@ -963,16 +963,27 @@ class FFTDimension:
         return f"FFTDimension({arg_str})"
 
     def __str__(self: FFTDimension) -> str:
-        bullet_pt = " - "
-        str_out = f"FFTDimension: name={repr(self.name)} \n"
-        str_out += bullet_pt + f"Number of grid points: n={self._n}\n"
-        str_out += bullet_pt + f"Position space: d_pos={self._d_pos}, " + \
-            f"min={self.pos_min}, middle={self.pos_middle}, " + \
-            f"max={self.pos_max}, extent={self.pos_extent}\n"
-        str_out += bullet_pt + f"Frequency space: d_freq={self.d_freq}, " + \
-            f"min={self.freq_min}, middle={self.freq_middle}, " + \
-            f"max={self.freq_max}, extent={self.freq_extent}"
-        return str_out
+        n_str = f"{self.n:n}"
+        if (self.n & (self.n-1) == 0) and self.n != 0:
+            # n is power of 2
+            n_str = f"2**{int(np.log2(self.n))}"
+        str_out = f"FFTDimension: name = {repr(self.name)}, n = {n_str}\n"
+        headers = ["space", "d", "min", "middle", "max", "extent"]
+        for header in headers:
+            str_out += f"|{header:^10}"
+        str_out += "|\n"
+        for _ in range(len(headers)):
+            str_out += "+" + 10*"-"
+        str_out += "+\n"
+        for space in get_args(Space):
+            str_out += f"|{space:^10}|"
+            for header in headers[1:]:
+                attr = f"d_{space}" if header == "d" else f"{space}_{header}"
+                nmbr = getattr(self, attr)
+                frmt_nmbr = f"{nmbr:.2e}" if abs(nmbr)>1e3 or abs(nmbr)<1e-3 else f"{nmbr:.2f}"
+                str_out += f"{frmt_nmbr:^10}|"
+            str_out += "\n"
+        return str_out[:-1]
 
     @property
     def n(self: FFTDimension) -> int:
