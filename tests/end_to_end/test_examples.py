@@ -47,5 +47,4 @@ def test_notebooks(xp, nb_path):
                     exec("sys.path.append('examples')", mod.__dict__)
                     exec(code, mod.__dict__)
     finally:
-        shell.user_ns = save_user_ns
-    return mod
+        shell.user_ns = save_user_ns    
