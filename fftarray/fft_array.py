@@ -936,19 +936,17 @@ class FFTDimension:
     def __repr__(self: FFTDimension) -> str:
         arg_str = ", ".join(
             [f"{name[1:]}={repr(value)}"
-                for name, value in self.__dict__.items()
-                if name != "_d_freq"]
+                for name, value in self.__dict__.items()]
         )
         return f"FFTDimension({arg_str})"
 
     def __str__(self: FFTDimension) -> str:
-        str_out = f"FFTDimenion: name={repr(self.name)}, " + \
-            f"eval={'eager' if self._default_eager else 'lazy'}\n"
+        str_out = f"FFTDimenion: name={repr(self.name)} \n"
         str_out += f"[Number of grid points] n={self._n}\n"
         str_out += f"[Position space] d_pos={self._d_pos}, " + \
             f"min={self.pos_min}, middle={self.pos_middle}, " + \
             f"max={self.pos_max}, extent={self.pos_extent}\n"
-        str_out += f"[Frequency space] d_freq={self._d_freq}, " + \
+        str_out += f"[Frequency space] d_freq={self.d_freq}, " + \
             f"min={self.freq_min}, middle={self.freq_middle}, " + \
             f"max={self.freq_max}, extent={self.freq_extent}"
         return str_out
