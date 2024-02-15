@@ -36,7 +36,7 @@ setuptools.setup(
     classifiers=[],
     python_requires=">=3.9",
     install_requires=[
-        "numpy>=1.26",
+        "numpy>=1.25",
     ],
     extras_require={
         "jax": _jax_packages,
