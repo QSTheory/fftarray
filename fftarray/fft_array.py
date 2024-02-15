@@ -582,6 +582,8 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
                 factor_transforms[transformed_op_idx][dim_idx] = -1 if unp_inp.eager[dim_idx] else 1
 
     else:
+        # Define factor_transforms such that factors are applied for
+        # both operators because there is no special case applicable
         for op_idx in [0,1]:
             if isinstance(inputs[op_idx], FFTArray):
                 res = unp_inp.tlib.get_transform_signs(
