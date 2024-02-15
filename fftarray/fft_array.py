@@ -574,7 +574,7 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
                 # Not sure if it is readable enough.
 
                 # If the first operand is applied and eager, we convert the second one.
-                # Some if it is not applied and lazy.
+                # Same if it is not applied and lazy.
                 # Otherwise we convert the first one.
                 transformed_op_idx = int(fac_applied[0] == unp_inp.eager[dim_idx])
                 # If we are eager we want to the applied state, so sign=-1
