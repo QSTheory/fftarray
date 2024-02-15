@@ -31,15 +31,11 @@ def plt_fftarray(
         for space in spaces:
             # Dimension properties
             dim_names = [dim.name for dim in arr.dims]
-            dim_1_coord_values, dim_2_coord_values = tuple(np.array(dim.fft_array(space=space)) for dim in arr.dims)
-
-            x_range = (np.min(dim_1_coord_values), np.max(dim_1_coord_values))
-            y_range = (np.min(dim_2_coord_values), np.max(dim_2_coord_values))
 
             fig_props = dict(
                 width=450, height=400, min_border=50,
-                x_range=x_range,
-                y_range=y_range,
+                x_range=tuple(getattr(arr.dims[0], f"{space}_{prop}") for prop in ["min", "max"]),
+                y_range=tuple(getattr(arr.dims[1], f"{space}_{prop}") for prop in ["min", "max"]),
                 x_axis_label = f"{dim_names[0]} {space} coordinate",
                 y_axis_label = f"{dim_names[1]} {space} coordinate",
             )
@@ -64,10 +60,10 @@ def plt_fftarray(
 
             image_props = dict(
                 color_mapper=color_mapper,
-                dh=y_range[1]-y_range[0],
-                dw=x_range[1]-x_range[0],
-                x=x_range[0],
-                y=y_range[0]
+                dw=getattr(arr.dims[0], f"{space}_extent"),
+                dh=getattr(arr.dims[1], f"{space}_extent"),
+                x=getattr(arr.dims[0], f"{space}_min"),
+                y=getattr(arr.dims[1], f"{space}_min"),
             )
 
             # Create bokeh density plots (real and imaginary part)
