@@ -68,6 +68,16 @@ def _norm_param(val: Union[T, Iterable[T]], n: int, types) -> Tuple[T, ...]:
     # TODO: Can we make this type check work?
     return tuple(val) # type: ignore
 
+def _format_bytes(bytes):
+    """
+    this function will convert bytes to MB.... GB... etc
+    """
+    step_unit = 2**10
+    for x in ["bytes", "KB", "MB", "GB", "TB"]:
+        if bytes < step_unit:
+            return f"{bytes:3.1f} {x}"
+        bytes /= step_unit
+    return f"{bytes:3.1f} TB"
 
 class FFTArray(metaclass=ABCMeta):
     """
@@ -119,19 +129,34 @@ class FFTArray(metaclass=ABCMeta):
         return f"FFTArray({arg_str})"
 
     def __str__(self: FFTArray) -> str:
-        values = self.values
-        indendation = "   "
-        bullet_pt = " - "
-        str_out = f"FFTArray ({len(self.dims)}-dimensional)\n"
-        str_out += bullet_pt + f"values (shape: {values.shape}): \n{self.values}\n"
-        str_out += bullet_pt + f"TensorLib: {self.tlib}\n"
+        bytes_str = _format_bytes(self._values.nbytes)
+        # bytes_str_cmplx = _format_bytes(self._values.size * self.tlib.numpy_ufuncs.dtype(self.tlib.complex_type).itemsize)
+        str_out = f"{len(self.dims)}d FFTArray ({self.tlib}, {self.values.dtype}, {bytes_str})\n"
+        headers = ["dim", "eager", "f_applied", "n", "space", "d", "min", "middle", "max", "extent"]
+        for header in headers:
+            str_out += f"|{header:^10}"
+        str_out += "|\n"
+        for _ in headers:
+            str_out += "+" + 10*"-"
+        str_out += "+\n"
         for i, dim in enumerate(self.dims):
-            str_out += bullet_pt + f"#{i} Dimension: {repr(dim.name)}, "
-            str_out += f"space: {repr(self.space[i])}, "
-            str_out += f"eager: {self.eager[i]}, "
-            str_out += f"factors_applied: {self._factors_applied[i]}\n"
-            str_out += indendation + bullet_pt + f"{str(dim).replace(' - ', 2*indendation + bullet_pt)}\n"
-        return str_out[:-1] # remove last \n
+            for k, space in enumerate(get_args(Space)):
+                if k == 0:
+                    str_out += f"|{dim.name:^10}"
+                    str_out += f"|{repr(self.eager[i]):^10}"
+                    str_out += f"|{repr(self._factors_applied[i]):^10}"
+                    str_out += f"|{dim.n:^10}"
+                else:
+                    str_out += f"|{'':^10}|{'':^10}|{'':^10}|{'':^10}"
+                str_out += f"|{space:^10}|"
+                for header in headers[5:]:
+                    attr = f"d_{space}" if header == "d" else f"{space}_{header}"
+                    nmbr = getattr(dim, attr)
+                    frmt_nmbr = f"{nmbr:.2e}" if abs(nmbr)>1e3 or abs(nmbr)<1e-3 else f"{nmbr:.2f}"
+                    str_out += f"{frmt_nmbr:^10}|"
+                str_out += "\n"
+        str_out += f"values:\n{self.values}"
+        return str_out
 
     #--------------------
     # Numpy Interfaces
