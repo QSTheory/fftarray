@@ -665,14 +665,15 @@ class UnpackedValues:
     dims: Tuple[FFTDimension, ...]
     # Values without any dimensions, etc.
     values: List[Union[Number, Any]]
-    # Space nper dimension in which all values were
-    space: List[Space]
-    # outer list: dim_idx, inner_list: op_idx, None: dim does not appear in operand
-    factors_applied: List[List[bool]]
-    # Fails if not homogeneous in all values.
-    eager: List[bool]
     # Shared tensor-lib between all values.
     tlib: TensorLib
+    # outer list: dim_idx, inner_list: op_idx, None: dim does not appear in operand
+    factors_applied: List[List[bool]]
+    # Space per dimension, must be homogeneous over all values
+    space: List[Space]
+    # eager per dimension, must be homogeneous over all values
+    eager: List[bool]
+
 
 @dataclass
 class UnpackedDimProperties:
