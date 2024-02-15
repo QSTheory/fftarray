@@ -539,7 +539,7 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
     except:
         return NotImplemented
 
-    phase_transforms: List[List[Literal[-1, 1, None]]] = [[None]*len(unp_inp.dims) for _ in range(2)]
+    factor_transforms: List[List[Literal[-1, 1, None]]] = [[None]*len(unp_inp.dims) for _ in range(2)]
     final_factors_applied: List[bool] = []
 
     if ufunc == np.multiply and len(inputs) == 2:
@@ -556,7 +556,7 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
             if fac_applied == (False, False):
                 # We pick to always do it on the first one.
                 # TODO: Could also pick the smaller one for performance optimisation.
-                phase_transforms[0][dim_idx] = -1
+                factor_transforms[0][dim_idx] = -1
 
             # If both operands are applied, the final will be too, otherwise it will not.
             final_factors_applied.append(all(fac_applied))
@@ -579,7 +579,7 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
                 transformed_op_idx = int(fac_applied[0] == unp_inp.eager[dim_idx])
                 # If we are eager we want to the applied state, so sign=-1
                 # else we want to the internal state so we apply 1.
-                phase_transforms[transformed_op_idx][dim_idx] = -1 if unp_inp.eager[dim_idx] else 1
+                factor_transforms[transformed_op_idx][dim_idx] = -1 if unp_inp.eager[dim_idx] else 1
 
                 # if fac_applied == (True, False):
                 #     if unp_inp.eager[dim_idx]:
@@ -602,12 +602,12 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
                     target_factors_applied=[True]*len(unp_inp.dims),
                 )
                 if res is not None:
-                    phase_transforms[op_idx] = res
+                    factor_transforms[op_idx] = res
 
         final_factors_applied = [True]*len(unp_inp.dims)
 
     # Apply all phase factors because there is no special case applicable
-    for op_idx, signs_op in zip([0,1], phase_transforms):
+    for op_idx, signs_op in zip([0,1], factor_transforms):
         if isinstance(inputs[op_idx], FFTArray):
             unp_inp.values[op_idx] = unp_inp.tlib.apply_scale_phases(
                 values=unp_inp.values[op_idx],
