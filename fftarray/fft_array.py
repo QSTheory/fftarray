@@ -83,6 +83,38 @@ def _format_bytes(bytes):
         bytes /= step_unit
     return f"{bytes:3.1f} TB"
 
+def _get_fft_dim_str(
+        dim: FFTDimension,
+        eager: Optional[bool] = None,
+        factors_applied: Optional[bool] = None
+    ):
+    n_str = f"{dim.n:n}"
+    if (dim.n & (dim.n-1) == 0) and dim.n != 0:
+        # n is power of 2
+        n_str = f"2**{int(np.log2(dim.n))}"
+    str_out = f"FFTDimension: name = {repr(dim.name)}, n = {n_str}"
+    if eager is not None:
+        str_out += f", eager = {repr(eager)}"
+    if factors_applied is not None:
+        str_out += f", factors_applied = {repr(factors_applied)}"
+    str_out += "\n"
+    headers = ["space", "d", "min", "middle", "max", "extent"]
+    for header in headers:
+        str_out += f"|{header:^10}"
+    str_out += "|\n"
+    for _ in range(len(headers)):
+        str_out += "+" + 10*"-"
+    str_out += "+\n"
+    for space in get_args(Space):
+        str_out += f"|{space:^10}|"
+        for header in headers[1:]:
+            attr = f"d_{space}" if header == "d" else f"{space}_{header}"
+            nmbr = getattr(dim, attr)
+            frmt_nmbr = f"{nmbr:.2e}" if abs(nmbr)>1e3 or abs(nmbr)<1e-3 else f"{nmbr:.2f}"
+            str_out += f"{frmt_nmbr:^10}|"
+        str_out += "\n"
+    return str_out[:-1]
+
 class FFTArray(metaclass=ABCMeta):
     """
         The base class of `PosArray` and `FreqArray` that implements all shared behavior.
@@ -133,32 +165,10 @@ class FFTArray(metaclass=ABCMeta):
         return f"FFTArray({arg_str})"
 
     def __str__(self: FFTArray) -> str:
-        bytes_str = _format_bytes(self._values.nbytes)
-        # bytes_str_cmplx = _format_bytes(self._values.size * self.tlib.numpy_ufuncs.dtype(self.tlib.complex_type).itemsize)
+        bytes_str = _format_bytes(self.values.nbytes)
         str_out = f"{len(self.dims)}d FFTArray ({self.tlib}, {self.values.dtype}, {bytes_str})\n"
-        headers = ["dim", "eager", "f_applied", "n", "space", "d", "min", "middle", "max", "extent"]
-        for header in headers:
-            str_out += f"|{header:^10}"
-        str_out += "|\n"
-        for _ in headers:
-            str_out += "+" + 10*"-"
-        str_out += "+\n"
         for i, dim in enumerate(self.dims):
-            for k, space in enumerate(get_args(Space)):
-                if k == 0:
-                    str_out += f"|{_truncate_str(dim.name, 10):^10}"
-                    str_out += f"|{repr(self.eager[i]):^10}"
-                    str_out += f"|{repr(self._factors_applied[i]):^10}"
-                    str_out += f"|{dim.n:^10}"
-                else:
-                    str_out += f"|{'':^10}|{'':^10}|{'':^10}|{'':^10}"
-                str_out += f"|{space:^10}|"
-                for header in headers[5:]:
-                    attr = f"d_{space}" if header == "d" else f"{space}_{header}"
-                    nmbr = getattr(dim, attr)
-                    frmt_nmbr = f"{nmbr:.2e}" if abs(nmbr)>1e3 or abs(nmbr)<1e-3 else f"{nmbr:.2f}"
-                    str_out += f"{frmt_nmbr:^10}|"
-                str_out += "\n"
+            str_out += _get_fft_dim_str(dim, self.eager[i], self._factors_applied[i]) + "\n"
         str_out += f"values:\n{self.values}"
         return str_out
 
@@ -992,27 +1002,7 @@ class FFTDimension:
         return f"FFTDimension({arg_str})"
 
     def __str__(self: FFTDimension) -> str:
-        n_str = f"{self.n:n}"
-        if (self.n & (self.n-1) == 0) and self.n != 0:
-            # n is power of 2
-            n_str = f"2**{int(np.log2(self.n))}"
-        str_out = f"FFTDimension: name = {repr(self.name)}, n = {n_str}\n"
-        headers = ["space", "d", "min", "middle", "max", "extent"]
-        for header in headers:
-            str_out += f"|{header:^10}"
-        str_out += "|\n"
-        for _ in range(len(headers)):
-            str_out += "+" + 10*"-"
-        str_out += "+\n"
-        for space in get_args(Space):
-            str_out += f"|{space:^10}|"
-            for header in headers[1:]:
-                attr = f"d_{space}" if header == "d" else f"{space}_{header}"
-                nmbr = getattr(self, attr)
-                frmt_nmbr = f"{nmbr:.2e}" if abs(nmbr)>1e3 or abs(nmbr)<1e-3 else f"{nmbr:.2f}"
-                str_out += f"{frmt_nmbr:^10}|"
-            str_out += "\n"
-        return str_out[:-1]
+        return _get_fft_dim_str(self)
 
     @property
     def n(self: FFTDimension) -> int:
