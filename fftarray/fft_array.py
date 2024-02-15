@@ -56,7 +56,7 @@ class LocFFTArrayIndexer(Generic[T]):
             if isinstance(dim_item, slice):
                 slices.append(dim_item)
             else:
-                # TODO: check for length!=2 tuples
+                # TODO: check for length!=2 tuples (?why?) instead check step==1
                 slices.append(dim._index_from_coord(dim_item, method=None, space=space, tlib=self._arr.tlib))
         return self._arr.__getitem__(tuple(slices))
 
@@ -218,6 +218,7 @@ class FFTArray(metaclass=ABCMeta):
                     # dim.name is of type "Hashable". However, the if condition
                     # already makes sure that dim.name is a key of kwargs (so
                     # also of type "str")
+                    # TODO: check slice step == 1
                     dim._index_from_coord(
                         kwargs[dim.name], # type: ignore
                         method=method,
@@ -999,7 +1000,11 @@ class FFTDimension:
         """
         return (self.n - 1) * self.d_pos
 
-    def _dim_from_slice(self, range: slice, space: Space) -> FFTDimension:
+    def _dim_from_slice(
+            self,
+            range: slice,
+            space: Space,
+        ) -> FFTDimension:
         """
             Get a new FFTDimension for a interval selection in a given space.
             Does not support steps!=1.
@@ -1017,6 +1022,8 @@ class FFTDimension:
                 "which part of the space to keep (constant min, middle or max?). "
             )
 
+        # TODO: this does not work for jitted function call, use of JaxTensorLib
+        # make this maybe a TensorLib method.
         def _remap_index_check_int(
                 index: int,
                 dim_n: int,
@@ -1102,7 +1109,7 @@ class FFTDimension:
             raw_idx = (coord - self.pos_min) / self.d_pos
         else:
             raw_idx = (coord - self.freq_min) / self.d_freq
-
+        print("Raw idx:", raw_idx)
 
         if method is None:
             # TODO This is not jittable.
@@ -1117,20 +1124,41 @@ class FFTDimension:
             idx = raw_idx
         elif method in ["nearest", "pad", "ffill", "backfill", "bfill"]:
             # Clamp index into valid range
-            raw_idx = tlib.numpy_ufuncs.max(tlib.array([0, raw_idx]))
-            raw_idx = tlib.numpy_ufuncs.min(tlib.array([self.n, raw_idx]))
+            # BUG: this is wrong and does not work with indices like -3
+            # TODO: map to valid index range but correctly!!!
+            # raw_idx = tlib.numpy_ufuncs.max(tlib.array([0, raw_idx]))
+            # raw_idx = tlib.numpy_ufuncs.min(tlib.array([self.n, raw_idx]))
             if  method == "nearest":
                 # The combination of floor and +0.5 prevents the "ties to even" rounding of floating point numbers.
                 # We only need one branch since our indices are always positive.
                 idx = tlib.numpy_ufuncs.floor(raw_idx + 0.5)
             elif method in ["bfill", "backfill"]:
                 idx = tlib.numpy_ufuncs.ceil(raw_idx)
+                if idx > self.n - 1:
+                    raise KeyError(
+                        f"Coord {coord} not found with method '{method}', "
+                        + "you could try one of the following instead: "
+                        + "'ffill', 'pad' or 'nearest'."
+                    )
             elif method in ["ffill", "pad"]:
                 idx = tlib.numpy_ufuncs.floor(raw_idx)
+                if idx < 0:
+                    raise KeyError(
+                        f"Coord {coord} not found with method '{method}', "
+                        + "you could try one of the following instead: "
+                        + "'bfill', 'backfill' or 'nearest'."
+                    )
         else:
             raise ValueError("Specified unsupported look-up method.")
 
-        return tlib.array(idx, dtype=int)
+
+
+        clamped_index = tlib.numpy_ufuncs.min(tlib.array([
+            tlib.numpy_ufuncs.max(tlib.array([0, idx])),
+            self.n - 1
+        ]))
+
+        return tlib.array(clamped_index, dtype=int)
 
     # ---------------------------- Frequency Space --------------------------- #
 
