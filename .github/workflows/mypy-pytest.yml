@@ -35,4 +35,4 @@ jobs:
         mypy fftarray examples
     - name: Test with pytest
       run: |
-        python -m pytest
+        python -m pytest --include-slow
