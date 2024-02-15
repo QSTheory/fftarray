@@ -320,6 +320,31 @@ def is_inf_or_nan(x):
     """Check if (real or imag of) x is inf or nan"""
     return (np.isinf(x.real).any() or np.isinf(x.imag).any() or np.isnan(x.real).any() or np.isnan(x.imag).any())
 
+def internal_and_public_values_should_differ(arr: FFTArray):
+    """Returns boolean, whether `fftarray.values` should differ from
+    `fftarray._values`.
+    This is the case if `factors_applied=False` and the values are non-zero
+    (along at least one dimension).
+    Note that the position space needs to be treated separately as the phase
+    factor for the first coordinate is 1 (and thus does not change `_values`).
+    """
+    for factor, space, i, in zip(arr._factors_applied, arr.space, range(len(arr.dims))):
+        if not factor:
+            # factor needs to be applied
+            if space == "pos":
+                # check if the values are non-zero
+                # the phase factor in position space is 1 for the first
+                # coordinate and, thus, is excluded from the check
+                if (arr.tlib.numpy_ufuncs.take(arr._values, np.arange(1,arr.dims[i].n), axis=i)!=0).any():
+                    return True
+            else:
+                # for space="freq", the factor includes scale unequal 1, so all
+                # values along this dimension must be non-zero
+                if np.any(arr._values!=0, axis=i).any():
+                    return True
+    return False
+
+
 def assert_equal_op(
         arr: FFTArray,
         values: Any,
@@ -337,10 +362,6 @@ def assert_equal_op(
     If `op_forces_factors_applied` is False, it will be tested whether
     op(FFTArray)._values deviates from op(FFTArray).values (which is the case
     when the factors have not been applied after operation).
-    In this case, it needs to be tested whether the values are non-zero, so the
-    application of the factors actually make a difference. The phase factor in
-    position space is 1 for the first coordinate and, thus, is excluded from the
-    check.
     """
     arr_op = op(arr).values
     values_op = op(values)
@@ -353,6 +374,7 @@ def assert_equal_op(
     if is_inf_or_nan(values_op) or (precise==False and is_inf_or_nan(arr_op)):
         return
 
+    rtol = 1e-6 if arr.tlib.precision == "fp32" else 1e-7
     if precise and ("int" in str(values.dtype) or arr.tlib.precision == "fp64"):
         if "int" in str(values.dtype):
             np.testing.assert_array_equal(arr_op, values_op, strict=True)
@@ -361,22 +383,20 @@ def assert_equal_op(
         if "complex" in str(values.dtype):
             assert_array_almost_equal_nulp_complex(arr_op, values_op, nulp=4)
     else:
-        rtol = 1e-6 if arr.tlib.precision == "fp32" else 1e-7
         np.testing.assert_allclose(arr_op, values_op, rtol=rtol)
 
-    if not op_forces_factors_applied:
-        rtol = 1e-6 if arr.tlib.precision == "fp32" else 1e-7
-        _arr_op = op(arr)._values
-        if not all([(
-            factor # factor needs to be applied
-            or (space=="pos" and (arr.tlib.numpy_ufuncs.take(arr._values, np.arange(1,arr.dims[i].n), axis=i)==0).all()) # non zero along dimension (except first coordinate)
-            or (space=="freq" and np.all(arr._values==0, axis=i).all()) # non zero along dimension
-            ) for factor, space, i in zip(arr._factors_applied, arr.space, range(len(arr.dims)))
-        ]):
+    _arr_op = op(arr)._values
+    if op_forces_factors_applied:
+        # _values should have factors applied
+        np.testing.assert_allclose(_arr_op, values_op, rtol=rtol)
+    else:
+        # arr._values can differ from arr.values
+        if internal_and_public_values_should_differ(arr):
             with pytest.raises(AssertionError):
                 np.testing.assert_allclose(_arr_op, values_op, rtol=rtol)
         else:
             np.testing.assert_allclose(_arr_op, values_op, rtol=rtol)
+
 
 def assert_array_almost_equal_nulp_complex(x: Any, y: Any, nulp: int):
     """Compare two arrays of complex numbers. Simply compares the real and
