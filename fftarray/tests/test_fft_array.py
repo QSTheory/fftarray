@@ -440,11 +440,11 @@ def assert_dual_operand_fun_equivalence(arr: FFTArray, precise: bool, log):
     log("f(x,y) = x+y")
     assert_equal_op(arr, values, lambda x: x+x, precise, False, log)
     log("f(x,y) = x-2*y")
-    assert_equal_op(arr, values, lambda x: x-2*x, precise, True, log)
+    assert_equal_op(arr, values, lambda x: x-2*x, precise, False, log)
     log("f(x,y) = x*y")
     assert_equal_op(arr, values, lambda x: x*x, precise, False, log)
     log("f(x,y) = x/y")
-    assert_equal_op(arr, values, lambda x: x/x, precise, True, log)
+    assert_equal_op(arr, values, lambda x: x/x, precise, False, log)
     log("f(x,y) = x**y")
     # integers to negative integer powers are not allowed
     if "int" in str(values.dtype):
