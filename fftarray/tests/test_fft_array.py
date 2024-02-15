@@ -5,9 +5,6 @@ from itertools import product
 import pytest
 import numpy as np
 import jax
-jax.config.update("jax_enable_x64", True)
-
-import jax.numpy as jnp
 
 from fftarray.fft_array import FFTArray, FFTDimension
 from fftarray.fft_constraint_solver import fft_dim_from_constraints
@@ -17,6 +14,7 @@ from fftarray.backends.pyfftw_backend import PyFFTWTensorLib
 from fftarray.backends.tensor_lib import TensorLib, PrecisionSpec
 from fftarray.xr_helpers import as_xr_pos
 
+jax.config.update("jax_enable_x64", True)
 
 def assert_scalars_almost_equal_nulp(x, y, nulp = 1):
     np.testing.assert_array_almost_equal_nulp(np.array([x]), np.array([y]), nulp = nulp)
@@ -141,6 +139,30 @@ def test_dtype(tensor_lib, precision, override, eager: bool) -> None:
     if tlib_override is not None:
         assert x_dim.fft_array(tlib, space="pos", eager=eager).into(space="freq", tlib=tlib_override).values.dtype == tlib_override.complex_type
         assert x_dim.fft_array(tlib, space="freq", eager=eager).into(space="pos", tlib=tlib_override).values.dtype == tlib_override.complex_type
+
+    # For non-float and non-complex dtypes, we do not force the tlib precision types
+    # onto the values. Therefore, the FFTArray.values dtype should not be affected by the
+    # tlib_override precision for both integer values and boolean values
+
+    int_arr = FFTArray(
+        values=tlib.array([1,2,3,4]),
+        dims=[x_dim],
+        space="pos",
+        eager=eager,
+        tlib=tlib,
+        factors_applied=True,
+    )
+    assert int_arr.values.dtype == int_arr.into(tlib=tlib_override).values.dtype
+
+    bool_arr = FFTArray(
+        values=tlib.array([False, True, False, False]),
+        dims=[x_dim],
+        space="pos",
+        eager=eager,
+        tlib=tlib,
+        factors_applied=True,
+    )
+    assert bool_arr.values.dtype == bool_arr.into(tlib=tlib_override).values.dtype
 
 
 @pytest.mark.parametrize("tensor_lib", tensor_libs)
