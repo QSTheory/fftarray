@@ -337,6 +337,10 @@ def assert_equal_op(
     If `op_forces_factors_applied` is False, it will be tested whether
     op(FFTArray)._values deviates from op(FFTArray).values (which is the case
     when the factors have not been applied after operation).
+    In this case, it needs to be tested whether the values are non-zero, so the
+    application of the factors actually make a difference. The phase factor in
+    position space is 1 for the first coordinate and, thus, is excluded from the
+    check.
     """
     arr_op = op(arr).values
     values_op = op(values)
@@ -360,10 +364,18 @@ def assert_equal_op(
         rtol = 1e-6 if arr.tlib.precision == "fp32" else 1e-7
         np.testing.assert_allclose(arr_op, values_op, rtol=rtol)
 
-    if not op_forces_factors_applied and any([not ea and not fa and not (arr.tlib.numpy_ufuncs.take(arr._values, np.arange(1,arr.dims[i].n), axis=i)==0).all() for ea, fa, i in zip(arr.eager, arr._factors_applied, range(len(arr.dims)))]):
-        with pytest.raises(AssertionError):
-            _arr_op = op(arr)._values
-            rtol = 1e-6 if arr.tlib.precision == "fp32" else 1e-7
+    if not op_forces_factors_applied:
+        rtol = 1e-6 if arr.tlib.precision == "fp32" else 1e-7
+        _arr_op = op(arr)._values
+        if not all([(
+            factor # factor needs to be applied
+            or (space=="pos" and (arr.tlib.numpy_ufuncs.take(arr._values, np.arange(1,arr.dims[i].n), axis=i)==0).all()) # non zero along dimension (except first coordinate)
+            or (space=="freq" and np.all(arr._values==0, axis=i).all()) # non zero along dimension
+            ) for factor, space, i in zip(arr._factors_applied, arr.space, range(len(arr.dims)))
+        ]):
+            with pytest.raises(AssertionError):
+                np.testing.assert_allclose(_arr_op, values_op, rtol=rtol)
+        else:
             np.testing.assert_allclose(_arr_op, values_op, rtol=rtol)
 
 def assert_array_almost_equal_nulp_complex(x: Any, y: Any, nulp: int):
