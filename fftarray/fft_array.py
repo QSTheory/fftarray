@@ -68,10 +68,14 @@ def _norm_param(val: Union[T, Iterable[T]], n: int, types) -> Tuple[T, ...]:
     # TODO: Can we make this type check work?
     return tuple(val) # type: ignore
 
+def _truncate_str(string, width):
+    """Truncates string that is longer than width."""
+    if len(string) > width:
+        string = string[:width-3] + '...'
+    return string
+
 def _format_bytes(bytes):
-    """
-    this function will convert bytes to MB.... GB... etc
-    """
+    """Converts bytes to Kb, MB, GB and TB."""
     step_unit = 2**10
     for x in ["bytes", "KB", "MB", "GB", "TB"]:
         if bytes < step_unit:
@@ -142,7 +146,7 @@ class FFTArray(metaclass=ABCMeta):
         for i, dim in enumerate(self.dims):
             for k, space in enumerate(get_args(Space)):
                 if k == 0:
-                    str_out += f"|{dim.name:^10}"
+                    str_out += f"|{_truncate_str(dim.name, 10):^10}"
                     str_out += f"|{repr(self.eager[i]):^10}"
                     str_out += f"|{repr(self._factors_applied[i]):^10}"
                     str_out += f"|{dim.n:^10}"
