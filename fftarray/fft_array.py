@@ -111,6 +111,28 @@ class FFTArray(metaclass=ABCMeta):
         self._tlib = tlib
         self._check_consistency()
 
+    def __repr__(self: FFTArray) -> str:
+        arg_str = ", ".join(
+            [f"{name[1:] if name != '_spaces' else 'space'}={repr(value)}"
+                for name, value in self.__dict__.items()]
+        )
+        return f"FFTArray({arg_str})"
+
+    def __str__(self: FFTArray) -> str:
+        values = self.values
+        indendation = "   "
+        bullet_pt = " - "
+        str_out = f"FFTArray ({len(self.dims)}-dimensional)\n"
+        str_out += bullet_pt + f"values (shape: {values.shape}): \n{self.values}\n"
+        str_out += bullet_pt + f"TensorLib: {self.tlib}\n"
+        for i, dim in enumerate(self.dims):
+            str_out += bullet_pt + f"#{i} Dimension: {repr(dim.name)}, "
+            str_out += f"space: {repr(self.space[i])}, "
+            str_out += f"eager: {self.eager[i]}, "
+            str_out += f"factors_applied: {self._factors_applied[i]}\n"
+            str_out += indendation + bullet_pt + f"{str(dim).replace(' - ', 2*indendation + bullet_pt)}\n"
+        return str_out[:-1] # remove last \n
+
     #--------------------
     # Numpy Interfaces
     #--------------------
@@ -941,12 +963,12 @@ class FFTDimension:
         return f"FFTDimension({arg_str})"
 
     def __str__(self: FFTDimension) -> str:
-        str_out = f"FFTDimenion: name={repr(self.name)} \n"
-        str_out += f"[Number of grid points] n={self._n}\n"
-        str_out += f"[Position space] d_pos={self._d_pos}, " + \
+        str_out = f"FFTDimension: name={repr(self.name)} \n"
+        str_out += f" - Number of grid points: n={self._n}\n"
+        str_out += f" - Position space: d_pos={self._d_pos}, " + \
             f"min={self.pos_min}, middle={self.pos_middle}, " + \
             f"max={self.pos_max}, extent={self.pos_extent}\n"
-        str_out += f"[Frequency space] d_freq={self.d_freq}, " + \
+        str_out += f" - Frequency space: d_freq={self.d_freq}, " + \
             f"min={self.freq_min}, middle={self.freq_middle}, " + \
             f"max={self.freq_max}, extent={self.freq_extent}"
         return str_out
