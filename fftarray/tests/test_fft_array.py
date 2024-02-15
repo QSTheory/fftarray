@@ -224,6 +224,7 @@ def get_hypothesis_array(draw, st_type, lengths):
 
 @st.composite
 def fftarray_strategy(draw):
+    """Initializes an FFTArray using hypothesis."""
     ndims = draw(st.integers(min_value=1, max_value=4))
     value = st.one_of([
         st.integers(min_value=np.iinfo(np.int32).min, max_value=np.iinfo(np.int32).max),
@@ -344,7 +345,6 @@ def internal_and_public_values_should_differ(arr: FFTArray):
                     return True
     return False
 
-
 def assert_equal_op(
         arr: FFTArray,
         values: Any,
@@ -361,7 +361,8 @@ def assert_equal_op(
     `numpy.testing.allclose`.
     If `op_forces_factors_applied` is False, it will be tested whether
     op(FFTArray)._values deviates from op(FFTArray).values (which is the case
-    when the factors have not been applied after operation).
+    if the factors have not been applied after operation and if the values are
+    non-zero). If it is True, it is tested if they are equal.
     """
     arr_op = op(arr).values
     values_op = op(values)
