@@ -526,7 +526,7 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
         assert isinstance(inp, FFTArray)
         return _single_element_ufunc(ufunc=ufunc, inp=inp, kwargs=kwargs)
 
-    unp_inp = _unpack_fft_arrays(inputs)
+    unp_inp: UnpackedValues = _unpack_fft_arrays(inputs)
 
     # Returning NotImplemented gives other operands a chance to see if they support interacting with us.
     # Not really necessary here.
