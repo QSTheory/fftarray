@@ -593,7 +593,7 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
 
         final_factors_applied = [True]*len(unp_inp.dims)
 
-    # Apply all phase factors because there is no special case applicable
+    # Apply above defined scale and phase factors depending on the specific case
     for op_idx, signs_op in zip([0,1], factor_transforms):
         if isinstance(inputs[op_idx], FFTArray):
             unp_inp.values[op_idx] = unp_inp.tlib.apply_scale_phases(
