@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Any, Callable
+from typing import Callable, Sequence
 from types import ModuleType
 from numpy.typing import NDArray, ArrayLike
 import pyfftw
@@ -16,12 +16,12 @@ class PyFFTWTensorLib(TensorLib):
         # TODO Use the direct pyfftw interface?
         # Might need info about shape which would introduce a further internal API
 
-    def fftn(self, values: ArrayLike) -> ArrayLike:
-        return pyfftw.interfaces.numpy_fft.fftn(values)
-    
-    def ifftn(self, values: ArrayLike) -> ArrayLike:
-        return pyfftw.interfaces.numpy_fft.ifftn(values)
-    
+    def fftn(self, values: ArrayLike, axes: Sequence[int]) -> ArrayLike:
+        return pyfftw.interfaces.numpy_fft.fftn(values, axes=axes)
+
+    def ifftn(self, values: ArrayLike, axes: Sequence[int]) -> ArrayLike:
+        return pyfftw.interfaces.numpy_fft.ifftn(values, axes=axes)
+
     @property
     def numpy_ufuncs(self) -> ModuleType:
         return np

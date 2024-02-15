@@ -27,6 +27,5 @@ Example:
    >>> from fftarray import FFTDimension
 
 """
-from .fft_array import FFTDimension, FFTArray, PosArray, FreqArray, LazyState
+from .fft_array import FFTDimension, FFTArray, Space
 from .tools import shift_frequency, shift_position
-from .fft_constraint_solver import round_up_to_next_power_of_two

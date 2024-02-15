@@ -5,7 +5,7 @@ from dataclasses import dataclass
 # TODO This is copied from abstraction but then quite significantly modified
 #-------------------
 def align_named_arrays(
-        arrays: Sequence[Tuple[Sequence[Hashable], Any]], 
+        arrays: Sequence[Tuple[Sequence[Hashable], Any]],
         tlib
     ) -> Tuple[Sequence[Hashable], List[Any]]:
     """
@@ -38,9 +38,9 @@ def align_named_arrays(
                 dim_names.insert(0, target_dim)
         # TODO the list conversion of keys should not be necessary but is needed for mypy
         arr = transpose_array(
-            arr, 
-            old_dims=dim_names, 
-            new_dims=list(target_shape.keys()), 
+            arr,
+            old_dims=dim_names,
+            new_dims=list(target_shape.keys()),
             tlib=tlib
         )
         aligned_arrays.append(arr)
@@ -55,26 +55,25 @@ class FillDim:
     def __hash__(self):
         return hash(self.index)
 
+def get_axes_transpose(
+            old_dims: Sequence[Hashable],
+            new_dims: Sequence[Hashable]
+        ) -> Tuple[int, ...]:
+    assert len(old_dims) == len(new_dims)
+    dim_index_lut = {dim: i for i, dim in enumerate(old_dims)}
+    return tuple(dim_index_lut[target_dim] for target_dim in new_dims)
+
 
 def transpose_array(
-        array: Any, 
-        tlib, 
-        old_dims: Sequence[Hashable], 
+        array: Any,
+        tlib,
+        old_dims: Sequence[Hashable],
         new_dims: Sequence[Hashable]
     ) -> Any:
     """
         `old_dims` and `new_dims` must be a transpose of one another.
         They may be shorter than array.shape. The last dims are left untouched.
     """
-    assert len(old_dims) == len(new_dims)
-    dim_index_lut = {dim: i for i, dim in enumerate(old_dims)}
-
-    # Allow for unnamed axes at the end.
-    # Used for transposing PyTreeArray-leafs.
-    for i in range(len(old_dims), len(array.shape)):
-        dim_index_lut[FillDim(i)] = i
-
-    axes_transpose = [dim_index_lut[target_dim] for target_dim in new_dims]
-    axes_transpose = [*axes_transpose, *range(len(axes_transpose), len(array.shape))]
+    axes_transpose = get_axes_transpose(old_dims, new_dims)
     array = tlib.numpy_ufuncs.transpose(array, tuple(axes_transpose))
     return array
