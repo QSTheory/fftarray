@@ -217,6 +217,7 @@ def test_sel_order(tensor_lib, space):
     arr_sely_selx = arr_sely.sel(**{"x": getattr(xdim, f"{space}_middle")})
     np.testing.assert_allclose(arr_selx_sely.values, arr_sely_selx.values)
 
+
 def get_hypothesis_array(draw, st_type, lengths):
     if len(lengths) > 1:
         return [get_hypothesis_array(draw, st_type, lengths[1:]) for _ in range(lengths[0])]
