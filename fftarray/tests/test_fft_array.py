@@ -16,6 +16,27 @@ def assert_scalars_almost_equal_nulp(x, y, nulp = 1):
 tensor_libs = [NumpyTensorLib, JaxTensorLib, PyFFTWTensorLib]
 
 @pytest.mark.parametrize("tlib_class", tensor_libs)
+@pytest.mark.parametrize("space", ["pos", "freq"])
+def test_comparison(tlib_class, space) -> None:
+    x_dim = FFTDimension("x",
+        n=4,
+        d_pos=1,
+        pos_min=0.5,
+        freq_min=0.,
+    )
+    x = x_dim.fft_array(tlib_class(), space=space)
+    x_sq = x**2
+
+    # Eplicitly test the operators to check that the forwarding to array_ufunc is correct
+    for a, b in [(0.5, x), (x, x_sq), (x, 0.5), (x, x_sq)]:
+        np.testing.assert_array_equal(a < b, np.array(a) < np.array(b), strict=True)
+        np.testing.assert_array_equal(a <= b, np.array(a) <= np.array(b), strict=True)
+        np.testing.assert_array_equal(a > b, np.array(a) > np.array(b), strict=True)
+        np.testing.assert_array_equal(a >= b, np.array(a) >= np.array(b), strict=True)
+        np.testing.assert_array_equal(a != b, np.array(a) != np.array(b), strict=True)
+        np.testing.assert_array_equal(a == b, np.array(a) == np.array(b), strict=True)
+
+@pytest.mark.parametrize("tlib_class", tensor_libs)
 @pytest.mark.parametrize("do_jit", [False, True])
 def test_indexing(tlib_class, do_jit: bool) -> None:
     if do_jit and type(tlib_class) != JaxTensorLib:
@@ -136,7 +157,7 @@ def test_dtype(tensor_lib, precision, override, eager: bool) -> None:
     # For non-float and non-complex dtypes, we do not force the tlib precision types
     # onto the values. Therefore, the FFTArray.values dtype should not be affected by the
     # tlib_override precision for both integer values and boolean values
-    
+
     int_arr = FFTArray(
         values=tlib.array([1,2,3,4]),
         dims=[x_dim],
