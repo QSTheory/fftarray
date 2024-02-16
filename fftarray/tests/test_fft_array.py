@@ -218,10 +218,12 @@ def test_sel_order(tensor_lib, space):
     np.testing.assert_allclose(arr_selx_sely.values, arr_sely_selx.values)
 
 
-def get_hypothesis_array(draw, st_type, lengths):
-    if len(lengths) > 1:
-        return [get_hypothesis_array(draw, st_type, lengths[1:]) for _ in range(lengths[0])]
-    return draw(st.lists(st_type, min_size=lengths[0], max_size=lengths[0]))
+def draw_hypothesis_fft_array_values(draw, st_type, shape):
+    """Creates multi-dimensional array with shape `shape` whose values are drawn
+    using `draw` from `st_type`."""
+    if len(shape) > 1:
+        return [draw_hypothesis_fft_array_values(draw, st_type, shape[1:]) for _ in range(shape[0])]
+    return draw(st.lists(st_type, min_size=shape[0], max_size=shape[0]))
 
 @st.composite
 def fftarray_strategy(draw):
@@ -247,7 +249,7 @@ def fftarray_strategy(draw):
         FFTDimension(f"{ndim}", n=draw(st.integers(min_value=2, max_value=8)), d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
     for ndim in range(ndims)]
     note(dims)
-    fftarr_values = tensor_lib.array(get_hypothesis_array(draw, value, [dim.n for dim in dims]))
+    fftarr_values = tensor_lib.array(draw_hypothesis_fft_array_values(draw, value, [dim.n for dim in dims]))
     note(fftarr_values.dtype)
     note(fftarr_values)
 
