@@ -264,7 +264,7 @@ def fftarray_strategy(draw):
 @settings(max_examples=1000, deadline=None)
 @given(fftarray_strategy())
 def test_fftarray_lazyness(fftarr):
-    """Tests the lazyness of a FFTArray, i.e., the correct behavior of
+    """Tests the lazyness of an FFTArray, i.e., the correct behavior of
     factors_applied and eager.
     """
     note(fftarr)
