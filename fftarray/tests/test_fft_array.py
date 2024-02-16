@@ -273,8 +273,8 @@ def test_fftarray_lazyness(fftarr):
     # -- test operands
     assert_single_operand_fun_equivalence(fftarr, all(fftarr._factors_applied), note)
     assert_dual_operand_fun_equivalence(fftarr, all(fftarr._factors_applied), note)
-    # Jax and Numpy only support FFT for dim<4
-    if (len(fftarr.dims) < 4 or isinstance(fftarr.tlib, PyFFTWTensorLib)):
+    # Jax only supports FFT for dim<4
+    if len(fftarr.dims) < 4 or not isinstance(fftarr.tlib, JaxTensorLib):
         # -- test eager, factors_applied logic
         assert_fftarray_eager_factors_applied(fftarr, note)
 
