@@ -69,9 +69,9 @@ def _norm_param(val: Union[T, Iterable[T]], n: int, types) -> Tuple[T, ...]:
     return tuple(val) # type: ignore
 
 def _format_bytes(bytes):
-    """Converts bytes to Kb, MB, GB and TB."""
-    step_unit = 1e3
-    for x in ["bytes", "KB", "MB", "GB", "TB"]:
+    """Converts bytes to KiB, MiB, GiB and TiB."""
+    step_unit = 1024
+    for x in ["bytes", "KiB", "MiB", "GiB", "TiB"]:
         if bytes < step_unit:
             return f"{bytes:3.1f} {x}"
         bytes /= step_unit
