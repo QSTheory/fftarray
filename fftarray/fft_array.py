@@ -71,7 +71,8 @@ def _norm_param(val: Union[T, Iterable[T]], n: int, types) -> Tuple[T, ...]:
 def _fft_dim_table(
         dim: FFTDimension,
         include_header=True,
-        include_dim_name=False
+        include_dim_name=False,
+        dim_index: Optional[int] = None,
     ) -> str:
     """Constructs a table for FFTDimension.__str__ and FFTArrar.__str__
     containting the grid parameters for each space.
@@ -81,24 +82,30 @@ def _fft_dim_table(
     if include_dim_name:
         headers.insert(0, "dimension")
     if include_header:
+        if dim_index is not None:
+            # handled separately to give it a smaller width
+            str_out += "| # "
         for header in headers:
-            str_out += f"|{header:^10}"
-        str_out += "|\n"
-        for _ in range(len(headers)):
-            str_out += "+" + 10*"-"
+            # give space smaller width to stay below 80 characters per line
+            str_out += f"|{header:^7}" if header == "space" else f"|{header:^10}"
+        str_out += "|\n" + int(dim_index is not None)*"+---"
+        for header in headers:
+            str_out += "+" + (7*"-" if header == "space" else 10*"-")
         str_out += "+\n"
     dim_prop_headers = headers[int(include_dim_name)+1:]
     for k, space in enumerate(get_args(Space)):
+        if dim_index is not None:
+            str_out += f"|{dim_index:^3}" if k==0 else f"|{'':^3}"
         if include_dim_name:
             dim_name = str(dim.name)
             if len(dim_name) > 10:
-                if k== 0:
+                if k == 0:
                     str_out += f"|{dim_name[:10]}"
                 else:
                     str_out += f"|{truncate_str(dim_name[10:], 10)}"
             else:
                 str_out += f"|{dim_name:^10}" if k==0 else f"|{'':^10}"
-        str_out += f"|{space:^10}|"
+        str_out += f"|{space:^7}|"
         for header in dim_prop_headers:
             attr = f"d_{space}" if header == "d" else f"{space}_{header}"
             nmbr = getattr(dim, attr)
@@ -111,17 +118,19 @@ def _fft_array_props_table(fftarr: FFTArray) -> str:
     """Constructs a table for FFTArray.__str__ containing the FFTArray
     properties (space, n, eager, factors_applied) per dimension
     """
-    str_out = ""
+    str_out = "| # "
     headers = ["dimension", "space", "n", "eager", "factors_applied"]
     for header in headers:
-        str_out += f"|{header:^10}"
-    str_out += "|\n"
+        # give space smaller width to stay below 80 characters per line
+        str_out += f"|{header:^7}" if header == "space" else f"|{header:^10}"
+    str_out += "|\n+---"
     for header in headers:
-        str_out += "+" + (10 + 5*int(header=='factors_applied'))*"-"
+        str_out += "+" + (10 + 5*int(header=='factors_applied') - 3*int(header=="space"))*"-"
     str_out += "+\n"
     for i, dim in enumerate(fftarr.dims):
+        str_out += f"|{i:^3}"
         str_out += f"|{truncate_str(str(dim.name), 10):^10}"
-        str_out += f"|{(fftarr.space[i]):^10}"
+        str_out += f"|{(fftarr.space[i]):^7}"
         str_out += f"|{format_n(dim.n):^10}"
         str_out += f"|{repr(fftarr.eager[i]):^10}"
         str_out += f"|{repr(fftarr._factors_applied[i]):^15}"
@@ -179,14 +188,16 @@ class FFTArray(metaclass=ABCMeta):
 
     def __str__(self: FFTArray) -> str:
         bytes_str = format_bytes(self._values.nbytes)
-        str_out = f"FFTArray ({self.tlib}, {bytes_str})\n"
+        title = f" FFTArray ({bytes_str}) "
+        str_out = f"{title:-^80}\n"
+        str_out += f"TensorLib: {self.tlib}\n"
         str_out += "Dimensions:\n"
         for i, dim in enumerate(self.dims):
-            str_out += f" - {i}: {repr(dim.name)}\n"
-        str_out += _fft_array_props_table(self) + "\n\n"
+            str_out += f" # {i}: {repr(dim.name)}\n"
+        str_out += "\n" + _fft_array_props_table(self) + "\n\n"
         for i, dim in enumerate(self.dims):
-            str_out += _fft_dim_table(dim, i==0, True) + "\n"
-        str_out += f"values:\n{self.values}"
+            str_out += _fft_dim_table(dim, i==0, True, i) + "\n"
+        str_out += f"\nvalues:\n{self.values}"
         return str_out
 
     #--------------------
