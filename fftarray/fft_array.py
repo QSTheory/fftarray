@@ -1,12 +1,13 @@
 from __future__ import annotations
 from typing import (
-    NoReturn, Optional, Union, List, Any, Tuple, Dict, Hashable,
+    Mapping, Optional, Union, List, Any, Tuple, Dict, Hashable,
     Literal, TypeVar, Iterable, Set, Generic, get_args
 )
 from abc import ABCMeta
 from copy import copy
 from numbers import Number
 from dataclasses import dataclass
+import warnings
 
 import numpy as np
 import numpy.lib.mixins
@@ -146,36 +147,53 @@ class FFTArray(metaclass=ABCMeta):
     # Selection
     #--------------------
 
-    def __getitem__(self, item) -> FFTArray:
+    def __getitem__(
+            self,
+            item: Union[int, slice, ellipsis, Tuple[Union[int, slice, ellipsis],...]]
+        ) -> FFTArray:
         # Parse item to tuple of different dimensions where for each dimension
         # there can be different indexers: either int or slice or no appearance
         # If the length of the item as a tuple is smaller than the
         # length(FFTArray.dims), then add slice(None, None, None) for missing dimensions.
         tuple_indexers: Tuple[Union[int, slice]]
         if not isinstance(item, tuple):
+            if item is Ellipsis:
+                return self
             tuple_indexers = (item,)
         else:
             tuple_indexers = item
-        print(f"\nIndexers: {type(tuple_indexers)} {tuple_indexers}")
 
-        #TODO: Ensure correct dimension of tuple_indexers
+        if tuple_indexers.count(Ellipsis) > 1:
+            raise IndexError("an index can only have a single ellipsis ('...')")
+
+        n_dims = len(self.dims)
+        if len(tuple_indexers) < n_dims:
+            if len(tuple_indexers) == 1:
+                tuple_indexers += (slice(None, None, None),) * (n_dims-1)
+            else:
+                if tuple_indexers[0] is Ellipsis:
+                    missing_dim_indexers = n_dims - len(tuple_indexers) + 1
+                    tuple_indexers = (
+                        (slice(None, None, None),) * missing_dim_indexers
+                        + tuple_indexers
+                    )
+                elif tuple_indexers[-1] is Ellipsis:
+                    missing_dim_indexers = n_dims - len(tuple_indexers) + 1
+                    tuple_indexers += (slice(None, None, None),) * missing_dim_indexers
+                else:
+                    missing_dim_indexers = n_dims - len(tuple_indexers)
+                    tuple_indexers += (slice(None, None, None),) * missing_dim_indexers
 
         new_dims = []
-        for index, dimension, space in zip(item, self._dims, self._space):
-            if not isinstance(index, slice):
-                new_dim = dimension._dim_from_start_and_n(
-                    start=index,
-                    n=1,
-                    space=space,
-                )
-                index = slice(index, index+1, None)
-            elif index == slice(None, None, None):
+        for index, orig_dim, space in zip(tuple_indexers, self._dims, self._space):
+            if index == slice(None, None, None):
                 # No selection, just keep the old dim.
-                new_dim = dimension
-            else:
-                new_dim = dimension._dim_from_slice(index, space)
-
-            new_dims.append(new_dim)
+                new_dims.append(orig_dim)
+                continue
+            if not isinstance(index, slice):
+                index = slice(index, index+1, None)
+            # We perform all index sanity checks in _dim_from_slice
+            new_dims.append(orig_dim._dim_from_slice(index, space))
 
         selected_values = self.values.__getitem__(item)
         # Dimensions with the length 1 are dropped in numpy indexing.
@@ -183,12 +201,14 @@ class FFTArray(metaclass=ABCMeta):
         # So we have to reintroduce those dropped dimensions via reshape.
         selected_values = selected_values.reshape(tuple(dim.n for dim in new_dims))
 
+        # TODO: Implement test to verify that I correctly changed new FFTArray
+        # factors_applied to True because we evaluate self.values here
         return FFTArray(
             values=selected_values,
             dims=new_dims,
             space=self._space,
             eager=self._eager,
-            factors_applied=self._factors_applied,
+            factors_applied=[True]*len(new_dims),
             tlib=self.tlib,
         )
 
@@ -196,13 +216,61 @@ class FFTArray(metaclass=ABCMeta):
     def loc(self):
         return LocFFTArrayIndexer(self)
 
-    def isel(self, **kwargs):
+    def isel(
+            self,
+            indexers: Optional[Mapping[Hashable, Union[int, slice]]] = None,
+            missing_dims: Literal["raise", "warn", "ignore"] = 'raise',
+            **indexers_kwargs: Any,
+        ) -> FFTArray:
+        """
+        Inspired by xarray.DataArray.isel
+        """
+
+        if missing_dims not in ["raise", "warn", "ignore"]:
+            raise ValueError(
+                f"missing_dims={missing_dims} is not valid, it has to be "
+                + "one of the following: 'raise', 'warn', 'ignore'"
+            )
+
+        # Check for correct use of indexers (either via positional
+        # indexers arg or via indexers_kwargs)
+        if indexers is not None and indexers_kwargs:
+            raise ValueError(
+                "cannot specify both keyword arguments and "
+                + "positional arguments to FFTArray.isel"
+            )
+        if indexers is None:
+            indexers = indexers_kwargs
+
+        invalid_indexers = [indexer for indexer in indexers if indexer not in self.dims_dict]
+
+        if len(invalid_indexers) > 0:
+            if missing_dims == "raise":
+                raise ValueError(
+                    f"Dimensions {invalid_indexers} do not exist. "
+                    + f"Expected one or more of {tuple(self.dims_dict)}"
+                )
+            elif missing_dims == "warn":
+                warnings.warn(
+                    f"Dimensions {invalid_indexers} do not exist. "
+                    + "These selections will be ignored"
+                )
+
         slices = []
         for dim in self.dims:
-            if dim.name in kwargs:
-                slices.append(kwargs[dim.name])
+            if dim.name in indexers:
+                index = indexers[dim.name]
+                if not isinstance(index, (slice, int)):
+                    raise KeyError(
+                        "Using FFTArray.isel, the index for each dimension "
+                        + "has to be given as 'slice' or 'int'. "
+                        + f"Your input for {dim.name}={index} of type "
+                        + f"{type(index)} is not valid"
+                    )
+                slices.append(indexers[dim.name])
             else:
                 slices.append(slice(None, None, None))
+
         return self.__getitem__(tuple(slices))
 
     def sel(self, method: Optional[Literal["nearest"]] = None, **kwargs):
@@ -1061,7 +1129,7 @@ class FFTDimension:
             raise IndexError(
                 f"Your indexing {range} is not valid. To create a valid "
                 + "FFTDimension, the stop index must be bigger than the start "
-                + " index in order to keep at least one sample (n>=1)."
+                + "index in order to keep at least one sample (n>=1)."
             )
 
         return self._dim_from_start_and_n(start=start, n=n, space=space)

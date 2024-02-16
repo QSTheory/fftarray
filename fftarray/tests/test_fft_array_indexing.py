@@ -1,6 +1,7 @@
 
+from functools import reduce
 import itertools
-from typing import Literal, Union
+from typing import Hashable, List, Literal, Mapping, Optional, Tuple, Union
 import pytest
 import numpy as np
 import jax
@@ -125,14 +126,14 @@ def test_errors_fftdim_dim_from_slice(space: Space, invalid_slice: slice) -> Non
         TEST_FFTDIM._dim_from_slice(invalid_slice, space=space)
 
 
-valid_coords = [
+coord_test_samples = [
     -5, -1.5, -1, -0.5, 0, 0.3, 0.5, 0.7, 1, 1.3, 7.5, 8, 8.5, 9,
     (-5,10), (None, None), (0,7), (0,8), (0.5,0.1)
 ]
 
 @pytest.mark.parametrize("tlib_class", TENSOR_LIBS)
 @pytest.mark.parametrize("method", ["nearest", "pad", "ffill", "backfill", "bfill", None])
-@pytest.mark.parametrize("valid_coord", valid_coords)
+@pytest.mark.parametrize("valid_coord", coord_test_samples)
 @pytest.mark.parametrize("space", ["pos", "freq"])
 @pytest.mark.parametrize("do_jit", [True, False])
 def test_valid_index_from_coord(
@@ -174,6 +175,100 @@ def test_valid_index_from_coord(
             assert dim_index_result == xr_result
     except Exception as e:
         raise e
+
+def make_xr_indexer(indexer, space: Space):
+    return {
+        f"{name}_{space}": [index] if isinstance(index, int) else index
+        for name, index in indexer.items()
+    }
+
+indexers_test_samples = [
+    {"x": 1, "y": 1, "z": 1}, {"x": 1, "y": 1, "z": slice(None, None)},
+    {"x": 1, "y": 1}, {"x": -20}, {"z": 5}, {"random": 1}, {},
+    {"x": slice(-20,5), "y": slice(-6,6), "z": slice(None, 4)}
+]
+
+@pytest.mark.parametrize("indexers", indexers_test_samples)
+@pytest.mark.parametrize("tlib_class", TENSOR_LIBS)
+@pytest.mark.parametrize("space", ["pos", "freq"])
+# TODO: think about making this also jittable
+@pytest.mark.parametrize("do_jit", [False])
+def test_3d_fft_array_isel(
+    do_jit: bool,
+    space: Space,
+    tlib_class: TensorLib,
+    indexers: Optional[Mapping[Hashable, Union[int, slice]]],
+) -> None:
+
+    fft_array, xr_dataset = generate_test_fftarray_xrdataset(
+        ["x", "y", "z"],
+        dimension_length=8,
+        tlib=tlib_class()
+    )
+
+    if do_jit:
+        tlib = tlib_class()
+        if isinstance(tlib, JaxTensorLib):
+            @jax.jit
+            def test_function(_indexers) -> FFTArray:
+                return fft_array.into(space=space).isel(_indexers)
+        else:
+            return
+    else:
+        def test_function(_indexers) -> FFTArray:
+            return fft_array.into(space=space).isel(_indexers)
+
+    try:
+        fft_array_result = test_function(indexers)
+    except (ValueError, IndexError) as e:
+        fft_array_result = type(e)
+    try:
+        xr_indexer = make_xr_indexer(indexers, space)
+        xr_result = xr_dataset[space].isel(xr_indexer).data
+    except (ValueError, IndexError) as e:
+        xr_result = type(e)
+        assert fft_array_result == xr_result
+        return
+    np.testing.assert_array_equal(
+        fft_array_result.values,
+        xr_result.data
+    )
+
+def generate_test_fftarray_xrdataset(
+    dimension_names: List[str],
+    dimension_length: Union[int, List[int]],
+    tlib: TensorLib,
+) -> Tuple[FFTArray, xr.Dataset]:
+
+    if isinstance(dimension_length, int):
+        dimension_length = [dimension_length]*len(dimension_names)
+
+    dims = [
+        FFTDimension(name=dim_name, n=dim_length, d_pos=1, pos_min=0, freq_min=0)
+        for dim_name, dim_length in zip(dimension_names, dimension_length)
+    ]
+
+    fft_array = reduce(lambda x,y: x+y, [dim.fft_array(tlib=tlib, space="pos") for dim in dims])
+
+    pos_coords = {
+        f"{dim.name}_pos": dim.np_array(space="pos")
+        for dim in dims
+    }
+    freq_coords = {
+        f"{dim.name}_freq": dim.np_array(space="freq")
+        for dim in dims
+    }
+
+    xr_dataset = xr.Dataset(
+        data_vars={
+            'pos': ([f"{name}_pos" for name in dimension_names], fft_array.values),
+            'freq': ([f"{name}_freq" for name in dimension_names], fft_array.into(space="freq").values),
+        },
+        coords=pos_coords | freq_coords
+    )
+
+    return (fft_array, xr_dataset)
+
 
 
 @pytest.mark.parametrize("tlib_class", TENSOR_LIBS)
