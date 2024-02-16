@@ -23,8 +23,12 @@ def assert_scalars_almost_equal_nulp(x, y, nulp = 1):
 tensor_libs: List[Type[TensorLib]] = [NumpyTensorLib, JaxTensorLib, PyFFTWTensorLib]
 precisions: List[PrecisionSpec] = ["fp32", "fp64", "default"]
 
-# Currently only tests that oinly the correct values type can be passed in.
-def test_constructor():
+# Currently only tests the values type
+def test_fft_array_constructor():
+    """Tests whether the type checking of the FFTArray input values works. 
+    An FFTArray can only be initialized if the values array type is compatible
+    with the provided TensorLib.
+    """
     dim = FFTDimension("x", n=4, d_pos=0.1, pos_min=0., freq_min=0.)
     values = [1,2,3,4]
     np_arr = np.array(values)
