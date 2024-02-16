@@ -284,7 +284,7 @@ def test_fftarray_lazyness(fftarr):
 @pytest.mark.parametrize("eager", [True, False])
 @pytest.mark.parametrize("factors_applied", [True, False])
 def test_fftarray_lazyness_reduced(tensor_lib, precision, space, eager, factors_applied):
-    """Tests the lazyness of a FFTArray, i.e., the correct behavior of
+    """Tests the lazyness of an FFTArray, i.e., the correct behavior of
     factors_applied and eager. This is the reduced/faster version of the test
     using hypothesis.
     """
