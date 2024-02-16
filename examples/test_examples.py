@@ -95,4 +95,4 @@ sys.meta_path.append(NotebookFinder()) # type: ignore
 
 def test_notebooks():
     # The import statements automatically evaluate all cells.
-    from examples import Gaussians
+    from examples import Gaussians, multi_dimensional
