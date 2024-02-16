@@ -43,6 +43,7 @@ setuptools.setup(
         "pyFFTW": _pyFFTW_packages,
         "helpers": _helpers,
         "dev": [
+            "numpy>=1.24",
             "mypy>=0.910",
             "pytest",
             "hypothesis",
