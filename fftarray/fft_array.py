@@ -77,36 +77,82 @@ def _format_bytes(bytes) -> str:
         bytes /= step_unit
     return f"{bytes:3.1f} TiB"
 
-def _get_fft_dim_str(
-        dim: FFTDimension,
-        eager: Optional[bool] = None,
-        factors_applied: Optional[bool] = None
-    ):
-    n_str = f"{dim.n:n}"
-    if (dim.n & (dim.n-1) == 0) and dim.n != 0:
+def _format_n(n: int) -> str:
+    """Get string representation of an integer.
+    Returns 2^m if n is powert of two (m=log_2(n)).
+    Uses scientific notation if n is larger than 1e6.
+    """
+    if (n & (n-1) == 0) and n != 0:
         # n is power of 2
-        n_str = f"2**{int(np.log2(dim.n))}"
-    str_out = f"FFTDimension: name={repr(dim.name)}, n={n_str}"
-    if eager is not None:
-        str_out += f", eager={repr(eager)}"
-    if factors_applied is not None:
-        str_out += f", factors_applied={repr(factors_applied)}"
-    str_out += "\n"
+        return f"2^{int(np.log2(n))}"
+    if n > 1e6:
+        # scientific notation
+        return f"{n:.2e}"
+    return f"{n:n}"
+
+def _truncate_str(string: str, width: int) -> str:
+    """Truncates string that is longer than width."""
+    if len(string) > width:
+        string = string[:width-3] + '...'
+    return string
+
+def _fft_dim_table(
+        dim: FFTDimension,
+        include_header=True,
+        include_dim_name=False
+    ) -> str:
+    """Constructs a table for FFTDimension.__str__ and FFTArrar.__str__
+    containting the grid parameters for each space.
+    """
+    str_out = ""
     headers = ["space", "d", "min", "middle", "max", "extent"]
-    for header in headers:
-        str_out += f"|{header:^10}"
-    str_out += "|\n"
-    for _ in range(len(headers)):
-        str_out += "+" + 10*"-"
-    str_out += "+\n"
-    for space in get_args(Space):
+    if include_dim_name:
+        headers.insert(0, "dimension")
+    if include_header:
+        for header in headers:
+            str_out += f"|{header:^10}"
+        str_out += "|\n"
+        for _ in range(len(headers)):
+            str_out += "+" + 10*"-"
+        str_out += "+\n"
+    dim_prop_headers = headers[int(include_dim_name)+1:]
+    for k, space in enumerate(get_args(Space)):
+        if include_dim_name:
+            if len(dim.name) > 10:
+                if k== 0:
+                    str_out += f"|{dim.name[:10]}"
+                else:
+                    str_out += f"|{_truncate_str(dim.name[10:], 10)}"
+            else:
+                str_out += f"|{dim.name:^10}" if k==0 else f"|{'':^10}"
         str_out += f"|{space:^10}|"
-        for header in headers[1:]:
+        for header in dim_prop_headers:
             attr = f"d_{space}" if header == "d" else f"{space}_{header}"
             nmbr = getattr(dim, attr)
             frmt_nmbr = f"{nmbr:.2e}" if abs(nmbr)>1e3 or abs(nmbr)<1e-2 else f"{nmbr:.2f}"
             str_out += f"{frmt_nmbr:^10}|"
         str_out += "\n"
+    return str_out[:-1]
+
+def _fft_array_props_table(fftarr: FFTArray) -> str:
+    """Constructs a table for FFTArray.__str__ containing the FFTArray
+    properties (space, n, eager, factors_applied) per dimension
+    """
+    str_out = ""
+    headers = ["dimension", "space", "n", "eager", "factors_applied"]
+    for header in headers:
+        str_out += f"|{header:^10}"
+    str_out += "|\n"
+    for header in headers:
+        str_out += "+" + (10 + 5*int(header=='factors_applied'))*"-"
+    str_out += "+\n"
+    for i, dim in enumerate(fftarr.dims):
+        str_out += f"|{_truncate_str(dim.name, 10):^10}"
+        str_out += f"|{(fftarr.space[i]):^10}"
+        str_out += f"|{_format_n(dim.n):^10}"
+        str_out += f"|{repr(fftarr.eager[i]):^10}"
+        str_out += f"|{repr(fftarr._factors_applied[i]):^15}"
+        str_out += "|\n"
     return str_out[:-1]
 
 class FFTArray(metaclass=ABCMeta):
@@ -160,9 +206,13 @@ class FFTArray(metaclass=ABCMeta):
 
     def __str__(self: FFTArray) -> str:
         bytes_str = _format_bytes(self._values.nbytes)
-        str_out = f"{len(self.dims)}d FFTArray ({self.tlib}, {bytes_str})\n"
+        str_out = f"FFTArray ({self.tlib}, {bytes_str})\n"
+        str_out += "Dimensions:\n"
         for i, dim in enumerate(self.dims):
-            str_out += _get_fft_dim_str(dim, self.eager[i], self._factors_applied[i]) + "\n"
+            str_out += f" - {i}: {repr(dim.name)}\n"
+        str_out += _fft_array_props_table(self) + "\n\n"
+        for i, dim in enumerate(self.dims):
+            str_out += _fft_dim_table(dim, i==0, True) + "\n"
         str_out += f"values:\n{self.values}"
         return str_out
 
@@ -996,7 +1046,10 @@ class FFTDimension:
         return f"FFTDimension({arg_str})"
 
     def __str__(self: FFTDimension) -> str:
-        return _get_fft_dim_str(self)
+        n_str = _format_n(self.n)
+        str_out = f"FFTDimension: name={repr(self.name)}, n={n_str}\n"
+        str_out += _fft_dim_table(self)
+        return str_out
 
     @property
     def n(self: FFTDimension) -> int:
