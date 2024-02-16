@@ -118,13 +118,14 @@ def _fft_dim_table(
     dim_prop_headers = headers[int(include_dim_name)+1:]
     for k, space in enumerate(get_args(Space)):
         if include_dim_name:
-            if len(dim.name) > 10:
+            dim_name = str(dim.name)
+            if len(dim_name) > 10:
                 if k== 0:
-                    str_out += f"|{dim.name[:10]}"
+                    str_out += f"|{dim_name[:10]}"
                 else:
-                    str_out += f"|{_truncate_str(dim.name[10:], 10)}"
+                    str_out += f"|{_truncate_str(dim_name[10:], 10)}"
             else:
-                str_out += f"|{dim.name:^10}" if k==0 else f"|{'':^10}"
+                str_out += f"|{dim_name:^10}" if k==0 else f"|{'':^10}"
         str_out += f"|{space:^10}|"
         for header in dim_prop_headers:
             attr = f"d_{space}" if header == "d" else f"{space}_{header}"
@@ -147,7 +148,7 @@ def _fft_array_props_table(fftarr: FFTArray) -> str:
         str_out += "+" + (10 + 5*int(header=='factors_applied'))*"-"
     str_out += "+\n"
     for i, dim in enumerate(fftarr.dims):
-        str_out += f"|{_truncate_str(dim.name, 10):^10}"
+        str_out += f"|{_truncate_str(str(dim.name), 10):^10}"
         str_out += f"|{(fftarr.space[i]):^10}"
         str_out += f"|{_format_n(dim.n):^10}"
         str_out += f"|{repr(fftarr.eager[i]):^10}"
