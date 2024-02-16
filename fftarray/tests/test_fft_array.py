@@ -5,6 +5,7 @@ from itertools import product
 import pytest
 import numpy as np
 import jax
+import jax.numpy as jnp
 
 from fftarray.fft_array import FFTArray, FFTDimension
 from fftarray.fft_constraint_solver import fft_dim_from_constraints
@@ -21,6 +22,46 @@ def assert_scalars_almost_equal_nulp(x, y, nulp = 1):
 
 tensor_libs: List[Type[TensorLib]] = [NumpyTensorLib, JaxTensorLib, PyFFTWTensorLib]
 precisions: List[PrecisionSpec] = ["fp32", "fp64", "default"]
+
+# Currently only tests that oinly the correct values type can be passed in.
+def test_constructor():
+    dim = FFTDimension("x", n=4, d_pos=0.1, pos_min=0., freq_min=0.)
+    values = [1,2,3,4]
+    np_arr = np.array(values)
+    jnp_arr = jnp.array(values)
+
+    failing_sets = [
+        (values, [NumpyTensorLib(), JaxTensorLib(), PyFFTWTensorLib()]),
+        (np_arr, [JaxTensorLib()]),
+        (jnp_arr, [NumpyTensorLib(), PyFFTWTensorLib()]),
+    ]
+    for arr, tlibs in failing_sets:
+        for tlib in tlibs:
+            with pytest.raises(ValueError):
+                _ = FFTArray(
+                    values=arr,
+                    dims=[dim],
+                    space="pos",
+                    eager=False,
+                    factors_applied=False,
+                    tlib=tlib,
+                )
+
+    working_sets = [
+        (np_arr, NumpyTensorLib()),
+        (np_arr, PyFFTWTensorLib()),
+        (jnp_arr, JaxTensorLib()),
+    ]
+    for arr, tlib in working_sets:
+            _ = FFTArray(
+                values=arr,
+                dims=[dim],
+                space="pos",
+                eager=False,
+                factors_applied=False,
+                tlib=tlib,
+            )
+
 
 @pytest.mark.parametrize("tlib_class", tensor_libs)
 @pytest.mark.parametrize("do_jit", [False, True])
