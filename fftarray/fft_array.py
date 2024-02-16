@@ -68,12 +68,6 @@ def _norm_param(val: Union[T, Iterable[T]], n: int, types) -> Tuple[T, ...]:
     # TODO: Can we make this type check work?
     return tuple(val) # type: ignore
 
-def _truncate_str(string, width):
-    """Truncates string that is longer than width."""
-    if len(string) > width:
-        string = string[:width-3] + '...'
-    return string
-
 def _format_bytes(bytes):
     """Converts bytes to Kb, MB, GB and TB."""
     step_unit = 2**10
@@ -92,11 +86,11 @@ def _get_fft_dim_str(
     if (dim.n & (dim.n-1) == 0) and dim.n != 0:
         # n is power of 2
         n_str = f"2**{int(np.log2(dim.n))}"
-    str_out = f"FFTDimension: name = {repr(dim.name)}, n = {n_str}"
+    str_out = f"FFTDimension: name={repr(dim.name)}, n={n_str}"
     if eager is not None:
-        str_out += f", eager = {repr(eager)}"
+        str_out += f", eager={repr(eager)}"
     if factors_applied is not None:
-        str_out += f", factors_applied = {repr(factors_applied)}"
+        str_out += f", factors_applied={repr(factors_applied)}"
     str_out += "\n"
     headers = ["space", "d", "min", "middle", "max", "extent"]
     for header in headers:
@@ -110,7 +104,7 @@ def _get_fft_dim_str(
         for header in headers[1:]:
             attr = f"d_{space}" if header == "d" else f"{space}_{header}"
             nmbr = getattr(dim, attr)
-            frmt_nmbr = f"{nmbr:.2e}" if abs(nmbr)>1e3 or abs(nmbr)<1e-3 else f"{nmbr:.2f}"
+            frmt_nmbr = f"{nmbr:.2e}" if abs(nmbr)>1e3 or abs(nmbr)<1e-2 else f"{nmbr:.2f}"
             str_out += f"{frmt_nmbr:^10}|"
         str_out += "\n"
     return str_out[:-1]
@@ -166,7 +160,7 @@ class FFTArray(metaclass=ABCMeta):
 
     def __str__(self: FFTArray) -> str:
         bytes_str = _format_bytes(self.values.nbytes)
-        str_out = f"{len(self.dims)}d FFTArray ({self.tlib}, {self.values.dtype}, {bytes_str})\n"
+        str_out = f"{len(self.dims)}d FFTArray ({self.tlib}, {bytes_str})\n"
         for i, dim in enumerate(self.dims):
             str_out += _get_fft_dim_str(dim, self.eager[i], self._factors_applied[i]) + "\n"
         str_out += f"values:\n{self.values}"
