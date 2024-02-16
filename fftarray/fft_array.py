@@ -68,14 +68,14 @@ def _norm_param(val: Union[T, Iterable[T]], n: int, types) -> Tuple[T, ...]:
     # TODO: Can we make this type check work?
     return tuple(val) # type: ignore
 
-def _format_bytes(bytes):
+def _format_bytes(bytes) -> str:
     """Converts bytes to KiB, MiB, GiB and TiB."""
     step_unit = 1024
-    for x in ["bytes", "KiB", "MiB", "GiB", "TiB"]:
+    for x in ["bytes", "KiB", "MiB", "GiB"]:
         if bytes < step_unit:
             return f"{bytes:3.1f} {x}"
         bytes /= step_unit
-    return f"{bytes:3.1f} TB"
+    return f"{bytes:3.1f} TiB"
 
 def _get_fft_dim_str(
         dim: FFTDimension,
