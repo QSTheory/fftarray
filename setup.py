@@ -36,13 +36,14 @@ setuptools.setup(
     classifiers=[],
     python_requires=">=3.9",
     install_requires=[
-        "numpy>=1.21",
+        "numpy>=1.25",
     ],
     extras_require={
         "jax": _jax_packages,
         "pyFFTW": _pyFFTW_packages,
         "helpers": _helpers,
         "dev": [
+            "numpy>=1.24",
             "mypy>=0.910",
             "pytest",
             "hypothesis",
