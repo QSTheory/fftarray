@@ -4,6 +4,7 @@ import pytest
 from hypothesis import given, strategies as st, note, settings
 import numpy as np
 import jax
+import jax.numpy as jnp
 
 from fftarray.fft_array import FFTArray, FFTDimension, Space
 from fftarray.backends.jax_backend import JaxTensorLib
@@ -20,6 +21,50 @@ def assert_scalars_almost_equal_nulp(x, y, nulp = 1):
 tensor_libs: List[Type[TensorLib]] = [NumpyTensorLib, JaxTensorLib, PyFFTWTensorLib]
 precisions: List[PrecisionSpec] = ["fp32", "fp64", "default"]
 spaces: List[Space] = ["pos", "freq"]
+
+# Currently only tests the values type
+def test_fft_array_constructor():
+    """Tests whether the type checking of the FFTArray input values works. 
+    An FFTArray can only be initialized if the values array type is compatible
+    with the provided TensorLib.
+    """
+    dim = FFTDimension("x", n=4, d_pos=0.1, pos_min=0., freq_min=0.)
+    values = [1,2,3,4]
+    np_arr = np.array(values)
+    jnp_arr = jnp.array(values)
+
+    failing_sets = [
+        (values, [NumpyTensorLib(), JaxTensorLib(), PyFFTWTensorLib()]),
+        (np_arr, [JaxTensorLib()]),
+        (jnp_arr, [NumpyTensorLib(), PyFFTWTensorLib()]),
+    ]
+    for arr, tlibs in failing_sets:
+        for tlib in tlibs:
+            with pytest.raises(ValueError):
+                _ = FFTArray(
+                    values=arr,
+                    dims=[dim],
+                    space="pos",
+                    eager=False,
+                    factors_applied=False,
+                    tlib=tlib,
+                )
+
+    working_sets = [
+        (np_arr, NumpyTensorLib()),
+        (np_arr, PyFFTWTensorLib()),
+        (jnp_arr, JaxTensorLib()),
+    ]
+    for arr, tlib in working_sets:
+            _ = FFTArray(
+                values=arr,
+                dims=[dim],
+                space="pos",
+                eager=False,
+                factors_applied=False,
+                tlib=tlib,
+            )
+
 
 @pytest.mark.parametrize("tlib_class", tensor_libs)
 @pytest.mark.parametrize("space", ["pos", "freq"])
