@@ -14,7 +14,7 @@ import numpy.lib.mixins
 from .named_array import align_named_arrays, get_axes_transpose
 from .backends.tensor_lib import TensorLib
 from .backends.np_backend import NumpyTensorLib
-from .helpers import reduce_equal, UniformValue
+from .helpers import UniformValue, format_bytes, format_n, truncate_str
 
 T = TypeVar("T")
 
@@ -68,34 +68,6 @@ def _norm_param(val: Union[T, Iterable[T]], n: int, types) -> Tuple[T, ...]:
     # TODO: Can we make this type check work?
     return tuple(val) # type: ignore
 
-def _format_bytes(bytes) -> str:
-    """Converts bytes to KiB, MiB, GiB and TiB."""
-    step_unit = 1024
-    for x in ["bytes", "KiB", "MiB", "GiB"]:
-        if bytes < step_unit:
-            return f"{bytes:3.1f} {x}"
-        bytes /= step_unit
-    return f"{bytes:3.1f} TiB"
-
-def _format_n(n: int) -> str:
-    """Get string representation of an integer.
-    Returns 2^m if n is powert of two (m=log_2(n)).
-    Uses scientific notation if n is larger than 1e6.
-    """
-    if (n & (n-1) == 0) and n != 0:
-        # n is power of 2
-        return f"2^{int(np.log2(n))}"
-    if n > 1e6:
-        # scientific notation
-        return f"{n:.2e}"
-    return f"{n:n}"
-
-def _truncate_str(string: str, width: int) -> str:
-    """Truncates string that is longer than width."""
-    if len(string) > width:
-        string = string[:width-3] + '...'
-    return string
-
 def _fft_dim_table(
         dim: FFTDimension,
         include_header=True,
@@ -123,7 +95,7 @@ def _fft_dim_table(
                 if k== 0:
                     str_out += f"|{dim_name[:10]}"
                 else:
-                    str_out += f"|{_truncate_str(dim_name[10:], 10)}"
+                    str_out += f"|{truncate_str(dim_name[10:], 10)}"
             else:
                 str_out += f"|{dim_name:^10}" if k==0 else f"|{'':^10}"
         str_out += f"|{space:^10}|"
@@ -148,9 +120,9 @@ def _fft_array_props_table(fftarr: FFTArray) -> str:
         str_out += "+" + (10 + 5*int(header=='factors_applied'))*"-"
     str_out += "+\n"
     for i, dim in enumerate(fftarr.dims):
-        str_out += f"|{_truncate_str(str(dim.name), 10):^10}"
+        str_out += f"|{truncate_str(str(dim.name), 10):^10}"
         str_out += f"|{(fftarr.space[i]):^10}"
-        str_out += f"|{_format_n(dim.n):^10}"
+        str_out += f"|{format_n(dim.n):^10}"
         str_out += f"|{repr(fftarr.eager[i]):^10}"
         str_out += f"|{repr(fftarr._factors_applied[i]):^15}"
         str_out += "|\n"
@@ -206,7 +178,7 @@ class FFTArray(metaclass=ABCMeta):
         return f"FFTArray({arg_str})"
 
     def __str__(self: FFTArray) -> str:
-        bytes_str = _format_bytes(self._values.nbytes)
+        bytes_str = format_bytes(self._values.nbytes)
         str_out = f"FFTArray ({self.tlib}, {bytes_str})\n"
         str_out += "Dimensions:\n"
         for i, dim in enumerate(self.dims):
@@ -1047,7 +1019,7 @@ class FFTDimension:
         return f"FFTDimension({arg_str})"
 
     def __str__(self: FFTDimension) -> str:
-        n_str = _format_n(self.n)
+        n_str = format_n(self.n)
         str_out = f"FFTDimension: name={repr(self.name)}, n={n_str}\n"
         str_out += _fft_dim_table(self)
         return str_out
