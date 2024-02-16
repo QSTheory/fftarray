@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import (
-    Optional, Union, List, Any, Tuple, Dict, Hashable,
+    NoReturn, Optional, Union, List, Any, Tuple, Dict, Hashable,
     Literal, TypeVar, Iterable, Set, Generic, get_args
 )
 from abc import ABCMeta
@@ -56,7 +56,7 @@ class LocFFTArrayIndexer(Generic[T]):
             if isinstance(dim_item, slice):
                 slices.append(dim_item)
             else:
-                # TODO: check for length!=2 tuples (?why?) instead check step==1
+                # TODO: check for length!=2 tuples (?why?) instead check step==1 or convert to Tuple[float, float]
                 slices.append(dim._index_from_coord(dim_item, method=None, space=space, tlib=self._arr.tlib))
         return self._arr.__getitem__(tuple(slices))
 
@@ -1037,6 +1037,12 @@ class FFTDimension:
                     return 0
                 else:
                     return dim_n
+            try:
+                # TODO: This might need a tlib method instead to check for correct type
+                # abs_sq.tlib.numpy_ufuncs.issubdtype(abs_sq.values.dtype, abs_sq.tlib.numpy_ufuncs.floating)
+                index = index.item()
+            except:
+                ...
             if not isinstance(index, int):
                 raise IndexError("only integers, slices (`:`), ellipsis (`...`) are valid indices.")
             if index < -dim_n:
@@ -1084,13 +1090,12 @@ class FFTDimension:
             assert False, "Unreachable"
         return new
 
-
     def _index_from_coord(
             self,
-            coord: Union[float, slice],
-            method: Optional[Literal["nearest", "pad", "ffill", "backfill", "bfill"]],
+            coord: Union[float, Tuple[float, float]],
             space: Space,
             tlib: TensorLib,
+            method: Optional[Literal["nearest", "pad", "ffill", "backfill", "bfill"]] = None,
         ):
         """
             Compute index from given coordinate `x` which can be float or Tuple[float, float].
@@ -1098,67 +1103,87 @@ class FFTDimension:
 
             min maps 2.5 to index 3 (bfill, backfill), max currently maps 2.5 to index 2 (pad, ffill)
         """
-        if isinstance(coord, slice):
-            assert coord.step is None
-            idx_min = self._index_from_coord(coord.start, method="bfill", space=space, tlib=tlib)
-            idx_max = self._index_from_coord(coord.stop, method="ffill", space=space, tlib=tlib)
-            # The max is an open intervel, therefore add one.
-            return slice(idx_min, idx_max+1)
+        if isinstance(coord, tuple):
+            if method is not None:
+                raise NotImplementedError(
+                    f"cannot use method: `{method}` if the coord argument "
+                    + f"is not scalar, here: {coord}."
+                )
+            if coord[0] is None:
+                coord_start = getattr(self, f"{space}_min")
+            else:
+                coord_start = coord[0]
+            if coord[1] is None:
+                coord_stop = getattr(self, f"{space}_max")
+            else:
+                coord_stop = coord[1]
+            idx_min = self._index_from_coord(coord_start, method="bfill", space=space, tlib=tlib)
+            idx_max = self._index_from_coord(coord_stop, method="ffill", space=space, tlib=tlib)
+            return slice(
+                tlib.array(idx_min, dtype=int),
+                tlib.array(idx_max+1, dtype=int) # slice stop is open interval, add 1
+            )
 
         if space == "pos":
             raw_idx = (coord - self.pos_min) / self.d_pos
         else:
             raw_idx = (coord - self.freq_min) / self.d_freq
-        print("Raw idx:", raw_idx)
 
-        if method is None:
-            # TODO This is not jittable.
-            # Either fix it or document it.
-            # Would probably need a tlib if...
-            if tlib.numpy_ufuncs.round(raw_idx) != raw_idx:
-                raise KeyError(
-                    f"No exact index found for {coord} in {space}-space of dim " +
-                    f'"{self.name}". Try the keyword argument ' +
-                    'method="nearest".'
-                )
-            idx = raw_idx
-        elif method in ["nearest", "pad", "ffill", "backfill", "bfill"]:
-            # Clamp index into valid range
-            # BUG: this is wrong and does not work with indices like -3
-            # TODO: map to valid index range but correctly!!!
-            # raw_idx = tlib.numpy_ufuncs.max(tlib.array([0, raw_idx]))
-            # raw_idx = tlib.numpy_ufuncs.min(tlib.array([self.n, raw_idx]))
-            if  method == "nearest":
+        clamped_index = tlib.numpy_ufuncs.min(tlib.array([
+            tlib.numpy_ufuncs.max(tlib.array([0, raw_idx])),
+            self.n - 1
+        ]))
+
+        try:
+
+            if method is None:
+                # NOTE: This is not jittable, the main problem is that this would
+                # have to raise an Error sometimes which is not supported (I think).
+                # For if in general, one could implement a tlib.cond method.
+                if (
+                    tlib.numpy_ufuncs.round(raw_idx) != raw_idx or
+                    not tlib.numpy_ufuncs.array_equal(clamped_index, raw_idx)
+                ):
+                    raise KeyError(
+                        f"No exact index found for {coord} in {space}-space of dim " +
+                        f'"{self.name}". Try the keyword argument ' +
+                        'method="nearest".'
+                    )
+                final_idx = raw_idx
+            elif  method == "nearest":
                 # The combination of floor and +0.5 prevents the "ties to even" rounding of floating point numbers.
-                # We only need one branch since our indices are always positive.
-                idx = tlib.numpy_ufuncs.floor(raw_idx + 0.5)
+                final_idx = tlib.numpy_ufuncs.floor(clamped_index + 0.5)
             elif method in ["bfill", "backfill"]:
-                idx = tlib.numpy_ufuncs.ceil(raw_idx)
-                if idx > self.n - 1:
+                final_idx = tlib.numpy_ufuncs.ceil(clamped_index)
+                if raw_idx > self.n - 1:
                     raise KeyError(
                         f"Coord {coord} not found with method '{method}', "
                         + "you could try one of the following instead: "
                         + "'ffill', 'pad' or 'nearest'."
                     )
             elif method in ["ffill", "pad"]:
-                idx = tlib.numpy_ufuncs.floor(raw_idx)
-                if idx < 0:
+                final_idx = tlib.numpy_ufuncs.floor(clamped_index)
+                if raw_idx < 0:
                     raise KeyError(
                         f"Coord {coord} not found with method '{method}', "
                         + "you could try one of the following instead: "
                         + "'bfill', 'backfill' or 'nearest'."
                     )
-        else:
-            raise ValueError("Specified unsupported look-up method.")
+            else:
+                raise ValueError(f"Specified unsupported look-up method `{method}`.")
 
+        except Exception as e:
+            # TODO: think about implementing test for this and maybe custom FFTArrayErrorType
+            # maybe later, we'll see that we don't need the special nearest handling
+            if type(e).__name__ == "TracerBoolConversionError":
+                raise Exception(
+                    "You can only use FFTDimension._index_from_coord within "
+                    + f"a jitted function with method `nearest`, not `{method}`."
+                ) from e
+            else:
+                raise e
 
-
-        clamped_index = tlib.numpy_ufuncs.min(tlib.array([
-            tlib.numpy_ufuncs.max(tlib.array([0, idx])),
-            self.n - 1
-        ]))
-
-        return tlib.array(clamped_index, dtype=int)
+        return tlib.array(final_idx, dtype=int)
 
     # ---------------------------- Frequency Space --------------------------- #
 

@@ -17,13 +17,27 @@ jax.config.update("jax_enable_x64", True)
 
 TENSOR_LIBS = [NumpyTensorLib, JaxTensorLib, PyFFTWTensorLib]
 
-STANDARD_TEST_FFTDIMENSION = FFTDimension(
+TEST_FFTDIM = FFTDimension(
     name="x", n=8, d_pos=1, pos_min=0, freq_min=0
 )
 STANDARD_TEST_DATAARRAY = xr.DataArray(
     data=np.linspace(0, 7, num=8),
     dims=["x"],
     coords={'x': np.linspace(0, 7, num=8)},
+)
+
+pos_values = TEST_FFTDIM.pos_min + np.arange(TEST_FFTDIM.n)*TEST_FFTDIM.d_pos
+freq_values = TEST_FFTDIM.freq_min + np.arange(TEST_FFTDIM.n)*TEST_FFTDIM.d_freq
+
+STANDARD_TEST_DATASET = xr.Dataset(
+    data_vars={
+        "pos": (["pos_coord"], pos_values),
+        "freq": (["freq_coord"], freq_values),
+    },
+    coords={
+        "pos_coord": pos_values,
+        "freq_coord": freq_values,
+    }
 )
 
 """
@@ -85,16 +99,16 @@ def test_valid_fftdim_dim_from_slice(do_jit: bool, space: Space, valid_slice: sl
     if do_jit:
         @jax.jit
         def test_function(_slice):
-            return STANDARD_TEST_FFTDIMENSION._dim_from_slice_jax(range=_slice, space=space)
+            return TEST_FFTDIM._dim_from_slice_jax(range=_slice, space=space)
     else:
         def test_function(_slice):
-            return STANDARD_TEST_FFTDIMENSION._dim_from_slice(range=_slice, space=space)
+            return TEST_FFTDIM._dim_from_slice(range=_slice, space=space)
 
     result_dim = test_function(valid_slice)
 
     assert np.array_equal(
         result_dim.np_array(space),
-        STANDARD_TEST_FFTDIMENSION.np_array(space)[valid_slice]
+        TEST_FFTDIM.np_array(space)[valid_slice]
     )
 
 invalid_slices = [
@@ -108,21 +122,19 @@ invalid_slices = [
 def test_errors_fftdim_dim_from_slice(space: Space, invalid_slice: slice) -> None:
 
     with pytest.raises(IndexError):
-        STANDARD_TEST_FFTDIMENSION._dim_from_slice(invalid_slice, space=space)
+        TEST_FFTDIM._dim_from_slice(invalid_slice, space=space)
 
 
 valid_coords = [
-    -1, 0, 0.3, 0.5, 0.7, 1, 7.5, 8, 8.5, 9,
-    # slice(-1,10), slice(None, None), slice(0,7), slice(0,8),
+    -5, -1.5, -1, -0.5, 0, 0.3, 0.5, 0.7, 1, 1.3, 7.5, 8, 8.5, 9,
+    (-5,10), (None, None), (0,7), (0,8), (0.5,0.1)
 ]
 
-# @pytest.mark.parametrize("do_jit", [False, True])
-@pytest.mark.parametrize("tlib_class", [NumpyTensorLib])
+@pytest.mark.parametrize("tlib_class", TENSOR_LIBS)
 @pytest.mark.parametrize("method", ["nearest", "pad", "ffill", "backfill", "bfill", None])
 @pytest.mark.parametrize("valid_coord", valid_coords)
-# @pytest.mark.parametrize("space", ["pos", "freq"])
-@pytest.mark.parametrize("space", ["pos"])
-@pytest.mark.parametrize("do_jit", [False])
+@pytest.mark.parametrize("space", ["pos", "freq"])
+@pytest.mark.parametrize("do_jit", [True, False])
 def test_valid_index_from_coord(
     do_jit: bool,
     space: Space,
@@ -133,32 +145,35 @@ def test_valid_index_from_coord(
 
     if do_jit:
         tlib = tlib_class()
-        if isinstance(tlib, JaxTensorLib):
+        if isinstance(tlib, JaxTensorLib) and method=='nearest':
             @jax.jit
             def test_function(_coord):
-                return STANDARD_TEST_FFTDIMENSION._index_from_coord(coord=_coord, space=space, method=method, tlib=tlib_class())
+                return TEST_FFTDIM._index_from_coord(coord=_coord, space=space, method=method, tlib=tlib_class())
         else:
             return
     else:
         def test_function(_coord):
-            return STANDARD_TEST_FFTDIMENSION._index_from_coord(coord=_coord, space=space, method=method, tlib=tlib_class())
+            return TEST_FFTDIM._index_from_coord(coord=_coord, space=space, method=method, tlib=tlib_class())
 
-    if isinstance(valid_coord, float):
+    try:
         try:
-            try:
-                result_dim = float(test_function(valid_coord))
-            except KeyError as e:
-                result_dim = type(e)
-            try:
-                xr_result = float(STANDARD_TEST_DATAARRAY.sel(x=valid_coord, method=method))
-            except KeyError as e:
-                xr_result = type(e)
-            assert result_dim == xr_result
-        except TypeError as e:
-            raise e
-
-    else:
-        return
+            dim_index_result = test_function(valid_coord)
+        except (KeyError, NotImplementedError) as e:
+            dim_index_result = type(e)
+        try:
+            if isinstance(valid_coord, tuple):
+                valid_coord = slice(valid_coord[0], valid_coord[1])
+            xr_result_coord = STANDARD_TEST_DATASET[space].sel({f"{space}_coord": valid_coord}, method=method)
+            xr_result_dim_index = STANDARD_TEST_DATASET[space].isel({f"{space}_coord": dim_index_result})
+            np.testing.assert_array_equal(
+                xr_result_coord.data,
+                xr_result_dim_index.data
+            )
+        except (KeyError, NotImplementedError) as e:
+            xr_result = type(e)
+            assert dim_index_result == xr_result
+    except Exception as e:
+        raise e
 
 
 @pytest.mark.parametrize("tlib_class", TENSOR_LIBS)
