@@ -486,7 +486,9 @@ def assert_fftarray_eager_factors_applied(arr: FFTArray, log):
 
     log("(x*abs(x))._factors_applied == x._factors_applied")
     # if both _factors_applied=True, the resulting FFTArray will also have it
-    # True, otherwise False (if not eager)
+    # True, otherwise False
+    # given abs(x)._factors_applied=True, we test the patterns
+    # True*True=True, False*True=False
     arr_abs_sq = arr * arr_abs
     np.testing.assert_array_equal(arr_abs_sq.eager, arr.eager) # type: ignore
     np.testing.assert_array_equal(arr_abs_sq._factors_applied, arr._factors_applied) # type: ignore
