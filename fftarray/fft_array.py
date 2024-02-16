@@ -159,7 +159,7 @@ class FFTArray(metaclass=ABCMeta):
         return f"FFTArray({arg_str})"
 
     def __str__(self: FFTArray) -> str:
-        bytes_str = _format_bytes(self.values.nbytes)
+        bytes_str = _format_bytes(self._values.nbytes)
         str_out = f"{len(self.dims)}d FFTArray ({self.tlib}, {bytes_str})\n"
         for i, dim in enumerate(self.dims):
             str_out += _get_fft_dim_str(dim, self.eager[i], self._factors_applied[i]) + "\n"
