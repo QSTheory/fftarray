@@ -1,4 +1,4 @@
-from typing import Iterable, TypeVar, Generic, Any, List
+from typing import Iterable, Literal, Tuple, TypeVar, Generic, Any, List, Union
 from functools import reduce
 
 
@@ -59,3 +59,32 @@ class UniformValue(Generic[T]):
             return args[0]
 
         raise ValueError("Value has never been set.")
+
+EllipsisType = TypeVar('EllipsisType', bound=type(Ellipsis))
+
+def parse_tuple_indexer_to_dims(
+    tuple_indexers: Tuple[Union[int, slice, EllipsisType]],
+    n_dims: int,
+) -> Tuple[Union[int, slice]]:
+
+    if tuple_indexers.count(Ellipsis) > 1:
+        raise IndexError("an index can only have a single ellipsis ('...')")
+
+    if len(tuple_indexers) < n_dims:
+        if len(tuple_indexers) == 1:
+            tuple_indexers += (slice(None, None, None),) * (n_dims-1)
+        else:
+            if tuple_indexers[0] is Ellipsis:
+                missing_dim_indexers = n_dims - len(tuple_indexers) + 1
+                tuple_indexers = (
+                    (slice(None, None, None),) * missing_dim_indexers
+                    + tuple_indexers
+                )
+            elif tuple_indexers[-1] is Ellipsis:
+                missing_dim_indexers = n_dims - len(tuple_indexers) + 1
+                tuple_indexers += (slice(None, None, None),) * missing_dim_indexers
+            else:
+                missing_dim_indexers = n_dims - len(tuple_indexers)
+                tuple_indexers += (slice(None, None, None),) * missing_dim_indexers
+
+    return tuple_indexers

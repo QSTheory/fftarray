@@ -193,7 +193,7 @@ indexers_test_samples = [
 @pytest.mark.parametrize("space", ["pos", "freq"])
 # TODO: think about making this also jittable
 @pytest.mark.parametrize("do_jit", [False])
-def test_3d_fft_array_isel(
+def test_3d_fft_array_indexing_by_name_and_integer(
     do_jit: bool,
     space: Space,
     tlib_class: TensorLib,
@@ -210,29 +210,40 @@ def test_3d_fft_array_isel(
         tlib = tlib_class()
         if isinstance(tlib, JaxTensorLib):
             @jax.jit
-            def test_function(_indexers) -> FFTArray:
+            def test_function_isel(_indexers) -> FFTArray:
                 return fft_array.into(space=space).isel(_indexers)
+            @jax.jit
+            def test_function_square_brackets(_indexers) -> FFTArray:
+                return fft_array.into(space=space)[_indexers]
         else:
             return
     else:
-        def test_function(_indexers) -> FFTArray:
+        def test_function_isel(_indexers) -> FFTArray:
             return fft_array.into(space=space).isel(_indexers)
+        def test_function_square_brackets(_indexers) -> FFTArray:
+            return fft_array.into(space=space)[_indexers]
 
     try:
-        fft_array_result = test_function(indexers)
-    except (ValueError, IndexError) as e:
-        fft_array_result = type(e)
+        fft_array_result_isel = test_function_isel(indexers)
+    except Exception as e:
+        fft_array_result_isel = type(e)
+    try:
+        fft_array_result_square_brackets = test_function_square_brackets(indexers)
+    except Exception as e:
+        fft_array_result_square_brackets = type(e)
     try:
         xr_indexer = make_xr_indexer(indexers, space)
         xr_result = xr_dataset[space].isel(xr_indexer).data
-    except (ValueError, IndexError) as e:
+    except Exception as e:
         xr_result = type(e)
-        assert fft_array_result == xr_result
+        assert fft_array_result_isel == xr_result
+        assert fft_array_result_square_brackets == xr_result
         return
-    np.testing.assert_array_equal(
-        fft_array_result.values,
-        xr_result.data
-    )
+    for fft_array_result in [fft_array_result_isel, fft_array_result_square_brackets]:
+        np.testing.assert_array_equal(
+            fft_array_result.values,
+            xr_result.data
+        )
 
 def generate_test_fftarray_xrdataset(
     dimension_names: List[str],
