@@ -79,7 +79,7 @@ def format_n(n: int) -> str:
     if (n & (n-1) == 0) and n != 0:
         # n is power of 2
         return f"2^{int(np.log2(n))}"
-    if n > 1e6:
+    if n >= 10000:
         # scientific notation
         return f"{n:.2e}"
     return f"{n:n}"
