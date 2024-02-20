@@ -89,7 +89,7 @@ def tuple_indexers_from_mapping(
                 raise KeyError(
                     f"Using FFTArray{user_call_method}, the index for "
                     + "each dimension has to be given as one of the "
-                    + f"following: {allowed_types}."
+                    + f"following: {allowed_types}. "
                     + f"Your input for {dim_name}={index} of type "
                     + f"{type(index)} is not valid"
                 )

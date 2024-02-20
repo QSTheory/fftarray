@@ -13,7 +13,11 @@ import numpy as np
 from .named_array import align_named_arrays, get_axes_transpose
 from .backends.tensor_lib import TensorLib
 from .backends.np_backend import NumpyTensorLib
-from .helpers import coord_as_integer, parse_tuple_indexer_to_dims, tuple_indexers_from_dict_or_kwargs, tuple_indexers_from_mapping, check_invalid_indexers, UniformValue
+from .helpers import UniformValue
+from .indexing_helpers import (
+    coord_as_integer, parse_tuple_indexer_to_dims, check_invalid_indexers,
+    tuple_indexers_from_dict_or_kwargs, tuple_indexers_from_mapping
+)
 
 # TODO: instead: T_FFTArray = TypeVar("T_FFTArray", bound="FFTArray")
 T = TypeVar("T")
