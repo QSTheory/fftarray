@@ -1,4 +1,5 @@
 from typing import Iterable, TypeVar, Generic, Any, List
+import numpy as np
 from functools import reduce
 
 
@@ -59,3 +60,32 @@ class UniformValue(Generic[T]):
             return args[0]
 
         raise ValueError("Value has never been set.")
+
+
+def format_bytes(bytes) -> str:
+    """Converts bytes to KiB, MiB, GiB and TiB."""
+    step_unit = 1024
+    for x in ["bytes", "KiB", "MiB", "GiB"]:
+        if bytes < step_unit:
+            return f"{bytes:3.1f} {x}"
+        bytes /= step_unit
+    return f"{bytes:3.1f} TiB"
+
+def format_n(n: int) -> str:
+    """Get string representation of an integer.
+    Returns 2^m if n is powert of two (m=log_2(n)).
+    Uses scientific notation if n is larger than 1e6.
+    """
+    if (n & (n-1) == 0) and n != 0:
+        # n is power of 2
+        return f"2^{int(np.log2(n))}"
+    if n >= 10000:
+        # scientific notation
+        return f"{n:.2e}"
+    return f"{n:n}"
+
+def truncate_str(string: str, width: int) -> str:
+    """Truncates string that is longer than width."""
+    if len(string) > width:
+        string = string[:width-3] + '...'
+    return string
