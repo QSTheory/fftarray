@@ -14,7 +14,7 @@ import numpy.lib.mixins
 from .named_array import align_named_arrays, get_axes_transpose
 from .backends.tensor_lib import TensorLib
 from .backends.np_backend import NumpyTensorLib
-from .helpers import reduce_equal, UniformValue
+from .helpers import UniformValue, format_bytes, format_n, truncate_str
 
 T = TypeVar("T")
 
@@ -68,6 +68,74 @@ def _norm_param(val: Union[T, Iterable[T]], n: int, types) -> Tuple[T, ...]:
     # TODO: Can we make this type check work?
     return tuple(val) # type: ignore
 
+def _fft_dim_table(
+        dim: FFTDimension,
+        include_header=True,
+        include_dim_name=False,
+        dim_index: Optional[int] = None,
+    ) -> str:
+    """Constructs a table for FFTDimension.__str__ and FFTArrar.__str__
+    containting the grid parameters for each space.
+    """
+    str_out = ""
+    headers = ["space", "d", "min", "middle", "max", "extent"]
+    if include_dim_name:
+        headers.insert(0, "dimension")
+    if include_header:
+        if dim_index is not None:
+            # handled separately to give it a smaller width
+            str_out += "| # "
+        for header in headers:
+            # give space smaller width to stay below 80 characters per line
+            str_out += f"|{header:^7}" if header == "space" else f"|{header:^10}"
+        str_out += "|\n" + int(dim_index is not None)*"+---"
+        for header in headers:
+            str_out += "+" + (7*"-" if header == "space" else 10*"-")
+        str_out += "+\n"
+    dim_prop_headers = headers[int(include_dim_name)+1:]
+    for k, space in enumerate(get_args(Space)):
+        if dim_index is not None:
+            str_out += f"|{dim_index:^3}" if k==0 else f"|{'':^3}"
+        if include_dim_name:
+            dim_name = str(dim.name)
+            if len(dim_name) > 10:
+                if k == 0:
+                    str_out += f"|{dim_name[:10]}"
+                else:
+                    str_out += f"|{truncate_str(dim_name[10:], 10)}"
+            else:
+                str_out += f"|{dim_name:^10}" if k==0 else f"|{'':^10}"
+        str_out += f"|{space:^7}|"
+        for header in dim_prop_headers:
+            attr = f"d_{space}" if header == "d" else f"{space}_{header}"
+            nmbr = getattr(dim, attr)
+            frmt_nmbr = f"{nmbr:.2e}" if abs(nmbr)>1e3 or abs(nmbr)<1e-2 else f"{nmbr:.2f}"
+            str_out += f"{frmt_nmbr:^10}|"
+        str_out += "\n"
+    return str_out[:-1]
+
+def _fft_array_props_table(fftarr: FFTArray) -> str:
+    """Constructs a table for FFTArray.__str__ containing the FFTArray
+    properties (space, n, eager, factors_applied) per dimension
+    """
+    str_out = "| # "
+    headers = ["dimension", "space", "n", "eager", "factors_applied"]
+    for header in headers:
+        # give space smaller width to stay below 80 characters per line
+        str_out += f"|{header:^7}" if header == "space" else f"|{header:^10}"
+    str_out += "|\n+---"
+    for header in headers:
+        str_out += "+" + (10 + 5*int(header=='factors_applied') - 3*int(header=="space"))*"-"
+    str_out += "+\n"
+    for i, dim in enumerate(fftarr.dims):
+        str_out += f"|{i:^3}"
+        str_out += f"|{truncate_str(str(dim.name), 10):^10}"
+        str_out += f"|{(fftarr.space[i]):^7}"
+        str_out += f"|{format_n(dim.n):^10}"
+        str_out += f"|{repr(fftarr.eager[i]):^10}"
+        str_out += f"|{repr(fftarr._factors_applied[i]):^15}"
+        str_out += "|\n"
+    return str_out[:-1]
 
 class FFTArray(metaclass=ABCMeta):
     """
@@ -110,6 +178,26 @@ class FFTArray(metaclass=ABCMeta):
         self._factors_applied = _norm_param(factors_applied, n_dims, bool)
         self._tlib = tlib
         self._check_consistency()
+
+    def __repr__(self: FFTArray) -> str:
+        arg_str = ", ".join(
+            [f"{name[1:] if name != '_spaces' else 'space'}={repr(value)}"
+                for name, value in self.__dict__.items()]
+        )
+        return f"FFTArray({arg_str})"
+
+    def __str__(self: FFTArray) -> str:
+        bytes_str = format_bytes(self._values.nbytes)
+        str_out = f"<fftarray.FFTArray ({bytes_str})>\n"
+        str_out += f"TensorLib: {self.tlib}\n"
+        str_out += "Dimensions:\n"
+        for i, dim in enumerate(self.dims):
+            str_out += f" # {i}: {repr(dim.name)}\n"
+        str_out += "\n" + _fft_array_props_table(self) + "\n\n"
+        for i, dim in enumerate(self.dims):
+            str_out += _fft_dim_table(dim, i==0, True, i) + "\n"
+        str_out += f"\nvalues:\n{self.values}"
+        return str_out
 
     #--------------------
     # Numpy Interfaces
@@ -948,21 +1036,18 @@ class FFTDimension:
         self._freq_min = freq_min
 
     def __repr__(self: FFTDimension) -> str:
-        arg_str = ", ".join([f"{name[1:]}={repr(value)}" for name, value in self.__dict__.items()])
+        arg_str = ", ".join(
+            [f"{name[1:]}={repr(value)}"
+                for name, value in self.__dict__.items()]
+        )
         return f"FFTDimension({arg_str})"
 
     def __str__(self: FFTDimension) -> str:
-        properties = (
-            f"\t Number of grid points n: {self.n} \n\t " +
-            f"Position space: min={self.pos_min}, middle={self.pos_middle}, " +
-            f"max={self.pos_max}, extent={self.pos_extent}, d_pos={self.d_pos} \n\t " +
-            f"Frequency space: min={self.freq_min}, middle={self.freq_middle}, " +
-            f"max={self.freq_max}, extent={self.freq_extent}, d_freq={self.d_freq}"
-        )
-        return (
-            f"FFTDimension with name '{self.name}' and the " +
-            f"following properties:\n{properties}"
-        )
+        n_str = format_n(self.n)
+        str_out = f"<fftarray.FFTDimension (name={repr(self.name)})>\n"
+        str_out += f"n={n_str}\n"
+        str_out += _fft_dim_table(self)
+        return str_out
 
     @property
     def n(self: FFTDimension) -> int:
