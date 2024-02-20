@@ -214,13 +214,22 @@ class FFTArray(metaclass=ABCMeta):
         return np.array(self.values)
 
     # Implement binary operations between FFTArray and also e.g. 1+wf and wf+1
-    # This does intentionally not list all posiible operators.
+    # This does intentionally not list all possible operators.
     __add__, __radd__ = _binary_ufuncs(np.add)
     __sub__, __rsub__ = _binary_ufuncs(np.subtract)
     __mul__, __rmul__ = _binary_ufuncs(np.multiply)
     __truediv__, __rtruediv__ = _binary_ufuncs(np.true_divide)
     __floordiv__, __rfloordiv__ = _binary_ufuncs(np.floor_divide)
     __pow__, __rpow__ = _binary_ufuncs(np.power)
+
+    # Implement comparison operators
+    __gt__, _ = _binary_ufuncs(np.greater)
+    __ge__, _ = _binary_ufuncs(np.greater_equal)
+    __lt__, _ = _binary_ufuncs(np.less)
+    __le__, _ = _binary_ufuncs(np.less_equal)
+    __ne__, _ = _binary_ufuncs(np.not_equal)
+    __eq__, _ = _binary_ufuncs(np.equal)
+
 
     # Implement unary operations
     __neg__ = _unary_ufunc(np.negative)
