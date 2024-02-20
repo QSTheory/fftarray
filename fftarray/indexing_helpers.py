@@ -69,30 +69,16 @@ def check_invalid_indexers(
             )
 
 def tuple_indexers_from_mapping(
-    indexers: Mapping[Hashable, Union[int, slice]],
+    indexers: Mapping[Hashable, Union[float, slice]],
     dim_names: Iterable[Hashable],
-    user_call_method: str,
 ) -> Tuple[Union[int, slice]]:
     """
-    Return complete tuple of valid indexers (slice or int).
+    Return complete tuple of indexers (slice or float).
     """
-
-    # TODO: test if allowed_types with int leads to problem wit jax
-    # types but I think not because we use jax.Array[0].item() or so
-    allowed_types = (slice, int)
 
     tuple_indexers = []
     for dim_name in dim_names:
         if dim_name in indexers:
-            index = indexers[dim_name]
-            if not isinstance(index, allowed_types):
-                raise KeyError(
-                    f"Using FFTArray{user_call_method}, the index for "
-                    + "each dimension has to be given as one of the "
-                    + f"following: {allowed_types}. "
-                    + f"Your input for {dim_name}={index} of type "
-                    + f"{type(index)} is not valid"
-                )
             tuple_indexers.append(indexers[dim_name])
         else:
             tuple_indexers.append(slice(None, None, None))
@@ -123,7 +109,6 @@ def tuple_indexers_from_dict_or_kwargs(
         tuple_indexers = tuple_indexers_from_mapping(
             indexers,
             dim_names=dim_names,
-            user_call_method='[]',
         )
     else:
         if not isinstance(indexers, tuple):

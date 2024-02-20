@@ -212,8 +212,19 @@ class FFTArray(metaclass=ABCMeta):
             # TODO: check if one could put this in tuple_indexers...
             if not isinstance(index, slice):
                 index = slice(index, index+1, None)
-            # We perform all index sanity checks in _dim_from_slice
-            new_dims.append(orig_dim._dim_from_slice(index, space))
+            try:
+                # We perform all index sanity checks in _dim_from_slice
+                new_dims.append(orig_dim._dim_from_slice(index, space))
+            except Exception as e:
+                if "Trace" in str(index):
+                    raise NotImplementedError(
+                        f"FFTArray indexing does not support "
+                        + "jitted indexers. Here, your index for "
+                        + f" dimension {orig_dim.name} is a traced object"
+                    ) from e
+                else:
+                    raise e
+
 
         selected_values = self.values.__getitem__(tuple_indexers)
         # Dimensions with the length 1 are dropped in numpy indexing.
@@ -265,7 +276,6 @@ class FFTArray(metaclass=ABCMeta):
         tuple_indexers = tuple_indexers_from_mapping(
             indexers,
             dim_names=[dim.name for dim in self.dims],
-            user_call_method=".isel",
         )
 
         return self.__getitem__(tuple_indexers)
@@ -325,16 +335,25 @@ class FFTArray(metaclass=ABCMeta):
                 #         method=method
                 #     )
                 # )
-
-                tuple_indexers_as_integer.append(
-                    coord_as_integer(
-                        coord=index,
-                        space=space,
-                        dim=dim,
-                        tlib=self.tlib,
-                        method=method,
+                try:
+                    tuple_indexers_as_integer.append(
+                        coord_as_integer(
+                            coord=index,
+                            space=space,
+                            dim=dim,
+                            tlib=self.tlib,
+                            method=method,
+                        )
                     )
-                )
+                except Exception as e:
+                    if "Trace" in str(index):
+                        raise NotImplementedError(
+                            f"FFTArray indexing does not support "
+                            + "jitted indexers. Here, your index for "
+                            + f" dimension {dim.name} is a traced object"
+                        ) from e
+                    else:
+                        raise e
             else:
                 tuple_indexers_as_integer.append(slice(None, None))
 
@@ -1244,54 +1263,41 @@ class FFTDimension:
             self.n - 1
         ]))
 
-        try:
-
-            if method is None:
-                # NOTE: This is not jittable, the main problem is that this would
-                # have to raise an Error sometimes which is not supported (I think).
-                # For if in general, one could implement a tlib.cond method.
-                if (
-                    tlib.numpy_ufuncs.round(raw_idx) != raw_idx or
-                    not tlib.numpy_ufuncs.array_equal(clamped_index, raw_idx)
-                ):
-                    raise KeyError(
-                        f"No exact index found for {coord} in {space}-space of dim " +
-                        f'"{self.name}". Try the keyword argument ' +
-                        'method="nearest".'
-                    )
-                final_idx = raw_idx
-            elif  method == "nearest":
-                # The combination of floor and +0.5 prevents the "ties to even" rounding of floating point numbers.
-                final_idx = tlib.numpy_ufuncs.floor(clamped_index + 0.5)
-            elif method in ["bfill", "backfill"]:
-                final_idx = tlib.numpy_ufuncs.ceil(clamped_index)
-                if raw_idx > self.n - 1:
-                    raise KeyError(
-                        f"Coord {coord} not found with method '{method}', "
-                        + "you could try one of the following instead: "
-                        + "'ffill', 'pad' or 'nearest'."
-                    )
-            elif method in ["ffill", "pad"]:
-                final_idx = tlib.numpy_ufuncs.floor(clamped_index)
-                if raw_idx < 0:
-                    raise KeyError(
-                        f"Coord {coord} not found with method '{method}', "
-                        + "you could try one of the following instead: "
-                        + "'bfill', 'backfill' or 'nearest'."
-                    )
-            else:
-                raise ValueError(f"Specified unsupported look-up method `{method}`.")
-
-        except Exception as e:
-            # TODO: think about implementing test for this and maybe custom FFTArrayErrorType
-            # maybe later, we'll see that we don't need the special nearest handling
-            if type(e).__name__ == "TracerBoolConversionError":
-                raise Exception(
-                    "You can only use FFTDimension._index_from_coord within "
-                    + f"a jitted function with method `nearest`, not `{method}`."
-                ) from e
-            else:
-                raise e
+        if method is None:
+            # NOTE: This is not jittable, the main problem is that this would
+            # have to raise an Error sometimes which is not supported (I think).
+            # For if in general, one could implement a tlib.cond method.
+            if (
+                tlib.numpy_ufuncs.round(raw_idx) != raw_idx or
+                not tlib.numpy_ufuncs.array_equal(clamped_index, raw_idx)
+            ):
+                raise KeyError(
+                    f"No exact index found for {coord} in {space}-space of dim " +
+                    f'"{self.name}". Try the keyword argument ' +
+                    'method="nearest".'
+                )
+            final_idx = raw_idx
+        elif  method == "nearest":
+            # The combination of floor and +0.5 prevents the "ties to even" rounding of floating point numbers.
+            final_idx = tlib.numpy_ufuncs.floor(clamped_index + 0.5)
+        elif method in ["bfill", "backfill"]:
+            final_idx = tlib.numpy_ufuncs.ceil(clamped_index)
+            if raw_idx > self.n - 1:
+                raise KeyError(
+                    f"Coord {coord} not found with method '{method}', "
+                    + "you could try one of the following instead: "
+                    + "'ffill', 'pad' or 'nearest'."
+                )
+        elif method in ["ffill", "pad"]:
+            final_idx = tlib.numpy_ufuncs.floor(clamped_index)
+            if raw_idx < 0:
+                raise KeyError(
+                    f"Coord {coord} not found with method '{method}', "
+                    + "you could try one of the following instead: "
+                    + "'bfill', 'backfill' or 'nearest'."
+                )
+        else:
+            raise ValueError(f"Specified unsupported look-up method `{method}`.")
 
         return tlib.array(final_idx, dtype=int)
 

@@ -258,13 +258,12 @@ label_indexers_test_samples = [
 @pytest.mark.parametrize("indexers", label_indexers_test_samples)
 @pytest.mark.parametrize("tlib_class", TENSOR_LIBS)
 @pytest.mark.parametrize("space", ["pos", "freq"])
-# TODO: think about making this also jittable
-@pytest.mark.parametrize("do_jit", [False])
+@pytest.mark.parametrize("method", ["nearest", "pad", "ffill", "backfill", "bfill", None])
 def test_3d_fft_array_indexing_by_label(
-    do_jit: bool,
     space: Space,
     tlib_class: TensorLib,
     indexers: Optional[Mapping[Hashable, Union[int, slice]]],
+    method: Literal["nearest", "pad", "ffill", "backfill", "bfill", None],
 ) -> None:
 
     fft_array, xr_dataset = generate_test_fftarray_xrdataset(
@@ -273,31 +272,86 @@ def test_3d_fft_array_indexing_by_label(
         tlib=tlib_class()
     )
 
-    if do_jit:
-        tlib = tlib_class()
-        if isinstance(tlib, JaxTensorLib):
-            @jax.jit
-            def test_function_sel(_indexers) -> FFTArray:
-                return fft_array.into(space=space).sel(_indexers)
-            @jax.jit
-            def test_function_square_brackets(_indexers) -> FFTArray:
-                return fft_array.into(space=space).loc[_indexers]
+    try:
+        fft_array_result_sel = fft_array.into(space=space).sel(indexers, method=method)
+    except Exception as e:
+        fft_array_result_sel = type(e)
+    try:
+        fft_array_result_loc_square_brackets = fft_array.into(space=space).loc[indexers]
+    except Exception as e:
+        fft_array_result_loc_square_brackets = type(e)
+    try:
+        xr_indexer = make_xr_indexer(indexers, space)
+        xr_result = xr_dataset[space].sel(xr_indexer, method=method).data
+    except Exception as e:
+        xr_result = type(e)
+        if xr_result in [KeyError, ValueError]:
+            xr_result = (KeyError, ValueError)
         else:
-            return
-    else:
-        def test_function_sel(_indexers) -> FFTArray:
-            return fft_array.into(space=space).sel(_indexers)
-        def test_function_square_brackets(_indexers) -> FFTArray:
-            return fft_array.into(space=space).loc[_indexers]
+            xr_result = [xr_result]
+        assert fft_array_result_sel in xr_result
+        if method is None:
+            assert fft_array_result_loc_square_brackets in xr_result
+        return
 
+    np.testing.assert_array_equal(
+        fft_array_result_sel.values,
+        xr_result.data
+    )
+    if method is None:
+        np.testing.assert_array_equal(
+            fft_array_result_loc_square_brackets.values,
+            xr_result.data
+        )
+
+# One can not put slices in jitted functions,
+# therefore we don't test slice indexers here
+label_indexers_test_samples = [
+    {"x": 1, "y": 1, "z": 1}, {"x": 1, "y": 1},
+    {"x": 1, "y": 1}, {"x": -20}, {"z": 5}, {"random": 1}, {},
+]
+
+@pytest.mark.parametrize("indexers", label_indexers_test_samples)
+@pytest.mark.parametrize("index_by", ["label", "integer"])
+@pytest.mark.parametrize("space", ["pos", "freq"])
+def test_3d_fft_array_indexing_jitted(
+    space: Space,
+    index_by: Literal["label", "integer"],
+    indexers: Optional[Mapping[Hashable, Union[int, slice]]],
+) -> None:
+
+    tlib = JaxTensorLib()
+    fft_array, xr_dataset = generate_test_fftarray_xrdataset(
+        ["x", "y", "z"],
+        dimension_length=8,
+        tlib=tlib
+    )
+
+    @jax.jit
+    def test_function_sel(_indexers) -> FFTArray:
+        if index_by == "label":
+            return fft_array.into(space=space).sel(_indexers)
+        else:
+            return fft_array.into(space=space).isel(_indexers)
+
+    @jax.jit
+    def test_function_square_brackets(_indexers) -> FFTArray:
+        if index_by == "label":
+            return fft_array.into(space=space).loc[_indexers]
+        else:
+            return fft_array.into(space=space)[_indexers]
+
+    fft_error = False
     try:
         fft_array_result_sel = test_function_sel(indexers)
     except Exception as e:
         fft_array_result_sel = type(e)
+        fft_error = True
     try:
         fft_array_result_loc_square_brackets = test_function_square_brackets(indexers)
     except Exception as e:
         fft_array_result_loc_square_brackets = type(e)
+        fft_error = True
     try:
         xr_indexer = make_xr_indexer(indexers, space)
         xr_result = xr_dataset[space].sel(xr_indexer).data
@@ -307,18 +361,25 @@ def test_3d_fft_array_indexing_by_label(
             xr_result = (KeyError, ValueError)
         else:
             xr_result = [xr_result]
-        assert fft_array_result_sel in xr_result
-        assert fft_array_result_loc_square_brackets in xr_result
-        return
 
-    np.testing.assert_array_equal(
-        fft_array_result_sel.values,
-        xr_result.data
-    )
-    np.testing.assert_array_equal(
-        fft_array_result_loc_square_brackets.values,
-        xr_result.data
-    )
+    if fft_error:
+        assert (
+            fft_array_result_sel == NotImplementedError or
+            fft_array_result_sel in xr_result
+        )
+        assert (
+            fft_array_result_loc_square_brackets == NotImplementedError or
+            fft_array_result_loc_square_brackets in xr_result
+        )
+    else:
+        np.testing.assert_array_equal(
+            fft_array_result_sel.values,
+            xr_result.data
+        )
+        np.testing.assert_array_equal(
+            fft_array_result_loc_square_brackets.values,
+            xr_result.data
+        )
 
 def generate_test_fftarray_xrdataset(
     dimension_names: List[str],
