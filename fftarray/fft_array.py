@@ -314,27 +314,6 @@ class FFTArray(metaclass=ABCMeta):
         for dim, space in zip(self.dims, self.space):
             if dim.name in indexers:
                 index = indexers[dim.name]
-                # if isinstance(index, slice):
-                #     if not(index.step is None or index.step == 1):
-                #         raise IndexError(
-                #             f"You can't index using {index} but only " +
-                #             f"slice({index.start}, {index.stop}) with implicit index step 1. " +
-                #             "Substepping requires reducing the respective other space " +
-                #             "which is not well defined due to the arbitrary choice of " +
-                #             "which part of the space to keep (constant min, middle or max?). "
-                #         )
-                #     indexer = (index.start, index.stop)
-                # else:
-                #     indexer = index
-
-                # tuple_indexers_as_integer.append(
-                #     dim._index_from_coord(
-                #         coord=indexer,
-                #         space=space,
-                #         tlib=self.tlib,
-                #         method=method
-                #     )
-                # )
                 try:
                     tuple_indexers_as_integer.append(
                         coord_as_integer(
@@ -1158,17 +1137,12 @@ class FFTDimension:
                 dim_n: int,
                 index_kind: Literal["start", "stop"],
             ) -> int:
-            # TODO: this version yields analog indexing to xarray and numpy
-            # but does not work with jitted functions, should the behaviour depend
-            # on the tensorlib? however, there is no tlib associated with a FFTDimension
             if index is None:
                 if index_kind == "start":
                     return 0
                 else:
                     return dim_n
             try:
-                # TODO: This might need a tlib method instead to check for correct type
-                # abs_sq.tlib.numpy_ufuncs.issubdtype(abs_sq.values.dtype, abs_sq.tlib.numpy_ufuncs.floating)
                 index = index.item()
             except:
                 ...
@@ -1201,23 +1175,25 @@ class FFTDimension:
             n: int,
             space: Space,
         ) -> FFTDimension:
-        # TODO: do we still require to skip FFTDimension.__init__? I Think not
-        # because we moved the constraint solver out of the class init.
-        new = self.__class__.__new__(self.__class__)
-        new._name = self.name
-        new._n = n
 
         if space == "pos":
-            new._pos_min = self.pos_min + start*self.d_pos
-            new._freq_min = self.freq_min
-            new._d_pos = self.d_pos
+            pos_min = self.pos_min + start*self.d_pos
+            freq_min = self.freq_min
+            d_pos = self.d_pos
         elif space == "freq":
-            new._pos_min = self.pos_min
-            new._freq_min = self.freq_min + start*self.d_freq
-            new._d_pos = 1./(self.d_freq*n)
+            pos_min = self.pos_min
+            freq_min = self.freq_min + start*self.d_freq
+            d_pos = 1./(self.d_freq*n)
         else:
             assert False, "Unreachable"
-        return new
+
+        return FFTDimension(
+            name=self.name,
+            n=n,
+            pos_min=pos_min,
+            freq_min=freq_min,
+            d_pos=d_pos,
+        )
 
     def _index_from_coord(
             self,
@@ -1264,9 +1240,6 @@ class FFTDimension:
         ]))
 
         if method is None:
-            # NOTE: This is not jittable, the main problem is that this would
-            # have to raise an Error sometimes which is not supported (I think).
-            # For if in general, one could implement a tlib.cond method.
             if (
                 tlib.numpy_ufuncs.round(raw_idx) != raw_idx or
                 not tlib.numpy_ufuncs.array_equal(clamped_index, raw_idx)
