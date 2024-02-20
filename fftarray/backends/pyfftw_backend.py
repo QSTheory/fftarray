@@ -29,3 +29,7 @@ class PyFFTWTensorLib(TensorLib):
     @property
     def array(self) -> Callable[..., NDArray]:
         return np.array
+
+    @property
+    def array_type(self):
+        return np.ndarray
