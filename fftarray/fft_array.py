@@ -1,5 +1,4 @@
 from __future__ import annotations
-from collections import abc
 from typing import (
     Mapping, Optional, Union, List, Any, Tuple, Dict, Hashable,
     Literal, TypeVar, Iterable, Set, Generic, get_args
@@ -8,15 +7,13 @@ from abc import ABCMeta
 from copy import copy
 from numbers import Number
 from dataclasses import dataclass
-import warnings
 
 import numpy as np
-import numpy.lib.mixins
 
 from .named_array import align_named_arrays, get_axes_transpose
 from .backends.tensor_lib import TensorLib
 from .backends.np_backend import NumpyTensorLib
-from .helpers import parse_tuple_indexer_to_dims, reduce_equal, UniformValue
+from .helpers import coord_as_integer, parse_tuple_indexer_to_dims, tuple_indexers_from_dict_or_kwargs, tuple_indexers_from_mapping, check_invalid_indexers, UniformValue
 
 # TODO: instead: T_FFTArray = TypeVar("T_FFTArray", bound="FFTArray")
 T = TypeVar("T")
@@ -41,27 +38,56 @@ def _unary_ufunc(op):
 
 class LocFFTArrayIndexer(Generic[T]):
     """
-        `FFTArray.loc` allows indexing by dim index but by coordinate position.
-        In order to support the indexing operator on a property
-        we need this indexable helper class to be returned by the property `loc`.
+        `FFTArray.loc` allows indexing by coordinate position.
+        It supports both positional and name look up (via dict).
+        In order to support the indexing operator for coordinate (label)
+        instead of integer (index) look up, we need this indexable helper
+        class to be returned by the property `loc`.
     """
     _arr: FFTArray
 
     def __init__(self, arr: FFTArray) -> None:
         self._arr = arr
 
-    def __getitem__(self, item) -> FFTArray:
-        if isinstance(item, slice):
-            assert item == slice(None, None, None)
-            return self._arr.values
-        slices = []
-        for dim, dim_item, space in zip(self._arr.dims, item, self._arr._space):
-            if isinstance(dim_item, slice):
-                slices.append(dim_item)
-            else:
-                # TODO: check for length!=2 tuples (?why?) instead check step==1 or convert to Tuple[float, float]
-                slices.append(dim._index_from_coord(dim_item, method=None, space=space, tlib=self._arr.tlib))
-        return self._arr.__getitem__(tuple(slices))
+    def __getitem__(
+            self,
+            item: Union[
+                int, slice, EllipsisType, Tuple[Union[int, slice, EllipsisType],...],
+                Mapping[Hashable, Union[int, slice]],
+            ]
+        ) -> FFTArray:
+
+        if item is Ellipsis:
+            return self._arr
+
+        if isinstance(item, Mapping):
+            return self._arr.sel(item)
+
+        if not isinstance(item, tuple):
+            item = (item,)
+
+        tuple_indexers = parse_tuple_indexer_to_dims(
+            item,
+            n_dims=len(self._arr.dims)
+        )
+
+        integer_indexers: Tuple[int, slice]
+        for index, dim, space in zip(
+            tuple_indexers, self._arr.dims, self._arr.space
+        ):
+            integer_indexers.append(
+                coord_as_integer(
+                    coord=index,
+                    space=space,
+                    dim=dim,
+                    tlib=self._arr.tlib,
+                    method=None,
+                )
+            )
+
+        return self._arr.__getitem__(
+            tuple(integer_indexers)
+        )
 
 def _norm_param(val: Union[T, Iterable[T]], n: int, types) -> Tuple[T, ...]:
     """
@@ -163,28 +189,15 @@ class FFTArray(metaclass=ABCMeta):
         length(FFTArray.dims), then add slice(None, None, None) for missing dimensions.
         """
 
-        tuple_indexers: Tuple[Union[int, slice]]
+        if item is Ellipsis:
+            return self
 
-        if isinstance(item, abc.Mapping):
-            invalid_indexers = [indexer for indexer in item if indexer not in self.dims_dict]
-            if len(invalid_indexers) > 0:
-                raise ValueError(
-                    f"Dimensions {invalid_indexers} do not exist. "
-                    + f"Expected one or more of {tuple(self.dims_dict)}"
-                )
-            tuple_indexers = self._tuple_indexers_from_mapping(item)
-        else:
-            if not isinstance(item, tuple):
-                if item is Ellipsis:
-                    return self
-                tuple_indexers = (item,)
-            else:
-                tuple_indexers = item
-
-            tuple_indexers = parse_tuple_indexer_to_dims(
-                tuple_indexers,
-                len(self.dims)
-            )
+        # Handle two cases of supplying indexing information, either
+        # via keyword args (Mapping) or via tuple using order of dims
+        tuple_indexers = tuple_indexers_from_dict_or_kwargs(
+            indexers=item,
+            dim_names=tuple(dim.name for dim in self.dims)
+        )
 
         new_dims = []
         for index, orig_dim, space in zip(tuple_indexers, self._dims, self._space):
@@ -192,6 +205,7 @@ class FFTArray(metaclass=ABCMeta):
                 # No selection, just keep the old dim.
                 new_dims.append(orig_dim)
                 continue
+            # TODO: check if one could put this in tuple_indexers...
             if not isinstance(index, slice):
                 index = slice(index, index+1, None)
             # We perform all index sanity checks in _dim_from_slice
@@ -218,27 +232,6 @@ class FFTArray(metaclass=ABCMeta):
     def loc(self):
         return LocFFTArrayIndexer(self)
 
-    def _tuple_indexers_from_mapping(
-        self,
-        indexers: Mapping[Hashable, Union[int, slice]]
-    ) -> Tuple[Union[int, slice]]:
-
-        tuple_indexers = []
-        for dim in self.dims:
-            if dim.name in indexers:
-                index = indexers[dim.name]
-                if not isinstance(index, (slice, int)):
-                    raise KeyError(
-                        "Using FFTArray.isel, the index for each dimension "
-                        + "has to be given as 'slice' or 'int'. "
-                        + f"Your input for {dim.name}={index} of type "
-                        + f"{type(index)} is not valid"
-                    )
-                tuple_indexers.append(indexers[dim.name])
-            else:
-                tuple_indexers.append(slice(None, None, None))
-        return tuple(tuple_indexers)
-
     def isel(
             self,
             indexers: Optional[Mapping[Hashable, Union[int, slice]]] = None,
@@ -249,25 +242,11 @@ class FFTArray(metaclass=ABCMeta):
         Inspired by xarray.DataArray.isel
         """
 
-        invalid_indexers = [indexer for indexer in indexers if indexer not in self.dims_dict]
-
-        if len(invalid_indexers) > 0:
-            if missing_dims == "raise":
-                raise ValueError(
-                    f"Dimensions {invalid_indexers} do not exist. "
-                    + f"Expected one or more of {tuple(self.dims_dict)}"
-                )
-            elif missing_dims == "warn":
-                warnings.warn(
-                    f"Dimensions {invalid_indexers} do not exist. "
-                    + "These selections will be ignored"
-                )
-
-        if missing_dims not in ["raise", "warn", "ignore"]:
-            raise ValueError(
-                f"missing_dims={missing_dims} is not valid, it has to be "
-                + "one of the following: 'raise', 'warn', 'ignore'"
-            )
+        check_invalid_indexers(
+            indexers=indexers,
+            dim_names=tuple(self.dims_dict.keys()),
+            missing_dims=missing_dims
+        )
 
         # Check for correct use of indexers (either via positional
         # indexers arg or via indexers_kwargs)
@@ -279,34 +258,83 @@ class FFTArray(metaclass=ABCMeta):
         if indexers is None:
             indexers = indexers_kwargs
 
-        tuple_indexers = self._tuple_indexers_from_mapping(indexers)
+        tuple_indexers = tuple_indexers_from_mapping(
+            indexers,
+            dim_names=[dim.name for dim in self.dims],
+            user_call_method=".isel",
+        )
 
         return self.__getitem__(tuple_indexers)
 
-    def sel(self, method: Optional[Literal["nearest"]] = None, **kwargs):
+    def sel(
+            self,
+            indexers: Optional[Mapping[Hashable, Union[float, slice]]] = None,
+            missing_dims: Literal["raise", "warn", "ignore"] = 'raise',
+            method: Optional[Literal["nearest", "pad", "ffill", "backfill", "bfill"]] = None,
+            **indexers_kwargs: Any,
+        ) -> FFTArray:
         """
-            Supports in addition to its xarray-counterpart tuples for ranges.
+            Inspired by xarray.DataArray.sel
+            In comparison to itx xarray implementation, there are differences:
+                - TODO: Check if we still want: Supports tuples for ranges.
+                - Implements missing_dims arg and accordingly raises errors
         """
-        #TODO: check that kwargs are float or slice
-        slices = []
-        for dim, space in zip(self.dims, self._space):
-            if dim.name in kwargs:
-                slices.append(
-                    # mypy error: kwargs is of type "Dict[str, Any]" but
-                    # dim.name is of type "Hashable". However, the if condition
-                    # already makes sure that dim.name is a key of kwargs (so
-                    # also of type "str")
-                    # TODO: check slice step == 1
-                    dim._index_from_coord(
-                        kwargs[dim.name], # type: ignore
-                        method=method,
+
+        check_invalid_indexers(
+            indexers=indexers,
+            dim_names=tuple(self.dims_dict.keys()),
+            missing_dims=missing_dims
+        )
+
+        # Check for correct use of indexers (either via positional
+        # indexers arg or via indexers_kwargs)
+        if indexers is not None and indexers_kwargs:
+            raise ValueError(
+                "cannot specify both keyword arguments and "
+                + "positional arguments to FFTArray.sel"
+            )
+        if indexers is None:
+            indexers = indexers_kwargs
+
+        tuple_indexers_as_integer = []
+        for dim, space in zip(self.dims, self.space):
+            if dim.name in indexers:
+                index = indexers[dim.name]
+                # if isinstance(index, slice):
+                #     if not(index.step is None or index.step == 1):
+                #         raise IndexError(
+                #             f"You can't index using {index} but only " +
+                #             f"slice({index.start}, {index.stop}) with implicit index step 1. " +
+                #             "Substepping requires reducing the respective other space " +
+                #             "which is not well defined due to the arbitrary choice of " +
+                #             "which part of the space to keep (constant min, middle or max?). "
+                #         )
+                #     indexer = (index.start, index.stop)
+                # else:
+                #     indexer = index
+
+                # tuple_indexers_as_integer.append(
+                #     dim._index_from_coord(
+                #         coord=indexer,
+                #         space=space,
+                #         tlib=self.tlib,
+                #         method=method
+                #     )
+                # )
+
+                tuple_indexers_as_integer.append(
+                    coord_as_integer(
+                        coord=index,
                         space=space,
+                        dim=dim,
                         tlib=self.tlib,
+                        method=method,
                     )
                 )
             else:
-                slices.append(slice(None, None, None))
-        return self.__getitem__(tuple(slices))
+                tuple_indexers_as_integer.append(slice(None, None))
+
+        return self.__getitem__(tuple(tuple_indexers_as_integer))
 
     @property
     def dims_dict(self) -> Dict[Hashable, FFTDimension]:

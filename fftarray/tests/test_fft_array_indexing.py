@@ -182,18 +182,18 @@ def make_xr_indexer(indexer, space: Space):
         for name, index in indexer.items()
     }
 
-indexers_test_samples = [
+integer_indexers_test_samples = [
     {"x": 1, "y": 1, "z": 1}, {"x": 1, "y": 1, "z": slice(None, None)},
     {"x": 1, "y": 1}, {"x": -20}, {"z": 5}, {"random": 1}, {},
     {"x": slice(-20,5), "y": slice(-6,6), "z": slice(None, 4)}
 ]
 
-@pytest.mark.parametrize("indexers", indexers_test_samples)
+@pytest.mark.parametrize("indexers", integer_indexers_test_samples)
 @pytest.mark.parametrize("tlib_class", TENSOR_LIBS)
 @pytest.mark.parametrize("space", ["pos", "freq"])
 # TODO: think about making this also jittable
 @pytest.mark.parametrize("do_jit", [False])
-def test_3d_fft_array_indexing_by_name_and_integer(
+def test_3d_fft_array_indexing_by_integer(
     do_jit: bool,
     space: Space,
     tlib_class: TensorLib,
@@ -239,11 +239,86 @@ def test_3d_fft_array_indexing_by_name_and_integer(
         assert fft_array_result_isel == xr_result
         assert fft_array_result_square_brackets == xr_result
         return
-    for fft_array_result in [fft_array_result_isel, fft_array_result_square_brackets]:
-        np.testing.assert_array_equal(
-            fft_array_result.values,
-            xr_result.data
-        )
+
+    np.testing.assert_array_equal(
+        fft_array_result_isel.values,
+        xr_result.data
+    )
+    np.testing.assert_array_equal(
+        fft_array_result_square_brackets.values,
+        xr_result.data
+    )
+
+label_indexers_test_samples = [
+    {"x": 1, "y": 1, "z": 1}, {"x": 1, "y": 1, "z": slice(None, None)},
+    {"x": 1, "y": 1}, {"x": -20}, {"z": 5}, {"random": 1}, {},
+    {"x": slice(-20,5), "y": slice(-6,6), "z": slice(None, 4)},
+]
+
+@pytest.mark.parametrize("indexers", label_indexers_test_samples)
+@pytest.mark.parametrize("tlib_class", TENSOR_LIBS)
+@pytest.mark.parametrize("space", ["pos", "freq"])
+# TODO: think about making this also jittable
+@pytest.mark.parametrize("do_jit", [False])
+def test_3d_fft_array_indexing_by_label(
+    do_jit: bool,
+    space: Space,
+    tlib_class: TensorLib,
+    indexers: Optional[Mapping[Hashable, Union[int, slice]]],
+) -> None:
+
+    fft_array, xr_dataset = generate_test_fftarray_xrdataset(
+        ["x", "y", "z"],
+        dimension_length=8,
+        tlib=tlib_class()
+    )
+
+    if do_jit:
+        tlib = tlib_class()
+        if isinstance(tlib, JaxTensorLib):
+            @jax.jit
+            def test_function_sel(_indexers) -> FFTArray:
+                return fft_array.into(space=space).sel(_indexers)
+            @jax.jit
+            def test_function_square_brackets(_indexers) -> FFTArray:
+                return fft_array.into(space=space).loc[_indexers]
+        else:
+            return
+    else:
+        def test_function_sel(_indexers) -> FFTArray:
+            return fft_array.into(space=space).sel(_indexers)
+        def test_function_square_brackets(_indexers) -> FFTArray:
+            return fft_array.into(space=space).loc[_indexers]
+
+    try:
+        fft_array_result_sel = test_function_sel(indexers)
+    except Exception as e:
+        fft_array_result_sel = type(e)
+    try:
+        fft_array_result_loc_square_brackets = test_function_square_brackets(indexers)
+    except Exception as e:
+        fft_array_result_loc_square_brackets = type(e)
+    try:
+        xr_indexer = make_xr_indexer(indexers, space)
+        xr_result = xr_dataset[space].sel(xr_indexer).data
+    except Exception as e:
+        xr_result = type(e)
+        if xr_result in [KeyError, ValueError]:
+            xr_result = (KeyError, ValueError)
+        else:
+            xr_result = [xr_result]
+        assert fft_array_result_sel in xr_result
+        assert fft_array_result_loc_square_brackets in xr_result
+        return
+
+    np.testing.assert_array_equal(
+        fft_array_result_sel.values,
+        xr_result.data
+    )
+    np.testing.assert_array_equal(
+        fft_array_result_loc_square_brackets.values,
+        xr_result.data
+    )
 
 def generate_test_fftarray_xrdataset(
     dimension_names: List[str],
