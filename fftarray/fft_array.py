@@ -188,8 +188,7 @@ class FFTArray(metaclass=ABCMeta):
 
     def __str__(self: FFTArray) -> str:
         bytes_str = format_bytes(self._values.nbytes)
-        title = f" FFTArray ({bytes_str}) "
-        str_out = f"{title:-^80}\n"
+        str_out = f"<fftarray.FFTArray ({bytes_str})>\n"
         str_out += f"TensorLib: {self.tlib}\n"
         str_out += "Dimensions:\n"
         for i, dim in enumerate(self.dims):
@@ -1036,7 +1035,8 @@ class FFTDimension:
 
     def __str__(self: FFTDimension) -> str:
         n_str = format_n(self.n)
-        str_out = f"FFTDimension: name={repr(self.name)}, n={n_str}\n"
+        str_out = f"<fftarray.FFTDimension (name={repr(self.name)})>\n"
+        str_out += f"n={n_str}\n"
         str_out += _fft_dim_table(self)
         return str_out
 
