@@ -238,8 +238,6 @@ class FFTArray(metaclass=ABCMeta):
         # So we have to reintroduce those dropped dimensions via reshape.
         selected_values = selected_values.reshape(tuple(dim.n for dim in new_dims))
 
-        # TODO: Implement test to verify that I correctly changed new FFTArray
-        # factors_applied to True because we evaluate self.values here
         return FFTArray(
             values=selected_values,
             dims=new_dims,
@@ -298,8 +296,7 @@ class FFTArray(metaclass=ABCMeta):
         ) -> FFTArray:
         """
             Inspired by xarray.DataArray.sel
-            In comparison to itx xarray implementation, there are differences:
-                - TODO: Check if we still want: Supports tuples for ranges.
+            In comparison to itx xarray implementation, there is an add-on:
                 - Implements missing_dims arg and accordingly raises errors
         """
 

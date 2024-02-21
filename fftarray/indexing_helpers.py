@@ -12,11 +12,9 @@ def parse_tuple_indexer_to_dims(
     n_dims: int,
 ) -> Tuple[Union[float, slice]]:
 
-    # TODO: implement test
     if tuple_indexers.count(Ellipsis) > 1:
-        raise IndexError("an index can only have a single ellipsis ('...')")
+        raise IndexError("positional indexing only supports a single ellipsis ('...')")
 
-    # TODO: implement test
     if len(tuple_indexers) > n_dims:
         raise IndexError(
             "too many indices for FFTArray: FFTArray is "
@@ -101,11 +99,6 @@ def tuple_indexers_from_dict_or_tuple(
                 f"Dimensions {invalid_indexers} do not exist. "
                 + f"Expected one or more of {dim_names}"
             )
-        # TODO: the following is maybe a weakness of the call logic, we
-        # use user_call=[] and int allowed_types here although this method
-        # is called differently in other methods (like sel or isel)
-        # BUG: the below user_call_method is wrong and resulting error
-        # message needs to be rethought, could also be FFTArray.loc[]
         tuple_indexers = tuple_indexers_from_mapping(
             indexers,
             dim_names=dim_names,

@@ -149,6 +149,27 @@ def test_errors_fftarray_index_substepping(
     with pytest.raises(IndexError):
         fft_arr.isel(x=invalid_slice)
 
+invalid_tuples = [
+    (Ellipsis, Ellipsis),
+    (slice(None, None), slice(None, None))
+]
+
+@pytest.mark.parametrize("tlib_class", TENSOR_LIBS)
+@pytest.mark.parametrize("invalid_tuple", invalid_tuples)
+@pytest.mark.parametrize("space", ["pos", "freq"])
+def test_errors_fftarray_invalid_indexes(
+    space: Space,
+    invalid_tuple: tuple,
+    tlib_class: TensorLib
+) -> None:
+
+    fft_arr = TEST_FFTDIM.fft_array(tlib=tlib_class(), space=space)
+
+    with pytest.raises(IndexError):
+        fft_arr[invalid_tuple]
+    with pytest.raises(IndexError):
+        fft_arr.loc[invalid_tuple]
+
 coord_test_samples = [
     -5, -1.5, -1, -0.5, 0, 0.3, 0.5, 0.7, 1, 1.3, 7.5, 8, 8.5, 9,
     slice(-5,10), slice(None, None), slice(0,7), slice(0,8), slice(0.5,0.1)
