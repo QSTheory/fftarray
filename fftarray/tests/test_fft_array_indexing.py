@@ -1,7 +1,6 @@
 
 from functools import reduce
-import itertools
-from typing import Dict, Hashable, List, Literal, Mapping, Optional, Tuple, Union
+from typing import Dict, Hashable, List, Literal, Mapping, Tuple, Union
 import pytest
 import numpy as np
 import jax
@@ -12,7 +11,6 @@ from fftarray.backends.tensor_lib import TensorLib
 from fftarray.backends.jax_backend import JaxTensorLib
 from fftarray.backends.np_backend import NumpyTensorLib
 from fftarray.backends.pyfftw_backend import PyFFTWTensorLib
-from fftarray.xr_helpers import as_xr_pos
 
 jax.config.update("jax_enable_x64", True)
 
@@ -55,7 +53,7 @@ Relevant functions/classes for indexing
 
 @pytest.mark.parametrize("tlib_class", TENSOR_LIBS)
 @pytest.mark.parametrize("do_jit", [False, True])
-def test_fftdim_single_element_indexing(tlib_class: TensorLib, do_jit: bool) -> None:
+def test_fftdim_single_element_indexing(tlib_class, do_jit: bool) -> None:
     if do_jit and type(tlib_class) != JaxTensorLib:
         return
 
@@ -135,7 +133,7 @@ invalid_substepping_slices = [
 def test_errors_fftarray_index_substepping(
     space: Space,
     invalid_slice: slice,
-    tlib_class: TensorLib
+    tlib_class,
 ) -> None:
 
     fft_arr = TEST_FFTDIM.fft_array(tlib=tlib_class(), space=space)
@@ -160,7 +158,7 @@ invalid_tuples = [
 def test_errors_fftarray_invalid_indexes(
     space: Space,
     invalid_tuple: tuple,
-    tlib_class: TensorLib
+    tlib_class,
 ) -> None:
 
     fft_arr = TEST_FFTDIM.fft_array(tlib=tlib_class(), space=space)
@@ -183,7 +181,7 @@ def test_valid_index_from_coord(
     space: Space,
     valid_coord: Union[float,slice],
     method: Literal["nearest", "pad", "ffill", "backfill", "bfill", None],
-    tlib_class: TensorLib
+    tlib_class
 ) -> None:
 
     def test_function(_coord):
@@ -226,8 +224,8 @@ integer_indexers_test_samples = [
 @pytest.mark.parametrize("space", ["pos", "freq"])
 def test_3d_fft_array_indexing_by_integer(
     space: Space,
-    tlib_class: TensorLib,
-    indexers: Optional[Mapping[Hashable, Union[int, slice]]],
+    tlib_class,
+    indexers: Mapping[Hashable, Union[int, slice]],
 ) -> None:
 
     fft_array, xr_dataset = generate_test_fftarray_xrdataset(
@@ -242,13 +240,13 @@ def test_3d_fft_array_indexing_by_integer(
         return fft_array.into(space=space)[_indexers]
 
     try:
-        fft_array_result_isel = test_function_isel(indexers)
+        fft_array_result_isel = test_function_isel(indexers) # type: ignore
     except Exception as e:
-        fft_array_result_isel = type(e)
+        fft_array_result_isel = type(e) # type: ignore
     try:
-        fft_array_result_square_brackets = test_function_square_brackets(indexers)
+        fft_array_result_square_brackets = test_function_square_brackets(indexers) # type: ignore
     except Exception as e:
-        fft_array_result_square_brackets = type(e)
+        fft_array_result_square_brackets = type(e) # type: ignore
     try:
         xr_indexer = make_xr_indexer(indexers, space)
         xr_result = xr_dataset[space].isel(xr_indexer).data
@@ -279,8 +277,8 @@ label_indexers_test_samples = [
 @pytest.mark.parametrize("method", ["nearest", "pad", "ffill", "backfill", "bfill", None])
 def test_3d_fft_array_indexing_by_label(
     space: Space,
-    tlib_class: TensorLib,
-    indexers: Optional[Mapping[Hashable, Union[int, slice]]],
+    tlib_class,
+    indexers: Mapping[Hashable, Union[int, slice]],
     method: Literal["nearest", "pad", "ffill", "backfill", "bfill", None],
 ) -> None:
 
@@ -291,18 +289,18 @@ def test_3d_fft_array_indexing_by_label(
     )
 
     try:
-        fft_array_result_sel = fft_array.into(space=space).sel(indexers, method=method)
+        fft_array_result_sel = fft_array.into(space=space).sel(indexers, method=method) # type: ignore
     except Exception as e:
-        fft_array_result_sel = type(e)
+        fft_array_result_sel = type(e) # type: ignore
     try:
-        fft_array_result_loc_square_brackets = fft_array.into(space=space).loc[indexers]
+        fft_array_result_loc_square_brackets = fft_array.into(space=space).loc[indexers] # type: ignore
     except Exception as e:
-        fft_array_result_loc_square_brackets = type(e)
+        fft_array_result_loc_square_brackets = type(e) # type: ignore
     try:
         xr_indexer = make_xr_indexer(indexers, space)
-        xr_result = xr_dataset[space].sel(xr_indexer, method=method).data
+        xr_result = xr_dataset[space].sel(xr_indexer, method=method).data # type: ignore
     except Exception as e:
-        xr_result = type(e)
+        xr_result = type(e) # type: ignore
         if xr_result in [KeyError, ValueError]:
             xr_result = (KeyError, ValueError)
         else:
@@ -335,7 +333,7 @@ label_indexers_test_samples = [
 def test_3d_fft_array_indexing_jitted(
     space: Space,
     index_by: Literal["label", "integer"],
-    indexers: Optional[Mapping[Hashable, Union[int, slice]]],
+    indexers: Mapping[Hashable, Union[int, slice]],
 ) -> None:
 
     tlib = JaxTensorLib()
@@ -415,9 +413,9 @@ space_combinations = [
 @pytest.mark.parametrize("tlib_class", TENSOR_LIBS)
 @pytest.mark.parametrize("space_combination", space_combinations)
 def test_fftarray_state_management(
-    space_combination: Dict[Literal["x", "y"], Space],
-    tlib_class: TensorLib,
-    indexers: Optional[Mapping[Hashable, Union[int, slice]]],
+    space_combination: Dict[str, Space],
+    tlib_class,
+    indexers: Mapping[Hashable, Union[int, slice]],
 ) -> None:
     """
     Tests if the indexed FFTArray has the correct internal properties,

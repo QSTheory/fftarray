@@ -1197,7 +1197,7 @@ class FFTDimension:
 
     def _index_from_coord(
             self,
-            coord: Union[float, Tuple[float, float]],
+            coord: Union[float, slice],
             space: Space,
             tlib: TensorLib,
             method: Optional[Literal["nearest", "pad", "ffill", "backfill", "bfill"]] = None,
@@ -1229,51 +1229,51 @@ class FFTDimension:
             return slice(
                 idx_min, idx_max + 1
             )
-
-        if space == "pos":
-            raw_idx = (coord - self.pos_min) / self.d_pos
         else:
-            raw_idx = (coord - self.freq_min) / self.d_freq
+            if space == "pos":
+                raw_idx = (coord - self.pos_min) / self.d_pos
+            else:
+                raw_idx = (coord - self.freq_min) / self.d_freq
 
-        clamped_index = min(
-            max(0, raw_idx),
-            self.n - 1
-        )
+            clamped_index = min(
+                max(0, raw_idx),
+                self.n - 1
+            )
 
-        if method is None:
-            if (
-                tlib.numpy_ufuncs.round(raw_idx) != raw_idx or
-                not tlib.numpy_ufuncs.array_equal(clamped_index, raw_idx)
-            ):
-                raise KeyError(
-                    f"No exact index found for {coord} in {space}-space of dim " +
-                    f'"{self.name}". Try the keyword argument ' +
-                    'method="nearest".'
-                )
-            final_idx = raw_idx
-        elif  method == "nearest":
-            # The combination of floor and +0.5 prevents the "ties to even" rounding of floating point numbers.
-            final_idx = tlib.numpy_ufuncs.floor(clamped_index + 0.5)
-        elif method in ["bfill", "backfill"]:
-            final_idx = np.ceil(clamped_index)
-            if raw_idx > self.n - 1:
-                raise KeyError(
-                    f"Coord {coord} not found with method '{method}', "
-                    + "you could try one of the following instead: "
-                    + "'ffill', 'pad' or 'nearest'."
-                )
-        elif method in ["ffill", "pad"]:
-            final_idx = np.floor(clamped_index)
-            if raw_idx < 0:
-                raise KeyError(
-                    f"Coord {coord} not found with method '{method}', "
-                    + "you could try one of the following instead: "
-                    + "'bfill', 'backfill' or 'nearest'."
-                )
-        else:
-            raise ValueError(f"Specified unsupported look-up method `{method}`.")
+            if method is None:
+                if (
+                    tlib.numpy_ufuncs.round(raw_idx) != raw_idx or
+                    not tlib.numpy_ufuncs.array_equal(clamped_index, raw_idx)
+                ):
+                    raise KeyError(
+                        f"No exact index found for {coord} in {space}-space of dim " +
+                        f'"{self.name}". Try the keyword argument ' +
+                        'method="nearest".'
+                    )
+                final_idx = raw_idx
+            elif  method == "nearest":
+                # The combination of floor and +0.5 prevents the "ties to even" rounding of floating point numbers.
+                final_idx = tlib.numpy_ufuncs.floor(clamped_index + 0.5)
+            elif method in ["bfill", "backfill"]:
+                final_idx = np.ceil(clamped_index)
+                if raw_idx > self.n - 1:
+                    raise KeyError(
+                        f"Coord {coord} not found with method '{method}', "
+                        + "you could try one of the following instead: "
+                        + "'ffill', 'pad' or 'nearest'."
+                    )
+            elif method in ["ffill", "pad"]:
+                final_idx = np.floor(clamped_index)
+                if raw_idx < 0:
+                    raise KeyError(
+                        f"Coord {coord} not found with method '{method}', "
+                        + "you could try one of the following instead: "
+                        + "'bfill', 'backfill' or 'nearest'."
+                    )
+            else:
+                raise ValueError(f"Specified unsupported look-up method `{method}`.")
 
-        return int(final_idx)
+            return int(final_idx)
 
     # ---------------------------- Frequency Space --------------------------- #
 
