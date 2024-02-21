@@ -1,4 +1,5 @@
 from __future__ import annotations
+from collections import abc
 from typing import (
     Mapping, Optional, Union, List, Any, Tuple, Dict, Hashable,
     Literal, TypeVar, Iterable, Set, Generic, get_args
@@ -16,7 +17,7 @@ from .backends.np_backend import NumpyTensorLib
 from .helpers import UniformValue
 from .indexing_helpers import (
     check_substepping, parse_tuple_indexer_to_dims, check_invalid_indexers,
-    tuple_indexers_from_dict_or_kwargs, tuple_indexers_from_mapping
+    tuple_indexers_from_dict_or_tuple, tuple_indexers_from_mapping
 )
 
 # TODO: instead: T_FFTArray = TypeVar("T_FFTArray", bound="FFTArray")
@@ -194,10 +195,12 @@ class FFTArray(metaclass=ABCMeta):
 
         if item is Ellipsis:
             return self
+        if isinstance(item, abc.Mapping) and len(item) == 0:
+            return self
 
         # Handle two cases of supplying indexing information, either
         # via keyword args (Mapping) or via tuple using order of dims
-        tuple_indexers = tuple_indexers_from_dict_or_kwargs(
+        tuple_indexers = tuple_indexers_from_dict_or_tuple(
             indexers=item,
             dim_names=tuple(dim.name for dim in self.dims)
         )
@@ -208,7 +211,6 @@ class FFTArray(metaclass=ABCMeta):
                 # No selection, just keep the old dim.
                 new_dims.append(orig_dim)
                 continue
-            # TODO: check if one could put this in tuple_indexers...
             if not isinstance(index, slice):
                 index = slice(index, index+1, None)
             try:
@@ -222,7 +224,12 @@ class FFTArray(metaclass=ABCMeta):
                         + f"dimension {orig_dim.name} is a traced object"
                     ) from e
                 else:
-                    raise e
+                    additional_msg = (
+                        "Ann error occured when evaluating the index "
+                        + f"dimension {orig_dim.name}: "
+                    )
+                    orig_msg = str(e)
+                    raise type(e)(additional_msg + orig_msg)
 
 
         selected_values = self.values.__getitem__(tuple_indexers)
@@ -266,6 +273,9 @@ class FFTArray(metaclass=ABCMeta):
         if indexers is None:
             indexers = indexers_kwargs
 
+        if len(indexers) == 0:
+            return self
+
         check_invalid_indexers(
             indexers=indexers,
             dim_names=tuple(self.dims_dict.keys()),
@@ -302,6 +312,9 @@ class FFTArray(metaclass=ABCMeta):
             )
         if indexers is None:
             indexers = indexers_kwargs
+
+        if len(indexers) == 0:
+            return self
 
         check_invalid_indexers(
             indexers=indexers,

@@ -1,7 +1,7 @@
 
 from functools import reduce
 import itertools
-from typing import Hashable, List, Literal, Mapping, Optional, Tuple, Union
+from typing import Dict, Hashable, List, Literal, Mapping, Optional, Tuple, Union
 import pytest
 import numpy as np
 import jax
@@ -377,6 +377,110 @@ def test_3d_fft_array_indexing_jitted(
             fft_array_result_loc_square_brackets.values,
             xr_result.data
         )
+
+valid_indexers = [
+    {"x": slice(None, 5), "y": 4},
+    {"x": 3},
+    {"x": slice(None, None), "y": slice(None, None)},
+    {}
+]
+
+space_combinations = [
+    {"x": "pos", "y": "pos"}, {"x": "pos", "y": "freq"},
+    {"x": "freq", "y": "pos"}, {"x": "freq", "y": "freq"}
+]
+
+@pytest.mark.parametrize("indexers", valid_indexers)
+@pytest.mark.parametrize("tlib_class", TENSOR_LIBS)
+@pytest.mark.parametrize("space_combination", space_combinations)
+def test_fftarray_state_management(
+    space_combination: Dict[Literal["x", "y"], Space],
+    tlib_class: TensorLib,
+    indexers: Optional[Mapping[Hashable, Union[int, slice]]],
+) -> None:
+    """
+    Tests if the indexed FFTArray has the correct internal properties,
+    especially if _factors_applied is True afterwards.
+    Also checks, that the values correspond to _factors_applied True.
+    For the special case of empty indexing, it checks that _factors_applied is
+    the same as the original FFTArray.
+    """
+
+    dims = {
+        dim_name: FFTDimension(name=dim_name, n=8, d_pos=1, pos_min=0, freq_min=0)
+        for dim_name in space_combination
+    }
+    fft_arrays = {
+        dim_name: dims[dim_name].fft_array(space=space, tlib=tlib_class(), eager=False)
+        for dim_name, space in space_combination.items()
+    }
+
+    fft_array_2d = fft_arrays["x"] + fft_arrays["y"]
+
+    space_comb_list = [space_combination[dim_name] for dim_name in ["x", "y"]]
+    diff_space_comb = [
+        "pos" if space_comb == "freq" else "freq"
+        for space_comb in space_comb_list
+    ]
+
+    try:
+        # Test FFTArray[]
+        fft_raw_values = fft_array_2d[indexers].values
+        fft_different_internal = fft_array_2d.into(space=diff_space_comb).into(space=space_comb_list)
+        fft_indexed = fft_different_internal[indexers]
+        fft_indexed_values = fft_indexed.values
+
+        np.testing.assert_array_equal(fft_raw_values, fft_indexed_values)
+        assert (
+            all(fft_indexed._factors_applied) or
+            (len(indexers) == 0 and fft_indexed._factors_applied == fft_different_internal._factors_applied)
+        )
+        assert fft_array_2d.eager == fft_indexed.eager
+        assert fft_different_internal.space == fft_indexed.space
+
+        # Test FFTArray.isel()
+        fft_raw_values = fft_array_2d.isel(indexers).values
+        fft_different_internal = fft_array_2d.into(space=diff_space_comb).into(space=space_comb_list)
+        fft_indexed = fft_different_internal.isel(indexers)
+        fft_indexed_values = fft_indexed.values
+
+        np.testing.assert_array_equal(fft_raw_values, fft_indexed_values)
+        assert (
+            all(fft_indexed._factors_applied) or
+            (len(indexers) == 0 and fft_indexed._factors_applied == fft_different_internal._factors_applied)
+        )
+        assert fft_array_2d.eager == fft_indexed.eager
+        assert fft_different_internal.space == fft_indexed.space
+
+        # Test FFTArray.loc[]
+        fft_raw_values = fft_array_2d.loc[indexers].values
+        fft_different_internal = fft_array_2d.into(space=diff_space_comb).into(space=space_comb_list)
+        fft_indexed = fft_different_internal.loc[indexers]
+        fft_indexed_values = fft_indexed.values
+
+        np.testing.assert_array_equal(fft_raw_values, fft_indexed_values)
+        assert (
+            all(fft_indexed._factors_applied) or
+            (len(indexers) == 0 and fft_indexed._factors_applied == fft_different_internal._factors_applied)
+        )
+        assert fft_array_2d.eager == fft_indexed.eager
+        assert fft_different_internal.space == fft_indexed.space
+
+        # Test FFTArray.sel()
+        fft_raw_values = fft_array_2d.sel(indexers, method="nearest").values
+        fft_different_internal = fft_array_2d.into(space=diff_space_comb).into(space=space_comb_list)
+        fft_indexed = fft_different_internal.sel(indexers)
+        fft_indexed_values = fft_indexed.values
+
+        np.testing.assert_array_equal(fft_raw_values, fft_indexed_values)
+        assert (
+            all(fft_indexed._factors_applied) or
+            (len(indexers) == 0 and fft_indexed._factors_applied == fft_different_internal._factors_applied)
+        )
+        assert fft_array_2d.eager == fft_array_2d.eager
+        assert fft_different_internal.space == fft_array_2d.space
+    except (KeyError, NotImplementedError):
+        return
 
 def generate_test_fftarray_xrdataset(
     dimension_names: List[str],

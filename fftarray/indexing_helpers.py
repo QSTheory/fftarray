@@ -84,7 +84,7 @@ def tuple_indexers_from_mapping(
             tuple_indexers.append(slice(None, None, None))
     return tuple(tuple_indexers)
 
-def tuple_indexers_from_dict_or_kwargs(
+def tuple_indexers_from_dict_or_tuple(
     indexers: Union[
         int, slice, Tuple[Union[int, slice, EllipsisType],...],
         Mapping[Hashable, Union[int, slice]],
