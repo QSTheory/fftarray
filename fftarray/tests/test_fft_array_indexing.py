@@ -93,19 +93,18 @@ valid_test_slices = [
 
 @pytest.mark.parametrize("valid_slice", valid_test_slices)
 @pytest.mark.parametrize("space", ["pos", "freq"])
-# TODO: test also for do_jit == True
-@pytest.mark.parametrize("do_jit", [False])
+@pytest.mark.parametrize("do_jit", [False, True])
 def test_valid_fftdim_dim_from_slice(do_jit: bool, space: Space, valid_slice: slice) -> None:
 
     if do_jit:
         @jax.jit
-        def test_function(_slice):
-            return TEST_FFTDIM._dim_from_slice_jax(range=_slice, space=space)
+        def test_function():
+            return TEST_FFTDIM._dim_from_slice(range=valid_slice, space=space)
     else:
-        def test_function(_slice):
-            return TEST_FFTDIM._dim_from_slice(range=_slice, space=space)
+        def test_function():
+            return TEST_FFTDIM._dim_from_slice(range=valid_slice, space=space)
 
-    result_dim = test_function(valid_slice)
+    result_dim = test_function()
 
     assert np.array_equal(
         result_dim.np_array(space),
@@ -125,36 +124,49 @@ def test_errors_fftdim_dim_from_slice(space: Space, invalid_slice: slice) -> Non
     with pytest.raises(IndexError):
         TEST_FFTDIM._dim_from_slice(invalid_slice, space=space)
 
+invalid_substepping_slices = [
+    slice(None, None, 2), slice(None, None, 3),
+    slice(None, None, 0), slice(None, None, -1), slice(None, None, -2)
+]
+
+@pytest.mark.parametrize("tlib_class", TENSOR_LIBS)
+@pytest.mark.parametrize("invalid_slice", invalid_substepping_slices)
+@pytest.mark.parametrize("space", ["pos", "freq"])
+def test_errors_fftarray_index_substepping(
+    space: Space,
+    invalid_slice: slice,
+    tlib_class: TensorLib
+) -> None:
+
+    fft_arr = TEST_FFTDIM.fft_array(tlib=tlib_class(), space=space)
+
+    with pytest.raises(IndexError):
+        fft_arr[invalid_slice]
+    with pytest.raises(IndexError):
+        fft_arr.loc[invalid_slice]
+    with pytest.raises(IndexError):
+        fft_arr.sel(x=invalid_slice)
+    with pytest.raises(IndexError):
+        fft_arr.isel(x=invalid_slice)
 
 coord_test_samples = [
     -5, -1.5, -1, -0.5, 0, 0.3, 0.5, 0.7, 1, 1.3, 7.5, 8, 8.5, 9,
-    (-5,10), (None, None), (0,7), (0,8), (0.5,0.1)
+    slice(-5,10), slice(None, None), slice(0,7), slice(0,8), slice(0.5,0.1)
 ]
 
 @pytest.mark.parametrize("tlib_class", TENSOR_LIBS)
 @pytest.mark.parametrize("method", ["nearest", "pad", "ffill", "backfill", "bfill", None])
 @pytest.mark.parametrize("valid_coord", coord_test_samples)
 @pytest.mark.parametrize("space", ["pos", "freq"])
-@pytest.mark.parametrize("do_jit", [True, False])
 def test_valid_index_from_coord(
-    do_jit: bool,
     space: Space,
     valid_coord: Union[float,slice],
     method: Literal["nearest", "pad", "ffill", "backfill", "bfill", None],
     tlib_class: TensorLib
 ) -> None:
 
-    if do_jit:
-        tlib = tlib_class()
-        if isinstance(tlib, JaxTensorLib) and method=='nearest':
-            @jax.jit
-            def test_function(_coord):
-                return TEST_FFTDIM._index_from_coord(coord=_coord, space=space, method=method, tlib=tlib_class())
-        else:
-            return
-    else:
-        def test_function(_coord):
-            return TEST_FFTDIM._index_from_coord(coord=_coord, space=space, method=method, tlib=tlib_class())
+    def test_function(_coord):
+        return TEST_FFTDIM._index_from_coord(coord=_coord, space=space, method=method, tlib=tlib_class())
 
     try:
         try:
@@ -191,10 +203,7 @@ integer_indexers_test_samples = [
 @pytest.mark.parametrize("indexers", integer_indexers_test_samples)
 @pytest.mark.parametrize("tlib_class", TENSOR_LIBS)
 @pytest.mark.parametrize("space", ["pos", "freq"])
-# TODO: think about making this also jittable
-@pytest.mark.parametrize("do_jit", [False])
 def test_3d_fft_array_indexing_by_integer(
-    do_jit: bool,
     space: Space,
     tlib_class: TensorLib,
     indexers: Optional[Mapping[Hashable, Union[int, slice]]],
@@ -206,22 +215,10 @@ def test_3d_fft_array_indexing_by_integer(
         tlib=tlib_class()
     )
 
-    if do_jit:
-        tlib = tlib_class()
-        if isinstance(tlib, JaxTensorLib):
-            @jax.jit
-            def test_function_isel(_indexers) -> FFTArray:
-                return fft_array.into(space=space).isel(_indexers)
-            @jax.jit
-            def test_function_square_brackets(_indexers) -> FFTArray:
-                return fft_array.into(space=space)[_indexers]
-        else:
-            return
-    else:
-        def test_function_isel(_indexers) -> FFTArray:
-            return fft_array.into(space=space).isel(_indexers)
-        def test_function_square_brackets(_indexers) -> FFTArray:
-            return fft_array.into(space=space)[_indexers]
+    def test_function_isel(_indexers) -> FFTArray:
+        return fft_array.into(space=space).isel(_indexers)
+    def test_function_square_brackets(_indexers) -> FFTArray:
+        return fft_array.into(space=space)[_indexers]
 
     try:
         fft_array_result_isel = test_function_isel(indexers)

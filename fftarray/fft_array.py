@@ -15,7 +15,7 @@ from .backends.tensor_lib import TensorLib
 from .backends.np_backend import NumpyTensorLib
 from .helpers import UniformValue
 from .indexing_helpers import (
-    coord_as_integer, parse_tuple_indexer_to_dims, check_invalid_indexers,
+    check_substepping, parse_tuple_indexer_to_dims, check_invalid_indexers,
     tuple_indexers_from_dict_or_kwargs, tuple_indexers_from_mapping
 )
 
@@ -75,15 +75,14 @@ class LocFFTArrayIndexer(Generic[T]):
             n_dims=len(self._arr.dims)
         )
 
-        integer_indexers: Tuple[int, slice]
+        integer_indexers: Tuple[int, slice] = []
         for index, dim, space in zip(
             tuple_indexers, self._arr.dims, self._arr.space
         ):
             integer_indexers.append(
-                coord_as_integer(
+                dim._index_from_coord(
                     coord=index,
                     space=space,
-                    dim=dim,
                     tlib=self._arr.tlib,
                     method=None,
                 )
@@ -220,7 +219,7 @@ class FFTArray(metaclass=ABCMeta):
                     raise NotImplementedError(
                         f"FFTArray indexing does not support "
                         + "jitted indexers. Here, your index for "
-                        + f" dimension {orig_dim.name} is a traced object"
+                        + f"dimension {orig_dim.name} is a traced object"
                     ) from e
                 else:
                     raise e
@@ -257,12 +256,6 @@ class FFTArray(metaclass=ABCMeta):
         Inspired by xarray.DataArray.isel
         """
 
-        check_invalid_indexers(
-            indexers=indexers,
-            dim_names=tuple(self.dims_dict.keys()),
-            missing_dims=missing_dims
-        )
-
         # Check for correct use of indexers (either via positional
         # indexers arg or via indexers_kwargs)
         if indexers is not None and indexers_kwargs:
@@ -272,6 +265,12 @@ class FFTArray(metaclass=ABCMeta):
             )
         if indexers is None:
             indexers = indexers_kwargs
+
+        check_invalid_indexers(
+            indexers=indexers,
+            dim_names=tuple(self.dims_dict.keys()),
+            missing_dims=missing_dims
+        )
 
         tuple_indexers = tuple_indexers_from_mapping(
             indexers,
@@ -294,12 +293,6 @@ class FFTArray(metaclass=ABCMeta):
                 - Implements missing_dims arg and accordingly raises errors
         """
 
-        check_invalid_indexers(
-            indexers=indexers,
-            dim_names=tuple(self.dims_dict.keys()),
-            missing_dims=missing_dims
-        )
-
         # Check for correct use of indexers (either via positional
         # indexers arg or via indexers_kwargs)
         if indexers is not None and indexers_kwargs:
@@ -310,16 +303,21 @@ class FFTArray(metaclass=ABCMeta):
         if indexers is None:
             indexers = indexers_kwargs
 
+        check_invalid_indexers(
+            indexers=indexers,
+            dim_names=tuple(self.dims_dict.keys()),
+            missing_dims=missing_dims
+        )
+
         tuple_indexers_as_integer = []
         for dim, space in zip(self.dims, self.space):
             if dim.name in indexers:
                 index = indexers[dim.name]
                 try:
                     tuple_indexers_as_integer.append(
-                        coord_as_integer(
+                        dim._index_from_coord(
                             coord=index,
                             space=space,
-                            dim=dim,
                             tlib=self.tlib,
                             method=method,
                         )
@@ -1121,17 +1119,9 @@ class FFTDimension:
             difference that we raise an IndexError if the resulting size
             is not at least 1. We require n>=1 to create a valid FFTDimension.
         """
-        if not(range.step is None or range.step == 1):
-            raise IndexError(
-                f"You can't index using {range} but only " +
-                f"slice({range.start}, {range.stop}) with implicit index step 1. " +
-                "Substepping requires reducing the respective other space " +
-                "which is not well defined due to the arbitrary choice of " +
-                "which part of the space to keep (constant min, middle or max?). "
-            )
 
-        # TODO: this does not work for jitted function call, use of JaxTensorLib
-        # make this maybe a TensorLib method.
+        check_substepping(range)
+
         def _remap_index_check_int(
                 index: int,
                 dim_n: int,
@@ -1208,25 +1198,26 @@ class FFTDimension:
 
             min maps 2.5 to index 3 (bfill, backfill), max currently maps 2.5 to index 2 (pad, ffill)
         """
-        if isinstance(coord, tuple):
+        if isinstance(coord, slice):
+            check_substepping(coord)
             if method is not None:
                 raise NotImplementedError(
                     f"cannot use method: `{method}` if the coord argument "
                     + f"is not scalar, here: {coord}."
                 )
-            if coord[0] is None:
+            if coord.start is None:
                 coord_start = getattr(self, f"{space}_min")
             else:
-                coord_start = coord[0]
-            if coord[1] is None:
+                coord_start = coord.start
+            if coord.stop is None:
                 coord_stop = getattr(self, f"{space}_max")
             else:
-                coord_stop = coord[1]
+                coord_stop = coord.stop
+
             idx_min = self._index_from_coord(coord_start, method="bfill", space=space, tlib=tlib)
             idx_max = self._index_from_coord(coord_stop, method="ffill", space=space, tlib=tlib)
             return slice(
-                tlib.array(idx_min, dtype=int),
-                tlib.array(idx_max+1, dtype=int) # slice stop is open interval, add 1
+                idx_min, idx_max + 1
             )
 
         if space == "pos":
@@ -1234,10 +1225,10 @@ class FFTDimension:
         else:
             raw_idx = (coord - self.freq_min) / self.d_freq
 
-        clamped_index = tlib.numpy_ufuncs.min(tlib.array([
-            tlib.numpy_ufuncs.max(tlib.array([0, raw_idx])),
+        clamped_index = min(
+            max(0, raw_idx),
             self.n - 1
-        ]))
+        )
 
         if method is None:
             if (
@@ -1254,7 +1245,7 @@ class FFTDimension:
             # The combination of floor and +0.5 prevents the "ties to even" rounding of floating point numbers.
             final_idx = tlib.numpy_ufuncs.floor(clamped_index + 0.5)
         elif method in ["bfill", "backfill"]:
-            final_idx = tlib.numpy_ufuncs.ceil(clamped_index)
+            final_idx = np.ceil(clamped_index)
             if raw_idx > self.n - 1:
                 raise KeyError(
                     f"Coord {coord} not found with method '{method}', "
@@ -1262,7 +1253,7 @@ class FFTDimension:
                     + "'ffill', 'pad' or 'nearest'."
                 )
         elif method in ["ffill", "pad"]:
-            final_idx = tlib.numpy_ufuncs.floor(clamped_index)
+            final_idx = np.floor(clamped_index)
             if raw_idx < 0:
                 raise KeyError(
                     f"Coord {coord} not found with method '{method}', "
@@ -1272,7 +1263,7 @@ class FFTDimension:
         else:
             raise ValueError(f"Specified unsupported look-up method `{method}`.")
 
-        return tlib.array(final_idx, dtype=int)
+        return int(final_idx)
 
     # ---------------------------- Frequency Space --------------------------- #
 

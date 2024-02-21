@@ -123,33 +123,12 @@ def tuple_indexers_from_dict_or_kwargs(
 
     return tuple_indexers
 
-# TODO: This method does not feel right here, we need an FFTDimension
-# Either put this in fft_array.py again or include type checks in
-# FFTDimension._index_from_coord maybe
-def coord_as_integer(
-    coord: Union[slice, float],
-    dim,
-    space,
-    tlib,
-    method,
-):
-
-    if isinstance(coord, slice):
-        if not(coord.step is None or coord.step == 1):
-            raise IndexError(
-                f"You can't index using {coord} but only " +
-                f"slice({coord.start}, {coord.stop}) with implicit index step 1. " +
-                "Substepping requires reducing the respective other space " +
-                "which is not well defined due to the arbitrary choice of " +
-                "which part of the space to keep (constant min, middle or max?). "
-            )
-        indexer = (coord.start, coord.stop)
-    else:
-        indexer = coord
-
-    return dim._index_from_coord(
-        coord=indexer,
-        space=space,
-        tlib=tlib,
-        method=method
-    )
+def check_substepping(_slice: slice):
+    if not(_slice.step is None or _slice.step == 1):
+        raise IndexError(
+            f"You can't index using {_slice} but only " +
+            f"slice({_slice.start}, {_slice.stop}) with implicit index step 1. " +
+            "Substepping requires reducing the respective other space " +
+            "which is not well defined due to the arbitrary choice of " +
+            "which part of the space to keep (constant min, middle or max?). "
+        )
