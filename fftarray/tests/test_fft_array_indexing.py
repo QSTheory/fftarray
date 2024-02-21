@@ -1,6 +1,6 @@
 
 from functools import reduce
-from typing import Dict, Hashable, List, Literal, Mapping, Tuple, Union
+from typing import Dict, Hashable, List, Literal, Mapping, Tuple, TypeVar, Union
 import pytest
 import numpy as np
 import jax
@@ -13,6 +13,8 @@ from fftarray.backends.np_backend import NumpyTensorLib
 from fftarray.backends.pyfftw_backend import PyFFTWTensorLib
 
 jax.config.update("jax_enable_x64", True)
+
+EllipsisType = TypeVar('EllipsisType')
 
 TENSOR_LIBS = [NumpyTensorLib, JaxTensorLib, PyFFTWTensorLib]
 
@@ -99,7 +101,7 @@ def test_valid_fftdim_dim_from_slice(do_jit: bool, space: Space, valid_slice: sl
         def test_function():
             return TEST_FFTDIM._dim_from_slice(range=valid_slice, space=space)
     else:
-        def test_function():
+        def test_function(): # type: ignore
             return TEST_FFTDIM._dim_from_slice(range=valid_slice, space=space)
 
     result_dim = test_function()
@@ -149,7 +151,9 @@ def test_errors_fftarray_index_substepping(
 
 invalid_tuples = [
     (Ellipsis, Ellipsis),
-    (slice(None, None), slice(None, None))
+    (slice(None, None), slice(None, None), slice(None, None)),
+    (Ellipsis, slice(None, None), slice(None, None)),
+    (slice(None, None), slice(None, None), Ellipsis),
 ]
 
 @pytest.mark.parametrize("tlib_class", TENSOR_LIBS)
@@ -161,7 +165,12 @@ def test_errors_fftarray_invalid_indexes(
     tlib_class,
 ) -> None:
 
-    fft_arr = TEST_FFTDIM.fft_array(tlib=tlib_class(), space=space)
+    fft_arr, _ = generate_test_fftarray_xrdataset(
+        ["x", "y"],
+        dimension_length=8,
+        tlib=tlib_class()
+    )
+    fft_arr = fft_arr.into(space=space)
 
     with pytest.raises(IndexError):
         fft_arr[invalid_tuple]
@@ -264,6 +273,71 @@ def test_3d_fft_array_indexing_by_integer(
         fft_array_result_square_brackets.values,
         xr_result.data
     )
+
+tuple_indexers = [
+    (..., slice(None, None)),
+    (slice(None, None), ...),
+    (...,),
+    (slice(None,5), ),
+    (slice(None,1), ..., slice(None,2)),
+    (slice(None, None), slice(None, None))
+]
+
+@pytest.mark.parametrize("indexers", tuple_indexers)
+@pytest.mark.parametrize("tlib_class", TENSOR_LIBS)
+@pytest.mark.parametrize("space", ["pos", "freq"])
+def test_3d_fft_array_positional_indexing(
+    space: Space,
+    tlib_class,
+    indexers: Tuple[Union[int, float, slice, EllipsisType]],
+) -> None:
+
+    fft_array, xr_dataset = generate_test_fftarray_xrdataset(
+        ["x", "y", "z"],
+        dimension_length=8,
+        tlib=tlib_class()
+    )
+
+    def test_function_loc_square_brackets(_indexers) -> FFTArray:
+        return fft_array.into(space=space).loc[_indexers]
+    def test_function_square_brackets(_indexers) -> FFTArray:
+        return fft_array.into(space=space)[_indexers]
+
+    error = False
+    try:
+        fft_array_result_square_brackets = test_function_square_brackets(indexers) # type: ignore
+    except Exception as e:
+        fft_array_result_square_brackets = type(e) # type: ignore
+    try:
+        xr_result_square_bracket = xr_dataset[space][indexers].data
+    except Exception as e:
+        error = True
+        xr_result_square_bracket = type(e)
+        assert fft_array_result_square_brackets == xr_result_square_bracket
+
+    if not error:
+        np.testing.assert_array_equal(
+            fft_array_result_square_brackets.values,
+            xr_result_square_bracket.data
+        )
+
+    error = False
+    try:
+        fft_array_result_loc_square_brackets = test_function_loc_square_brackets(indexers) # type: ignore
+    except Exception as e:
+        fft_array_result_loc_square_brackets = type(e) # type: ignore
+    try:
+        xr_result_loc_square_bracket = xr_dataset[space].loc[indexers].data
+    except Exception as e:
+        error = True
+        xr_result_loc_square_bracket = type(e)
+        assert fft_array_result_loc_square_brackets == xr_result_loc_square_bracket
+
+    if not error:
+        np.testing.assert_array_equal(
+            fft_array_result_loc_square_brackets.values,
+            xr_result_loc_square_bracket.data
+        )
 
 label_indexers_test_samples = [
     {"x": 1, "y": 1, "z": 1}, {"x": 1, "y": 1, "z": slice(None, None)},

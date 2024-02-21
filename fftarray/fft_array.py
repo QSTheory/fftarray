@@ -22,7 +22,7 @@ from .indexing_helpers import (
 
 # TODO: instead: T_FFTArray = TypeVar("T_FFTArray", bound="FFTArray")
 T = TypeVar("T")
-EllipsisType = TypeVar('EllipsisType', bound=type(Ellipsis))
+EllipsisType = TypeVar('EllipsisType')
 
 Space = Literal["pos", "freq"]
 
@@ -57,16 +57,17 @@ class LocFFTArrayIndexer(Generic[T]):
     def __getitem__(
             self,
             item: Union[
-                int, slice, EllipsisType, Tuple[Union[int, slice, EllipsisType],...],
-                Mapping[Hashable, Union[int, slice]],
+                int, slice, EllipsisType,
+                Tuple[Union[int, slice, EllipsisType],...],
+                Dict[str, Union[int, slice]],
             ]
         ) -> FFTArray:
 
         if item is Ellipsis:
             return self._arr
 
-        if isinstance(item, Mapping):
-            return self._arr.sel(item)
+        if isinstance(item, dict):
+            return self._arr.sel(item) # type: ignore
 
         if not isinstance(item, tuple):
             item = (item,)
@@ -76,7 +77,7 @@ class LocFFTArrayIndexer(Generic[T]):
             n_dims=len(self._arr.dims)
         )
 
-        integer_indexers: Tuple[int, slice] = []
+        integer_indexers: List[Union[int, slice]] = []
         for index, dim, space in zip(
             tuple_indexers, self._arr.dims, self._arr.space
         ):
@@ -182,7 +183,8 @@ class FFTArray(metaclass=ABCMeta):
     def __getitem__(
             self,
             item: Union[
-                int, slice, EllipsisType, Tuple[Union[int, slice, EllipsisType],...],
+                int, slice, EllipsisType,
+                Tuple[Union[int, slice, EllipsisType],...],
                 Mapping[Hashable, Union[int, slice]],
             ]
         ) -> FFTArray:
@@ -201,8 +203,8 @@ class FFTArray(metaclass=ABCMeta):
         # Handle two cases of supplying indexing information, either
         # via keyword args (Mapping) or via tuple using order of dims
         tuple_indexers = tuple_indexers_from_dict_or_tuple(
-            indexers=item,
-            dim_names=tuple(dim.name for dim in self.dims)
+            indexers=item, # type: ignore
+            dim_names=tuple(dim.name for dim in self.dims) # type: ignore
         )
 
         new_dims = []
@@ -253,9 +255,9 @@ class FFTArray(metaclass=ABCMeta):
 
     def isel(
             self,
-            indexers: Optional[Mapping[Hashable, Union[int, slice]]] = None,
+            indexers: Optional[Dict[str, Union[int, slice]]] = None,
             missing_dims: Literal["raise", "warn", "ignore"] = 'raise',
-            **indexers_kwargs: Any,
+            **indexers_kwargs: Union[int, slice],
         ) -> FFTArray:
         """
         Inspired by xarray.DataArray.isel
@@ -268,31 +270,35 @@ class FFTArray(metaclass=ABCMeta):
                 "cannot specify both keyword arguments and "
                 + "positional arguments to FFTArray.isel"
             )
-        if indexers is None:
-            indexers = indexers_kwargs
 
-        if len(indexers) == 0:
+        final_indexers: Dict[str, Union[int, slice]]
+        if indexers is None:
+            final_indexers = indexers_kwargs
+        else:
+            final_indexers = indexers
+
+        if len(final_indexers) == 0:
             return self
 
         check_invalid_indexers(
-            indexers=indexers,
+            indexer_names=final_indexers.keys(),
             dim_names=tuple(self.dims_dict.keys()),
             missing_dims=missing_dims
         )
 
         tuple_indexers = tuple_indexers_from_mapping(
-            indexers,
-            dim_names=[dim.name for dim in self.dims],
+            final_indexers, # type: ignore
+            dim_names=[dim.name for dim in self.dims], # type: ignore
         )
 
         return self.__getitem__(tuple_indexers)
 
     def sel(
             self,
-            indexers: Optional[Mapping[Hashable, Union[float, slice]]] = None,
+            indexers: Optional[Dict[str, Union[float, slice]]] = None,
             missing_dims: Literal["raise", "warn", "ignore"] = 'raise',
             method: Optional[Literal["nearest", "pad", "ffill", "backfill", "bfill"]] = None,
-            **indexers_kwargs: Any,
+            **indexers_kwargs: Union[float, slice],
         ) -> FFTArray:
         """
             Inspired by xarray.DataArray.sel
@@ -307,22 +313,26 @@ class FFTArray(metaclass=ABCMeta):
                 "cannot specify both keyword arguments and "
                 + "positional arguments to FFTArray.sel"
             )
-        if indexers is None:
-            indexers = indexers_kwargs
 
-        if len(indexers) == 0:
+        final_indexers: Dict[str, Union[float, slice]]
+        if indexers is None:
+            final_indexers = indexers_kwargs
+        else:
+            final_indexers = indexers
+
+        if len(final_indexers) == 0:
             return self
 
         check_invalid_indexers(
-            indexers=indexers,
+            indexer_names=final_indexers.keys(),
             dim_names=tuple(self.dims_dict.keys()),
             missing_dims=missing_dims
         )
 
         tuple_indexers_as_integer = []
         for dim, space in zip(self.dims, self.space):
-            if dim.name in indexers:
-                index = indexers[dim.name]
+            if dim.name in final_indexers:
+                index = final_indexers[dim.name] # type: ignore
                 try:
                     tuple_indexers_as_integer.append(
                         dim._index_from_coord(
@@ -1142,10 +1152,6 @@ class FFTDimension:
                     return 0
                 else:
                     return dim_n
-            try:
-                index = index.item()
-            except:
-                ...
             if not isinstance(index, int):
                 raise IndexError("only integers, slices (`:`), ellipsis (`...`) are valid indices.")
             if index < -dim_n:
@@ -1188,7 +1194,7 @@ class FFTDimension:
             assert False, "Unreachable"
 
         return FFTDimension(
-            name=self.name,
+            name=self.name, # type: ignore
             n=n,
             pos_min=pos_min,
             freq_min=freq_min,
