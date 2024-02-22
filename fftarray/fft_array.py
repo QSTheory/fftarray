@@ -1494,8 +1494,8 @@ class FFTDimension:
 
             # Use the scalar part of this function with the methods bfill and ffill
             # to yield indices to include the respective coordinates
-            idx_min = self._index_from_coord(coord_start, method="bfill", space=space, tlib=tlib)
-            idx_max = self._index_from_coord(coord_stop, method="ffill", space=space, tlib=tlib)
+            idx_min: int = self._index_from_coord(coord_start, method="bfill", space=space, tlib=tlib) # type: ignore
+            idx_max: int = self._index_from_coord(coord_stop, method="ffill", space=space, tlib=tlib) # type: ignore
             return slice(
                 idx_min,
                 idx_max + 1 # as slice.stop is non-inclusive, add 1
