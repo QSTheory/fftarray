@@ -24,6 +24,8 @@ _docs = [
     "sphinx-autodoc-typehints",
     "sphinx-book-theme>=1.0.1",
     "sphinx-design",
+    "nbsphinx",
+    "nbsphinx-link",
     "myst-nb",
     "m2r2",
     "matplotlib"
