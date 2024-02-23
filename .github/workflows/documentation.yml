@@ -41,10 +41,11 @@ jobs:
 
       - name: Install dependencies
         run: |
-          wget https://github.com/jgm/pandoc/releases/download/2.19.2/pandoc-2.19.2-1-amd64.deb
-          dpkg -i pandoc-2.19.2-1-amd64.deb
           python -m pip install --upgrade pip
           python -m pip install -e ".[dev]"
+
+      - name: Pandoc install
+        uses: docker://pandoc/core:2.9
 
       - name: Sphinx build
         run: |
