@@ -53,16 +53,15 @@ def parse_tuple_indexer_to_dims(
 
     return full_tuple_indexers
 
-def check_invalid_indexers(
+def check_missing_dim_names(
     indexer_names: Iterable[Hashable],
     dim_names: Tuple[Hashable, ...],
     missing_dims: Literal["raise", "warn", "ignore"],
 ) -> None:
-    """Check for invalid indexers and depending on the choice of missing_dims,
-    either raise a ValueError, throw a warning or just ignore.
-    This method handles invalid indexers in the sense that these are not
-    matching any FFTArray dimension name.
-    The three different choices for how to handle missing dimensions are
+    """Check for indexers with a dimension name that does not appear in the FFTArray. 
+    Depending on the choice of missing_dims,
+    either raises a ValueError, throws a warning or just ignores.
+    These three different choices for how to handle missing dimensions are
     inspired by xarray and can be set by the user on calling FFTArray.sel or isel.
     Other invalidities are handled elsewhere.
     """

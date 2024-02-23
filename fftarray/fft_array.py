@@ -45,8 +45,8 @@ class LocFFTArrayIndexer(Generic[T]):
     """
         `FFTArray.loc` allows indexing by coordinate position.
         It supports both positional and name look up (via dict).
-        In order to support the indexing operator for coordinate (label)
-        instead of integer (index) look up, we need this indexable helper
+        In order to support the indexing operator `__getitem__` for coordinate (label)
+        instead of integer (index) look up (e.g. `arr.loc[1:3]`), we need this indexable helper
         class to be returned by the property `loc`.
     """
     _arr: FFTArray
@@ -66,11 +66,11 @@ class LocFFTArrayIndexer(Generic[T]):
             i.e., by using the coordinate value via FFTArray.loc[].
             It supports dimensional lookup via position and name.
             The indexing behaviour is mainly defined to match the one of
-            xarray.DataArray with the major difference that we always keep
+            `xarray.DataArray` with the major difference that we always keep
             all dimensions.
             The indexing is performed in the current state of the FFTArray,
             i.e., each dimension is indexed in its respective state (pos or freq).
-            When the returned FFTArray object is effectively indexed,
+            When the indexing actually changes the returned FFTArray by removing some values,
             its internal state will always have all fft factors applied.
 
             Example usage:
@@ -91,14 +91,14 @@ class LocFFTArrayIndexer(Generic[T]):
         Parameters
         ----------
         item : Union[ int, slice, EllipsisType, Tuple[Union[int, slice, EllipsisType],...], Mapping[Hashable, Union[int, slice]], ]
-            An indexer object with either dimension lookup method either
+            An indexer object with dimension lookup method either
             via position or name. When using positional lookup, the order
-            of the dimensions in the FFTArray object is applied (FFTArray.dims).
+            of the dimensions in the FFTArray object is used (FFTArray.dims).
             Per dimension, each indexer can be supplied as an integer or a slice.
             Array-like indexers are not supported as in the general case,
-            the resulting coordinates can not be supported with a valid FFTDimension.
+            the resulting coordinates cannot be expressed as a valid FFTDimension.
         FFTArray
-            A new FFTArray with the same dimensionality as this FFTArray,
+            A new FFTArray with the same dimensions as this FFTArray,
             except each dimension and the FFTArray values are indexed.
             The resulting FFTArray still fully supports FFTs.
         """
@@ -325,7 +325,7 @@ class FFTArray(metaclass=ABCMeta):
                 Mapping[Hashable, Union[int, slice]],
             ]
         ) -> FFTArray:
-        """This method is called when indexing an FFTArray instance by integer,
+        """This method is called when indexing an FFTArray instance by integer index,
             i.e., by using the index value via FFTArray[].
             It supports dimensional lookup via position and name.
             The indexing behaviour is mainly defined to match the one of
@@ -346,8 +346,8 @@ class FFTArray(metaclass=ABCMeta):
 
             arr_2d[{"x": 3, "y": slice(0, 5)}]
             arr_2d[3,:5]
-            arr_2d[3][:,:5] # don't use, just for explaining functionality
-            arr_2d[:,:5][3] # don't use, just for explaining functionality
+            arr_2d[3][:,:5] # do not use, just for explaining functionality
+            arr_2d[:,:5][3] # do not use, just for explaining functionality
 
         Parameters
         ----------
@@ -1465,7 +1465,7 @@ class FFTDimension:
         In case of slice input, find the dimension indices which are
         including the selected coordinates, and return appropriate slice object.
 
-        Short exemplary explanation what "pad", "ffill", "backfill", "bfill" do:
+        Short explanation what "pad", "ffill", "backfill", "bfill" do:
             bfill, backfill: maps 2.5 to next valid index 3
             pad, ffill: maps 2.5 to previous valid index 2
         """
@@ -1530,6 +1530,7 @@ class FFTDimension:
                 final_idx = raw_idx
             elif  method == "nearest":
                 # The combination of floor and +0.5 prevents the "ties to even" rounding of floating point numbers.
+                # We only need one branch since our indices are always positive.
                 final_idx = tlib.numpy_ufuncs.floor(clamped_index + 0.5)
             elif method in ["bfill", "backfill"]:
                 # We propagate towards the next highest index and then check
