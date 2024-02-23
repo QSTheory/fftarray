@@ -2,13 +2,14 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath(".."))
+sys.path.insert(0, os.path.abspath("../.."))
+sys.path.insert(0, os.path.abspath("../../examples/"))
 
 # ---------------------------- Project information --------------------------- #
 
 project = "FFTArray"
 copyright = "2024, The FFTArray authors. NumPy, Jax and PyFFTW are copyright the respective authors."
-author = "The FFTArrat authors"
+author = "The FFTArray authors"
 
 version = ""
 release = ""
@@ -30,7 +31,9 @@ extensions = [
     "myst_nb",
     # "sphinx_remove_toctrees",
     # "sphinx_copybutton",
-    "sphinx_design"
+    "sphinx_design",
+    "nbsphinx",
+    "nbsphinx_link"
 ]
 
 
@@ -71,7 +74,7 @@ html_theme = 'sphinx_book_theme'
 
 html_theme_options = {
     'show_toc_level': 2,
-    'repository_url': 'https://github.com/QSTheory/fftarray',
+    'repository_url': 'https://gitlab.projekt.uni-hannover.de/iqo-tsquad-github/fftarray',
     'use_repository_button': True,
     'navigation_with_keys': False,
 }
