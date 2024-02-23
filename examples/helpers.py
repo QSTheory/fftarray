@@ -1,9 +1,11 @@
-from typing import Optional
+from typing import List, Optional
 
 import numpy as np
-from bokeh.plotting import figure, row, show
+from bokeh.plotting import figure, row, column, show
+from bokeh.palettes import Turbo256
+from bokeh.models import LinearColorMapper
 
-from fftarray import FFTArray
+from fftarray import FFTArray, Space
 
 def plt_fftarray(
         arr: FFTArray,
@@ -23,6 +25,76 @@ def plt_fftarray(
         p_freq.title.text = f"{data_name or 'FFTArray values'} shown in frequency space" # type: ignore
 
         plot = row([p_pos, p_freq], sizing_mode="stretch_width") # type: ignore
+    elif len(arr.dims) == 2:
+        row_plots = []
+        spaces: List[Space] = ["pos", "freq"]
+        for space in spaces:
+            # Dimension properties
+            dim_names = [dim.name for dim in arr.dims]
+
+            fig_props = dict(
+                width=450, height=400, min_border=50,
+                x_range=tuple(getattr(arr.dims[0], f"{space}_{prop}") for prop in ["min", "max"]),
+                y_range=tuple(getattr(arr.dims[1], f"{space}_{prop}") for prop in ["min", "max"]),
+                x_axis_label = f"{dim_names[0]} {space} coordinate",
+                y_axis_label = f"{dim_names[1]} {space} coordinate",
+            )
+
+            # FFTArray values
+            values_in_space = np.array(arr.into(space=space))
+            values_imag_part = values_in_space.imag
+            values_real_part = values_in_space.real
+
+            color_map_min = min(np.min(values_imag_part), np.min(values_real_part))
+            color_map_high = max(np.max(values_imag_part), np.max(values_real_part))
+
+            if color_map_min == color_map_high:
+                color_map_min = color_map_min
+                color_map_high = color_map_min + 1
+
+            color_mapper = LinearColorMapper(
+                palette="Turbo256",
+                low=color_map_min,
+                high=color_map_high,
+            )
+
+            image_props = dict(
+                color_mapper=color_mapper,
+                dw=getattr(arr.dims[0], f"{space}_extent"),
+                dh=getattr(arr.dims[1], f"{space}_extent"),
+                x=getattr(arr.dims[0], f"{space}_min"),
+                y=getattr(arr.dims[1], f"{space}_min"),
+            )
+
+            # Create bokeh density plots (real and imaginary part)
+            fig_real_part = figure(
+                **fig_props
+            )
+            fig_imag_part = figure(
+                **fig_props
+            )
+
+            image_real_part = fig_real_part.image(
+                image=[values_real_part],
+                **image_props
+            )
+
+            fig_imag_part.image(
+                image=[values_imag_part],
+                **image_props
+            )
+            colorbar = image_real_part.construct_color_bar()
+
+            fig_real_part.add_layout(colorbar, "right")
+            fig_imag_part.add_layout(colorbar, "right")
+
+            space_name = "position" if space == "pos" else "frequency"
+            fig_real_part.title.text = f"Real part of {data_name or 'FFTArray values'} shown in {space_name} space" # type: ignore
+            fig_imag_part.title.text = f"Imaginary part of {data_name or 'FFTArray values'} shown in {space_name} space" # type: ignore
+
+            row_plots.append(column(fig_real_part, fig_imag_part))
+
+        plot = row(row_plots, sizing_mode="stretch_width") # type: ignore
     else:
         raise NotImplementedError
 

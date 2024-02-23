@@ -1,11 +1,16 @@
+from typing import List, Type, Any, Callable, Union, Tuple
+
 import pytest
+from hypothesis import given, strategies as st, note, settings
 import numpy as np
 import jax
+import jax.numpy as jnp
 
-from fftarray.fft_array import FFTArray, FFTDimension
+from fftarray.fft_array import FFTArray, FFTDimension, Space
 from fftarray.backends.jax_backend import JaxTensorLib
 from fftarray.backends.np_backend import NumpyTensorLib
 from fftarray.backends.pyfftw_backend import PyFFTWTensorLib
+from fftarray.backends.tensor_lib import TensorLib, PrecisionSpec
 from fftarray.xr_helpers import as_xr_pos
 
 jax.config.update("jax_enable_x64", True)
@@ -13,7 +18,53 @@ jax.config.update("jax_enable_x64", True)
 def assert_scalars_almost_equal_nulp(x, y, nulp = 1):
     np.testing.assert_array_almost_equal_nulp(np.array([x]), np.array([y]), nulp = nulp)
 
-tensor_libs = [NumpyTensorLib, JaxTensorLib, PyFFTWTensorLib]
+tensor_libs: List[Type[TensorLib]] = [NumpyTensorLib, JaxTensorLib, PyFFTWTensorLib]
+precisions: List[PrecisionSpec] = ["fp32", "fp64", "default"]
+spaces: List[Space] = ["pos", "freq"]
+
+# Currently only tests the values type
+def test_fft_array_constructor():
+    """Tests whether the type checking of the FFTArray input values works. 
+    An FFTArray can only be initialized if the values array type is compatible
+    with the provided TensorLib.
+    """
+    dim = FFTDimension("x", n=4, d_pos=0.1, pos_min=0., freq_min=0.)
+    values = [1,2,3,4]
+    np_arr = np.array(values)
+    jnp_arr = jnp.array(values)
+
+    failing_sets = [
+        (values, [NumpyTensorLib(), JaxTensorLib(), PyFFTWTensorLib()]),
+        (np_arr, [JaxTensorLib()]),
+        (jnp_arr, [NumpyTensorLib(), PyFFTWTensorLib()]),
+    ]
+    for arr, tlibs in failing_sets:
+        for tlib in tlibs:
+            with pytest.raises(ValueError):
+                _ = FFTArray(
+                    values=arr,
+                    dims=[dim],
+                    space="pos",
+                    eager=False,
+                    factors_applied=False,
+                    tlib=tlib,
+                )
+
+    working_sets = [
+        (np_arr, NumpyTensorLib()),
+        (np_arr, PyFFTWTensorLib()),
+        (jnp_arr, JaxTensorLib()),
+    ]
+    for arr, tlib in working_sets:
+            _ = FFTArray(
+                values=arr,
+                dims=[dim],
+                space="pos",
+                eager=False,
+                factors_applied=False,
+                tlib=tlib,
+            )
+
 
 @pytest.mark.parametrize("tlib_class", tensor_libs)
 @pytest.mark.parametrize("do_jit", [False, True])
@@ -136,7 +187,7 @@ def test_dtype(tensor_lib, precision, override, eager: bool) -> None:
     # For non-float and non-complex dtypes, we do not force the tlib precision types
     # onto the values. Therefore, the FFTArray.values dtype should not be affected by the
     # tlib_override precision for both integer values and boolean values
-    
+
     int_arr = FFTArray(
         values=tlib.array([1,2,3,4]),
         dims=[x_dim],
@@ -191,58 +242,332 @@ def test_broadcasting(nulp: int = 1) -> None:
     np.testing.assert_array_almost_equal_nulp((x_dim.fft_array(tlib=NumpyTensorLib(), space="pos") + y_dim.fft_array(tlib=NumpyTensorLib(), space="pos")).transpose("x", "y").values, (x_ref_broadcast+y_ref_broadcast).transpose(), nulp = 0)
     np.testing.assert_array_almost_equal_nulp((x_dim.fft_array(tlib=NumpyTensorLib(), space="pos") + y_dim.fft_array(tlib=NumpyTensorLib(), space="pos")).transpose("y", "x").values, x_ref_broadcast+y_ref_broadcast, nulp = 0)
 
-# TODO: Port and extend to new LazyState impl
-# def assert_special_fun_equivalence(arr_lazy, arr_ref, eager: bool):
-#     np.testing.assert_array_almost_equal(arr_lazy.values, arr_ref)
-#     if not eager:
-#         np.testing.assert_array_almost_equal(arr_lazy._set_lazy_state(LazyState()), arr_ref)
-#     np.testing.assert_array_almost_equal(np.abs(arr_lazy).values, np.abs(arr_ref))
 
-#     np.testing.assert_array_almost_equal((arr_lazy*arr_lazy).values, arr_ref*arr_ref)
-#     if not eager:
-#         np.testing.assert_array_almost_equal((arr_lazy*arr_lazy)._set_lazy_state(LazyState()), arr_ref*arr_ref)
-#     np.testing.assert_array_almost_equal(np.abs(arr_lazy*arr_lazy).values, np.abs(arr_ref*arr_ref))
+@pytest.mark.parametrize("tensor_lib", tensor_libs)
+@pytest.mark.parametrize("space", spaces)
+def test_sel_order(tensor_lib, space):
+    """Tests whether the selection order matters. Assuming an input FFTArray of
+    dimensions A and B. Then
 
-# @pytest.mark.parametrize("eager", [False, True])
-# def test_lazy(eager: bool) -> None:
-#     dim_pos_x = FFTDimension("x", n = 4, d_pos = 1., pos_min = 0.3, freq_min = 0.7, default_eager=eager)
-#     dim_pos_y = FFTDimension("y", n = 4, d_pos = 1., pos_min = 1.3, freq_min = 1.7, default_eager=eager)
-#     dim_freq_x = FFTDimension("x", n = 4, d_freq = 1., pos_min = 0.7, freq_min = 0.3, default_eager=eager)
-#     dim_freq_y = FFTDimension("y", n = 4, d_freq = 1., pos_min = 1.7, freq_min = 1.3, default_eager=eager)
+        FFTArray.sel(A==a).sel(B==b) == FFTArray.sel(B==b).sel(A==a)
 
-#     ref_values = np.arange(4).reshape(4,1)+0.3 + np.arange(4).reshape(1,4)+1.3
-#     arrs = [
-#         (dim_pos_x.fft_array(space="pos") + dim_pos_y.fft_array(space="pos")).transpose("x", "y"),
-#         (dim_freq_x.fft_array(space="freq") + dim_freq_y.fft_array(space="freq")).transpose("x", "y"),
-#     ]
-#     for arr in arrs:
-#         np.testing.assert_array_almost_equal(arr.fft_array(space="freq").fft_array(space="pos").fft_array(space="freq").values, arr.fft_array(space="freq").values)
-#         np.testing.assert_array_almost_equal(arr.values, ref_values)
+    should be true.
+    """
+    xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
+    ydim = FFTDimension("y", n=8, d_pos=0.03, pos_min=-0.5, freq_min=-4.7)
+    arr = xdim.fft_array(tlib=tensor_lib(), space=space) + ydim.fft_array(tlib=tensor_lib(), space=space)
+    arr_selx = arr.sel(**{"x": getattr(xdim, f"{space}_middle")})
+    arr_sely = arr.sel(**{"y": getattr(ydim, f"{space}_middle")})
+    arr_selx_sely = arr_selx.sel(**{"y": getattr(ydim, f"{space}_middle")})
+    arr_sely_selx = arr_sely.sel(**{"x": getattr(xdim, f"{space}_middle")})
+    np.testing.assert_allclose(arr_selx_sely.values, arr_sely_selx.values)
 
-#         ref_scaled = 2*ref_values
 
-#         arr_lazy = arr.add_scale(2.)
-#         if not eager:
-#             assert arr_lazy._lazy_state == LazyState(scale = 2.)
-#         assert_special_fun_equivalence(arr_lazy, ref_scaled, eager)
+def draw_hypothesis_fft_array_values(draw, st_type, shape):
+    """Creates multi-dimensional array with shape `shape` whose values are drawn
+    using `draw` from `st_type`."""
+    if len(shape) > 1:
+        return [draw_hypothesis_fft_array_values(draw, st_type, shape[1:]) for _ in range(shape[0])]
+    return draw(st.lists(st_type, min_size=shape[0], max_size=shape[0]))
 
-#         # This feature is currently commented out due to some problems with jax tracing
-#         # and it is also questionable whether it is a good design at all.
-#         # arr_lazy = 2. * arr
-#         # assert arr_lazy._lazy_state == LazyState(scale = 2.)
-#         # assert_special_fun_equivalence(arr_lazy, ref_scaled)
+@st.composite
+def fftarray_strategy(draw):
+    """Initializes an FFTArray using hypothesis."""
+    ndims = draw(st.integers(min_value=1, max_value=4))
+    value = st.one_of([
+        st.integers(min_value=np.iinfo(np.int32).min, max_value=np.iinfo(np.int32).max),
+        st.complex_numbers(allow_infinity=False, allow_nan=False, allow_subnormal=False, width=64),
+        st.floats(allow_infinity=False, allow_nan=False, allow_subnormal=False, width=32)
+    ])
+    factors_applied = draw(st.lists(st.booleans(), min_size=ndims, max_size=ndims))
+    note(f"factors_applied={factors_applied}") # TODO: remove when FFTArray.__repr__ is implemented
+    eager = draw(st.lists(st.booleans(), min_size=ndims, max_size=ndims))
+    note(f"eager={eager}") # TODO: remove when FFTArray.__repr__ is implemented
+    init_space = draw(st.sampled_from(["pos", "freq"]))
+    note(f"space={init_space}") # TODO: remove when FFTArray.__repr__ is implemented
+    tlib = draw(st.sampled_from(tensor_libs))
+    precision = draw(st.sampled_from(precisions))
 
-#         for order in [0,1,2,3]:
-#             phases_x = np.zeros(4)
-#             phases_x[order] = 0.3
-#             phases_y = np.zeros(4)
-#             phases_y[order] = 0.9
-#             arr_lazy = arr
-#             arr_lazy = arr_lazy.add_phase_factor("x", "a", PhaseFactors({i: phase for i, phase in enumerate(list(phases_x))}))
-#             arr_lazy = arr_lazy.add_phase_factor("y", "a", PhaseFactors({i: phase for i, phase in enumerate(list(phases_y))}))
+    tensor_lib = tlib(precision=precision)
+    note(tensor_lib)
+    dims = [
+        FFTDimension(f"{ndim}", n=draw(st.integers(min_value=2, max_value=8)), d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
+    for ndim in range(ndims)]
+    note(dims)
+    fftarr_values = tensor_lib.array(draw_hypothesis_fft_array_values(draw, value, [dim.n for dim in dims]))
+    note(fftarr_values.dtype)
+    note(fftarr_values)
 
-#             ref_shifted = ref_values
-#             ref_shifted = ref_shifted * np.exp(1.j * 0.3 * np.arange(4).reshape(-1,1)**order)
-#             ref_shifted = ref_shifted * np.exp(1.j * 0.9 * np.arange(4).reshape(1,-1)**order)
+    return FFTArray(
+        values=fftarr_values,
+        dims=dims,
+        space=init_space,
+        eager=eager,
+        factors_applied=factors_applied,
+        tlib=tensor_lib
+    )
 
-#             assert_special_fun_equivalence(arr_lazy, ref_shifted, eager)
+@pytest.mark.slow
+@settings(max_examples=1000, deadline=None)
+@given(fftarray_strategy())
+def test_fftarray_lazyness(fftarr):
+    """Tests the lazyness of an FFTArray, i.e., the correct behavior of
+    factors_applied and eager.
+    """
+    note(fftarr)
+    # -- basic tests
+    assert_basic_lazy_logic(fftarr, note)
+    # -- test operands
+    assert_single_operand_fun_equivalence(fftarr, all(fftarr._factors_applied), note)
+    assert_dual_operand_fun_equivalence(fftarr, all(fftarr._factors_applied), note)
+    # Jax only supports FFT for dim<4
+    if len(fftarr.dims) < 4 or not isinstance(fftarr.tlib, JaxTensorLib):
+        # -- test eager, factors_applied logic
+        assert_fftarray_eager_factors_applied(fftarr, note)
+
+@pytest.mark.parametrize("tensor_lib", tensor_libs)
+@pytest.mark.parametrize("precision", precisions)
+@pytest.mark.parametrize("space", spaces)
+@pytest.mark.parametrize("eager", [True, False])
+@pytest.mark.parametrize("factors_applied", [True, False])
+def test_fftarray_lazyness_reduced(tensor_lib, precision, space, eager, factors_applied):
+    """Tests the lazyness of an FFTArray, i.e., the correct behavior of
+    factors_applied and eager. This is the reduced/faster version of the test
+    using hypothesis.
+    """
+    xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
+    ydim = FFTDimension("y", n=8, d_pos=0.03, pos_min=-0.5, freq_min=-4.7)
+    tlib = tensor_lib(precision=precision)
+    fftarr = xdim.fft_array(tlib, space, eager) + ydim.fft_array(tlib, space, eager)
+    fftarr._factors_applied = (factors_applied, factors_applied)
+    assert_basic_lazy_logic(fftarr, print)
+    assert_single_operand_fun_equivalence(fftarr, all(fftarr._factors_applied), print)
+    assert_dual_operand_fun_equivalence(fftarr, all(fftarr._factors_applied), print)
+    assert_fftarray_eager_factors_applied(fftarr, print)
+
+def assert_basic_lazy_logic(arr, log):
+    """Tests whether FFTArray.values is equal to the internal _values for the
+    special cases where factors_applied=True, space="pos" and comparing the
+    absolute values, and where space="freq" and comparing values to
+    _values/(n*d_freq).
+    """
+    if all(arr._factors_applied):
+        # fftarray must be handled the same way as applying the operations to the values numpy array
+        log("factors_applied=True -> x.values == x._values")
+        np.testing.assert_array_equal(arr.values, arr._values, strict=True)
+
+    log("space='pos' -> abs(x.values) == abs(x._values)")
+    log("space='freq' -> abs(x.values) == abs(x._values)/(n*d_freq)")
+    scale = 1
+    for dim, space, fa in zip(arr.dims, arr.space, arr._factors_applied):
+        if space == "freq" and not fa:
+            scale *= 1/(dim.n*dim.d_freq)
+    rtol = 1e-6 if arr.tlib.precision == "fp32" else 1e-12
+    np.testing.assert_allclose(np.abs(arr.values), np.abs(arr._values)*scale, rtol=rtol)
+
+def is_inf_or_nan(x):
+    """Check if (real or imag of) x is inf or nan"""
+    return (np.isinf(x.real).any() or np.isinf(x.imag).any() or np.isnan(x.real).any() or np.isnan(x.imag).any())
+
+def internal_and_public_values_should_differ(arr: FFTArray):
+    """Returns boolean, whether `fftarray.values` should differ from
+    `fftarray._values`.
+    This is the case if `factors_applied=False` and the values are non-zero
+    (along at least one dimension).
+    Note that the position space needs to be treated separately as the phase
+    factor for the first coordinate is 1 (and thus does not change `_values`).
+    """
+    for factor, space, i, in zip(arr._factors_applied, arr.space, range(len(arr.dims))):
+        if not factor:
+            # factor needs to be applied
+            if space == "pos":
+                # check if the values are non-zero
+                # the phase factor in position space is 1 for the first
+                # coordinate and, thus, is excluded from the check
+                if (arr.tlib.numpy_ufuncs.take(arr._values, np.arange(1,arr.dims[i].n), axis=i)!=0).any():
+                    return True
+            else:
+                # for space="freq", the factor includes scale unequal 1, so all
+                # values along this dimension must be non-zero
+                if np.any(arr._values!=0, axis=i).any():
+                    return True
+    return False
+
+def assert_equal_op(
+        arr: FFTArray,
+        values: Any,
+        op: Callable[[Any],Any],
+        precise: bool,
+        op_forces_factors_applied: bool,
+        log
+    ):
+    """Helper function to test equality between an FFTArray and a values array.
+    `op` denotes the operation acting on the FFTArray and on the values before
+    comparison.
+    `precise` denotes whether the comparison is performed using nulp (number of
+    unit in the last place for tolerance) or using the less stringent
+    `numpy.testing.allclose`.
+    If `op_forces_factors_applied` is False, it will be tested whether
+    op(FFTArray)._values deviates from op(FFTArray).values (which is the case
+    if the factors have not been applied after operation and if the values are
+    non-zero). If it is True, it is tested if they are equal.
+    """
+    arr_op = op(arr).values
+    values_op = op(values)
+
+    if arr_op.dtype != values_op.dtype:
+        log(f"Changing type to {values_op.dtype}")
+        arr_op = arr_op.astype(values_op.dtype)
+        values_op = values_op.astype(values_op.dtype)
+
+    if is_inf_or_nan(values_op) or (precise==False and is_inf_or_nan(arr_op)):
+        return
+
+    rtol = 1e-6 if arr.tlib.precision == "fp32" else 1e-7
+    if precise and ("int" in str(values.dtype) or arr.tlib.precision == "fp64"):
+        if "int" in str(values.dtype):
+            np.testing.assert_array_equal(arr_op, values_op, strict=True)
+        if "float" in str(values.dtype):
+            np.testing.assert_array_almost_equal_nulp(arr_op, values_op, nulp=4)
+        if "complex" in str(values.dtype):
+            assert_array_almost_equal_nulp_complex(arr_op, values_op, nulp=4)
+    else:
+        np.testing.assert_allclose(arr_op, values_op, rtol=rtol)
+
+    _arr_op = op(arr)._values
+    if op_forces_factors_applied:
+        # _values should have factors applied
+        np.testing.assert_allclose(_arr_op, values_op, rtol=rtol)
+    else:
+        # arr._values can differ from arr.values
+        if internal_and_public_values_should_differ(arr):
+            with pytest.raises(AssertionError):
+                np.testing.assert_allclose(_arr_op, values_op, rtol=rtol)
+        else:
+            np.testing.assert_allclose(_arr_op, values_op, rtol=rtol)
+
+
+def assert_array_almost_equal_nulp_complex(x: Any, y: Any, nulp: int):
+    """Compare two arrays of complex numbers. Simply compares the real and
+    imaginary part.
+    """
+    np.testing.assert_array_almost_equal_nulp(x.real, y.real, nulp)
+    np.testing.assert_array_almost_equal_nulp(x.imag, y.imag, nulp)
+
+def assert_single_operand_fun_equivalence(arr: FFTArray, precise: bool, log):
+    """Test whether applying operands to the FFTArray (and then getting the
+    values) is equivalent to applying the same operands to the values array:
+
+        operand(FFTArray).values == operand(FFTArray.values)
+
+    """
+    values = arr.values
+    log("f(x) = x")
+    assert_equal_op(arr, values, lambda x: x, precise, False, log)
+    log("f(x) = pi*x")
+    assert_equal_op(arr, values, lambda x: np.pi*x, precise, False, log)
+    log("f(x) = abs(x)")
+    assert_equal_op(arr, values, np.abs, precise, True, log)
+    log("f(x) = x**2")
+    assert_equal_op(arr, values, lambda x: x**2, precise, True, log)
+    log("f(x) = x**3")
+    assert_equal_op(arr, values, lambda x: x**3, precise, True, log)
+    log("f(x) = exp(x)")
+    assert_equal_op(arr, values, np.exp, False, True, log) # precise comparison fails
+    log("f(x) = sqrt(x)")
+    assert_equal_op(arr, values, np.sqrt, False, True, log) # precise comparison fails
+
+def assert_dual_operand_fun_equivalence(arr: FFTArray, precise: bool, log):
+    """Test whether a dual operation on an FFTArray, e.g., the
+    sum/multiplication of two, is equivalent to applying this operand to its
+    values.
+
+        operand(FFTArray, FFTArray).values = operand(FFTArray.values, FFTArray.values)
+
+    """
+    values = arr.values
+    log("f(x,y) = x+y")
+    assert_equal_op(arr, values, lambda x: x+x, precise, False, log)
+    log("f(x,y) = x-2*y")
+    assert_equal_op(arr, values, lambda x: x-2*x, precise, False, log)
+    log("f(x,y) = x*y")
+    assert_equal_op(arr, values, lambda x: x*x, precise, False, log)
+    log("f(x,y) = x/y")
+    assert_equal_op(arr, values, lambda x: x/x, precise, False, log)
+    log("f(x,y) = x**y")
+    # integers to negative integer powers are not allowed
+    if "int" in str(values.dtype):
+        assert_equal_op(arr, values, lambda x: x**np.abs(x), precise, True, log)
+    else:
+        assert_equal_op(arr, values, lambda x: x**x, precise, True, log)
+
+def get_other_space(space: Union[Space, Tuple[Space, ...]]):
+    """Returns the other space. If input space is "pos", "freq" is returned and
+    vice versa. If space is a `Tuple[Space]`, a tuple is returned.
+    """
+    if isinstance(space, str):
+        if space == "pos":
+            return "freq"
+        return "pos"
+    return tuple(get_other_space(s) for s in space)
+
+def assert_fftarray_eager_factors_applied(arr: FFTArray, log):
+    """Tests whether the factors are only applied when necessary and whether
+    the FFTArray after performing an FFT has the correct properties. If the
+    initial FFTArray was eager, then the final FFTArray also must be eager and
+    have _factors_applied=True. If the initial FFTArray was not eager, then the
+    final FFTArray should have eager=False and _factors_applied=False.
+    """
+
+    log("arr._factors_applied == (arr**2)._factors_applied")
+    arr_sq = arr * arr
+    np.testing.assert_array_equal(arr_sq.eager, arr.eager) # type: ignore
+    np.testing.assert_array_equal(arr_sq._factors_applied, arr._factors_applied) # type: ignore
+
+    log("abs(x)._factors_applied == True")
+    arr_abs = np.abs(arr)
+    np.testing.assert_array_equal(arr_abs.eager, arr.eager) # type: ignore
+    np.testing.assert_array_equal(arr_abs._factors_applied, True) # type: ignore
+
+    log("(x*abs(x))._factors_applied == x._factors_applied")
+    # if both _factors_applied=True, the resulting FFTArray will also have it
+    # True, otherwise False
+    # given abs(x)._factors_applied=True, we test the patterns
+    # True*True=True, False*True=False
+    arr_abs_sq = arr * arr_abs
+    np.testing.assert_array_equal(arr_abs_sq.eager, arr.eager) # type: ignore
+    np.testing.assert_array_equal(arr_abs_sq._factors_applied, arr._factors_applied) # type: ignore
+
+    log("(x+abs(x))._factors_applied == (x._factors_applied or x._eager)")
+    arr_abs_sum = arr + arr_abs
+    np.testing.assert_array_equal(arr_abs_sum.eager, arr.eager) # type: ignore
+    for ea, ifa, ffa in zip(arr_abs_sum.eager, arr._factors_applied, arr_abs_sum._factors_applied):
+        # True+True=True
+        # False+True=eager
+        assert (ifa == ffa) or (ffa == ea)
+
+    log("fft(x)._factors_applied ...")
+    arr_fft = arr.into(space=get_other_space(arr.space))
+    np.testing.assert_array_equal(arr.eager, arr_fft.eager)
+    for ffapplied, feager in zip(arr_fft._factors_applied, arr_fft.eager):
+        assert (feager and ffapplied) or (not feager and not ffapplied)
+
+@pytest.mark.parametrize("tensor_lib", tensor_libs)
+@pytest.mark.parametrize("space", spaces)
+def test_fft_ifft_invariance(tensor_lib, space: Space):
+    """Tests whether ifft(fft(*)) is an identity.
+
+       ifft(fft(FFTArray)) == FFTArray
+
+    """
+    xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
+    ydim = FFTDimension("y", n=8, d_pos=0.03, pos_min=-0.4, freq_min=-4.2)
+    arr = xdim.fft_array(tlib=tensor_lib(), space=space) + ydim.fft_array(tlib=tensor_lib(), space=space)
+    other_space = get_other_space(space)
+    arr_fft = arr.into(space=other_space)
+    arr_fft_ifft = arr_fft.into(space=space)
+    if is_inf_or_nan(arr_fft_ifft.values):
+        # edge cases (very large numbers) result in inf after fft
+        return
+    rtol = 1e-5 if arr.tlib.precision == "fp32" else 1e-6
+    np.testing.assert_allclose(arr.values, arr_fft_ifft.values, rtol=rtol, atol=1e-38)
