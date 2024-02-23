@@ -44,6 +44,8 @@ autosummary_generate = True
 autosummary_overwrite = True
 autosummary_import_members = True
 
+nbsphinx_allow_errors = True
+
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
