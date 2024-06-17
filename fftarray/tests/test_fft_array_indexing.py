@@ -130,6 +130,7 @@ invalid_substepping_slices = [
     slice(None, None, 0), slice(None, None, -1), slice(None, None, -2)
 ]
 
+@pytest.mark.parametrize("as_dict", [True, False])
 @pytest.mark.parametrize("tlib_class", TENSOR_LIBS)
 @pytest.mark.parametrize("invalid_slice", invalid_substepping_slices)
 @pytest.mark.parametrize("space", ["pos", "freq"])
@@ -137,18 +138,29 @@ def test_errors_fftarray_index_substepping(
     space: Space,
     invalid_slice: slice,
     tlib_class,
+    as_dict: bool,
 ) -> None:
 
     fft_arr = TEST_FFTDIM.fft_array(tlib=tlib_class(), space=space)
+
+    if as_dict:
+        invalid_slice = {"x": invalid_slice}
 
     with pytest.raises(IndexError):
         fft_arr[invalid_slice]
     with pytest.raises(IndexError):
         fft_arr.loc[invalid_slice]
-    with pytest.raises(IndexError):
-        fft_arr.sel(x=invalid_slice)
-    with pytest.raises(IndexError):
-        fft_arr.isel(x=invalid_slice)
+
+    if as_dict:
+        with pytest.raises(IndexError):
+            fft_arr.sel(invalid_slice)
+        with pytest.raises(IndexError):
+            fft_arr.isel(invalid_slice)
+    else:
+        with pytest.raises(IndexError):
+            fft_arr.sel(x=invalid_slice)
+        with pytest.raises(IndexError):
+            fft_arr.isel(x=invalid_slice)
 
 invalid_tuples = [
     (Ellipsis, Ellipsis),
@@ -197,25 +209,23 @@ def test_valid_index_from_coord(
     def test_function(_coord):
         return TEST_FFTDIM._index_from_coord(coord=_coord, space=space, method=method, tlib=tlib_class())
 
+
     try:
-        try:
-            dim_index_result = test_function(valid_coord)
-        except (KeyError, NotImplementedError) as e:
-            dim_index_result = type(e)
-        try:
-            if isinstance(valid_coord, tuple):
-                valid_coord = slice(valid_coord[0], valid_coord[1])
-            xr_result_coord = STANDARD_TEST_DATASET[space].sel({f"{space}_coord": valid_coord}, method=method)
-            xr_result_dim_index = STANDARD_TEST_DATASET[space].isel({f"{space}_coord": dim_index_result})
-            np.testing.assert_array_equal(
-                xr_result_coord.data,
-                xr_result_dim_index.data
-            )
-        except (KeyError, NotImplementedError) as e:
-            xr_result = type(e)
-            assert dim_index_result == xr_result
-    except Exception as e:
-        raise e
+        dim_index_result = test_function(valid_coord)
+    except (KeyError, NotImplementedError) as e:
+        dim_index_result = type(e)
+    try:
+        if isinstance(valid_coord, tuple):
+            valid_coord = slice(valid_coord[0], valid_coord[1])
+        xr_result_coord = STANDARD_TEST_DATASET[space].sel({f"{space}_coord": valid_coord}, method=method)
+        xr_result_dim_index = STANDARD_TEST_DATASET[space].isel({f"{space}_coord": dim_index_result})
+        np.testing.assert_array_equal(
+            xr_result_coord.data,
+            xr_result_dim_index.data
+        )
+    except (KeyError, NotImplementedError) as e:
+        xr_result = type(e)
+        assert dim_index_result == xr_result
 
 def make_xr_indexer(indexer, space: Space):
     return {
@@ -304,41 +314,21 @@ def test_3d_fft_array_positional_indexing(
     def test_function_square_brackets(_indexers) -> FFTArray:
         return fft_array.into(space=space)[_indexers]
 
-    error = False
-    try:
-        fft_array_result_square_brackets = test_function_square_brackets(indexers) # type: ignore
-    except Exception as e:
-        fft_array_result_square_brackets = type(e) # type: ignore
-    try:
-        xr_result_square_bracket = xr_dataset[space][indexers].data
-    except Exception as e:
-        error = True
-        xr_result_square_bracket = type(e)
-        assert fft_array_result_square_brackets == xr_result_square_bracket
+    fft_array_result_square_brackets = test_function_square_brackets(indexers) # type: ignore
+    xr_result_square_bracket = xr_dataset[space][indexers].data
 
-    if not error:
-        np.testing.assert_array_equal(
-            fft_array_result_square_brackets.values,
-            xr_result_square_bracket.data
-        )
+    np.testing.assert_array_equal(
+        fft_array_result_square_brackets.values,
+        xr_result_square_bracket.data
+    )
 
-    error = False
-    try:
-        fft_array_result_loc_square_brackets = test_function_loc_square_brackets(indexers) # type: ignore
-    except Exception as e:
-        fft_array_result_loc_square_brackets = type(e) # type: ignore
-    try:
-        xr_result_loc_square_bracket = xr_dataset[space].loc[indexers].data
-    except Exception as e:
-        error = True
-        xr_result_loc_square_bracket = type(e)
-        assert fft_array_result_loc_square_brackets == xr_result_loc_square_bracket
+    fft_array_result_loc_square_brackets = test_function_loc_square_brackets(indexers) # type: ignore
+    xr_result_loc_square_bracket = xr_dataset[space].loc[indexers].data
 
-    if not error:
-        np.testing.assert_array_equal(
-            fft_array_result_loc_square_brackets.values,
-            xr_result_loc_square_bracket.data
-        )
+    np.testing.assert_array_equal(
+        fft_array_result_loc_square_brackets.values,
+        xr_result_loc_square_bracket.data
+    )
 
 label_indexers_test_samples = [
     {"x": 1, "y": 1, "z": 1}, {"x": 1, "y": 1, "z": slice(None, None)},

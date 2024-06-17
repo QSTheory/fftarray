@@ -30,7 +30,7 @@ fft_arr = (
 ### Indexing by integer
 First, we will have a look at indexing by integer for both dimension lookup methods: positional and by name. Positional indexing by integer is the most common form of indexing that you also know from other array libraries such as `numpy`. Here, we can additionally look up the dimension by name as each of our `FFTArray` dimensions has a unique name (supplied by the `FFTDimension` name).
 ```python
-# The following ways of indexing are all have the same result.
+# The following ways of indexing all have the same result.
 # Each of them reduces the x-dimension to index 3
 # and slices the y-dimension from index 1 to (not including) 5.
 # The third z-dimension is not indexed and therefore fully kept.
