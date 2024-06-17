@@ -18,7 +18,7 @@ from .helpers import UniformValue, format_bytes, format_n, truncate_str
 
 from .helpers import UniformValue
 from .indexing_helpers import (
-    check_substepping, parse_tuple_indexer_to_dims, check_invalid_indexers,
+    check_substepping, parse_tuple_indexer_to_dims, check_missing_dim_names,
     tuple_indexers_from_dict_or_tuple, tuple_indexers_from_mapping
 )
 T = TypeVar("T")
@@ -457,7 +457,7 @@ class FFTArray(metaclass=ABCMeta):
 
         # Check for indexer names that are not present in FFTArray and
         # according to user choice, raise Error, throw warning or ignore
-        check_invalid_indexers(
+        check_missing_dim_names(
             indexer_names=final_indexers.keys(),
             dim_names=tuple(self.dims_dict.keys()),
             missing_dims=missing_dims
@@ -506,7 +506,7 @@ class FFTArray(metaclass=ABCMeta):
 
         # Check for indexer names that are not present in FFTArray and
         # according to user choice, raise Error, throw warning or ignore
-        check_invalid_indexers(
+        check_missing_dim_names(
             indexer_names=final_indexers.keys(),
             dim_names=tuple(self.dims_dict.keys()),
             missing_dims=missing_dims

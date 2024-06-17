@@ -106,9 +106,10 @@ def test_valid_fftdim_dim_from_slice(do_jit: bool, space: Space, valid_slice: sl
 
     result_dim = test_function()
 
-    assert np.array_equal(
+    np.testing.assert_array_equal(
         result_dim.np_array(space),
-        TEST_FFTDIM.np_array(space)[valid_slice]
+        TEST_FFTDIM.np_array(space)[valid_slice],
+        strict=True
     )
 
 invalid_slices = [

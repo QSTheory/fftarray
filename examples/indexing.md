@@ -16,9 +16,9 @@ By name | By label | `arr.loc[dict(y=1e-3)]` or `arr.sel(y=1e-3)` |
 
 ## Some examples
 ```python
-x_dim = FFTDimension(name="x", n=8, d_pos=1, pos_min=0, freq_min=0)
-y_dim = FFTDimension(name="y", n=8, d_pos=1, pos_min=0, freq_min=0)
-z_dim = FFTDimension(name="z", n=8, d_pos=1, pos_min=0, freq_min=0)
+x_dim = FFTDimension(name="x", n=8, d_pos=0.4, pos_min=0, freq_min=0)
+y_dim = FFTDimension(name="y", n=8, d_pos=0.4, pos_min=0, freq_min=0)
+z_dim = FFTDimension(name="z", n=8, d_pos=0.4, pos_min=0, freq_min=0)
 
 tlib = NumpyTensorLib()
 fft_arr = (
@@ -52,29 +52,30 @@ indexed_fft_arr: FFTArray = fft_arr[dict(x=3, y=slice(0,-3))] # slice indices ar
 Now, we will have a look at indexing by label for both dimension lookup methods: positional and by name. Label indexing is applicable to FFTArrays because our dimensions have coordinate values (of type float) which are as unique as indices. As above, we can additionally look up the dimension by name as each of our `FFTArray` dimensions has a unique name (supplied by the `FFTDimension` name).
 ```python
 # The following ways of indexing return exactly the same result.
-# Each of them reduces the x-dimension to coordinate 5
-# and slices the y-dimension to only include coordinates between 3 and 6.
+# Each of them reduces the x-dimension to coordinate 1.2
+# and slices the y-dimension to only include coordinates between 1 and 2.5.
 # The third z-dimension is not indexed and therefore fully kept.
 
-indexed_fft_arr: FFTArray = fft_arr.loc[5,3:6,:]
-indexed_fft_arr: FFTArray = fft_arr.loc[5,3:6]
-indexed_fft_arr: FFTArray = fft_arr.loc[5,3:6,...]
-indexed_fft_arr: FFTArray = fft_arr.loc[dict(x=5, y=slice(3,6))]
-indexed_fft_arr: FFTArray = fft_arr.sel(x=5, y=slice(3,6))
-indexed_fft_arr: FFTArray = fft_arr.sel(dict(x=5, y=slice(3,6)))
+indexed_fft_arr: FFTArray = fft_arr.loc[1.2,1:2.5,:]
+indexed_fft_arr: FFTArray = fft_arr.loc[1.2,1:2.5]
+indexed_fft_arr: FFTArray = fft_arr.loc[1.2,1:2.5,...]
+indexed_fft_arr: FFTArray = fft_arr.loc[dict(x=1.2, y=slice(1,2.5))]
+indexed_fft_arr: FFTArray = fft_arr.sel(x=1.2, y=slice(1,2.5))
+indexed_fft_arr: FFTArray = fft_arr.sel(dict(x=1.2, y=slice(1,2.5)))
 
 # Additionally, with fft_arr.sel one can also choose a method for coordinate search
 # This leads to the following indexing commands yielding the same result.
 # However, we do not support a method when using slice objects for indexing.
 # Please keep in mind that in these examples we always index in
-# position space where all dimensions have d_pos = 1.
-indexed_fft_arr: FFTArray = fft_arr.sel(x=4.6, method="nearest")
-indexed_fft_arr: FFTArray = fft_arr.sel(x=5.2, method="nearest")
-indexed_fft_arr: FFTArray = fft_arr.sel(x=4.1, method="bfill") # equivalent: method="backfill"
-indexed_fft_arr: FFTArray = fft_arr.sel(x=4.9, method="bfill") # equivalent: method="backfill"
-indexed_fft_arr: FFTArray = fft_arr.sel(x=5, method="bfill") # equivalent: method="backfill"
-indexed_fft_arr: FFTArray = fft_arr.sel(x=5.1, method="ffill") # equivalent: method="pad"
-indexed_fft_arr: FFTArray = fft_arr.sel(x=5.9, method="ffill") # equivalent: method="pad"
-indexed_fft_arr: FFTArray = fft_arr.sel(x=5, method="ffill") # equivalent: method="pad"
+# position space where all dimensions have d_pos = 0.4.
+indexed_fft_arr: FFTArray = fft_arr.sel(x=0.4)
+indexed_fft_arr: FFTArray = fft_arr.sel(x=0.3, method="nearest")
+indexed_fft_arr: FFTArray = fft_arr.sel(x=0.5, method="nearest")
+indexed_fft_arr: FFTArray = fft_arr.sel(x=0.1, method="bfill") # equivalent: method="backfill"
+indexed_fft_arr: FFTArray = fft_arr.sel(x=0.3, method="bfill") # equivalent: method="backfill"
+indexed_fft_arr: FFTArray = fft_arr.sel(x=0.4, method="bfill") # equivalent: method="backfill"
+indexed_fft_arr: FFTArray = fft_arr.sel(x=0.5, method="ffill") # equivalent: method="pad"
+indexed_fft_arr: FFTArray = fft_arr.sel(x=0.75, method="ffill") # equivalent: method="pad"
+indexed_fft_arr: FFTArray = fft_arr.sel(x=0.4, method="ffill") # equivalent: method="pad"
 
 ```
