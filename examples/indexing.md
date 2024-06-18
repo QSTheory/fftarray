@@ -1,6 +1,6 @@
 The indexing behaviour and syntax as well as the following docmentation are inspired by xarray, see [xarray: Indexing and selecting data](https://docs.xarray.dev/en/stable/user-guide/indexing.html).
 
-## Quick overview
+## Quick Overview
 In total, FFTArray objects can be indexed via four different methods, two dimension lookup methods (positional, by name) and two index lookup methods (by integer, by label). In our case, label always refers to the FFTDimension coordinate values of type float (and should not be understood as any other objects like str).
 
 The main difference between `FFTArray` indexing and `xarray` indexing lies in the fact that an `FFTArray` object can be in different internal states, i.e., each dimension can be either in position or frequency space and will always be indexed within this space. This is especially important when indexing by label, i.e., by position or frequency coordinate values.
@@ -14,7 +14,7 @@ Positional | By label | `arr.loc[:,1e-3]` |
 By name | By integer | `arr[dict(y=0)]` or `arr.isel(y=0)` |
 By name | By label | `arr.loc[dict(y=1e-3)]` or `arr.sel(y=1e-3)` |
 
-## Some examples
+## Some Examples
 ```python
 x_dim = FFTDimension(name="x", n=8, d_pos=0.4, pos_min=0, freq_min=0)
 y_dim = FFTDimension(name="y", n=8, d_pos=0.4, pos_min=0, freq_min=0)
@@ -27,7 +27,7 @@ fft_arr = (
     z_dim.fft_array(space="pos", tlib=tlib)
 )
 ```
-### Indexing by integer
+### Indexing by Integer
 First, we will have a look at indexing by integer for both dimension lookup methods: positional and by name. Positional indexing by integer is the most common form of indexing that you also know from other array libraries such as `numpy`. Here, we can additionally look up the dimension by name as each of our `FFTArray` dimensions has a unique name (supplied by the `FFTDimension` name).
 ```python
 # The following ways of indexing all have the same result.
@@ -48,7 +48,7 @@ indexed_fft_arr: FFTArray = fft_arr[dict(x=-5, y=slice(0,5))] # for array with d
 indexed_fft_arr: FFTArray = fft_arr[dict(x=3, y=slice(-100,5))] # slice objects with start < -dim.n are mapped to None
 indexed_fft_arr: FFTArray = fft_arr[dict(x=3, y=slice(0,-3))] # slice indices are individually mapped to a valid region if possible
 ```
-### Indexing by label/coordinate
+### Indexing by Label/Coordinate
 Now, we will have a look at indexing by label for both dimension lookup methods: positional and by name. Label indexing is applicable to FFTArrays because our dimensions have coordinate values (of type float) which are as unique as indices. As above, we can additionally look up the dimension by name as each of our `FFTArray` dimensions has a unique name (supplied by the `FFTDimension` name).
 ```python
 # The following ways of indexing return exactly the same result.
@@ -63,7 +63,7 @@ indexed_fft_arr: FFTArray = fft_arr.loc[dict(x=1.2, y=slice(1,2.5))]
 indexed_fft_arr: FFTArray = fft_arr.sel(x=1.2, y=slice(1,2.5))
 indexed_fft_arr: FFTArray = fft_arr.sel(dict(x=1.2, y=slice(1,2.5)))
 
-# Additionally, with fft_arr.sel one can also choose a method for coordinate search
+# Additionally, with fft_arr.sel one can also choose a method for coordinate search.
 # This leads to the following indexing commands yielding the same result.
 # However, we do not support a method when using slice objects for indexing.
 # Please keep in mind that in these examples we always index in

@@ -144,7 +144,7 @@ def test_errors_fftarray_index_substepping(
     fft_arr = TEST_FFTDIM.fft_array(tlib=tlib_class(), space=space)
 
     if as_dict:
-        invalid_slice = {"x": invalid_slice}
+        invalid_slice = {"x": invalid_slice} # type: ignore
 
     with pytest.raises(IndexError):
         fft_arr[invalid_slice]
@@ -153,9 +153,9 @@ def test_errors_fftarray_index_substepping(
 
     if as_dict:
         with pytest.raises(IndexError):
-            fft_arr.sel(invalid_slice)
+            fft_arr.sel(invalid_slice) # type: ignore
         with pytest.raises(IndexError):
-            fft_arr.isel(invalid_slice)
+            fft_arr.isel(invalid_slice) # type: ignore
     else:
         with pytest.raises(IndexError):
             fft_arr.sel(x=invalid_slice)
@@ -208,7 +208,6 @@ def test_valid_index_from_coord(
 
     def test_function(_coord):
         return TEST_FFTDIM._index_from_coord(coord=_coord, space=space, method=method, tlib=tlib_class())
-
 
     try:
         dim_index_result = test_function(valid_coord)
