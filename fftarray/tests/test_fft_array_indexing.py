@@ -599,3 +599,30 @@ def generate_test_fftarray_xrdataset(
     )
 
     return (fft_array, xr_dataset)
+
+@jax.jit
+def index_with_tracer_getitem(obj, idx):
+    return obj[idx]
+@jax.jit
+def index_with_tracer_loc(obj, idx):
+    return obj.loc[idx]
+@jax.jit
+def index_with_tracer_isel(obj, idx):
+    return obj.isel(idx)
+@jax.jit
+def index_with_tracer_sel(obj, idx):
+    return obj.sel(idx)
+
+def test_invalid_tracer_index() -> None:
+    fft_arr = TEST_FFTDIM.fft_array(tlib=JaxTensorLib(), space="pos")
+    tracer_index = jax.numpy.array(3)
+
+    with pytest.raises(NotImplementedError):
+        index_with_tracer_getitem(fft_arr, {'x': tracer_index})
+    with pytest.raises(NotImplementedError):
+        index_with_tracer_loc(fft_arr, {'x': tracer_index})
+    with pytest.raises(NotImplementedError):
+        index_with_tracer_isel(fft_arr, {'x': tracer_index})
+    with pytest.raises(NotImplementedError):
+        index_with_tracer_sel(fft_arr, {'x': tracer_index})
+

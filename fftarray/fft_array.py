@@ -452,6 +452,11 @@ class FFTArray(metaclass=ABCMeta):
         else:
             final_indexers = indexers
 
+        if not isinstance(final_indexers, dict):
+            raise ValueError(
+                "indexers must be a dictionary or keyword arguments"
+            )
+
         # handle case of empty indexers via supplying indexers={} or nothing at all
         if len(final_indexers) == 0:
             return self
@@ -500,6 +505,11 @@ class FFTArray(metaclass=ABCMeta):
             final_indexers = indexers_kwargs
         else:
             final_indexers = indexers
+
+        if not isinstance(final_indexers, dict):
+            raise ValueError(
+                "indexers must be a dictionary or keyword arguments"
+            )
 
         # handle case of empty indexers via supplying indexers={} or nothing at all
         if len(final_indexers) == 0:
