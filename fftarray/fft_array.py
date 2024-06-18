@@ -19,7 +19,8 @@ from .helpers import UniformValue, format_bytes, format_n, truncate_str
 from .helpers import UniformValue
 from .indexing_helpers import (
     check_substepping, parse_tuple_indexer_to_dims, check_missing_dim_names,
-    tuple_indexers_from_dict_or_tuple, tuple_indexers_from_mapping
+    tuple_indexers_from_dict_or_tuple, tuple_indexers_from_mapping,
+    remap_index_check_int
 )
 T = TypeVar("T")
 EllipsisType = TypeVar('EllipsisType')
@@ -1381,37 +1382,8 @@ class FFTDimension:
         # Catch invalid slice objects with range.step != 1
         check_substepping(range)
 
-        def _remap_index_check_int(
-                index: int,
-                dim_n: int,
-                index_kind: Literal["start", "stop"],
-            ) -> int:
-            # Special support for case of slice(None, None)
-            if index is None:
-                if index_kind == "start":
-                    return 0
-                else:
-                    return dim_n
-            # Catch invalid index objects, here everything that is not an integer
-            if not isinstance(index, int):
-                raise IndexError("only integers, slices (`:`), ellipsis (`...`) are valid indices.")
-            # Special case of slice objects smaller than length of dimension (assume 8)
-            # then slice(-20,None) would be mapped to slice(0, None) here
-            if index < -dim_n:
-                return 0
-            # Handle case of negative indices that start with -1 at
-            # last index and end with -dim_n for first value.
-            if index < 0:
-                return index + dim_n
-            # Special case of slice objects bigger than length of dimension,
-            # e.g., slice(None,20) would be mapped to slice(None, 8) with
-            # dimension length 8.
-            if index >= dim_n:
-                return dim_n
-            return index
-
-        start = _remap_index_check_int(range.start, self.n, index_kind="start")
-        end = _remap_index_check_int(range.stop, self.n, index_kind="stop")
+        start = remap_index_check_int(range.start, self.n, index_kind="start")
+        end = remap_index_check_int(range.stop, self.n, index_kind="stop")
 
         n = end - start
         # Check validity of slice object which has to

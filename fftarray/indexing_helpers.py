@@ -1,5 +1,5 @@
 from typing import (
-    Dict, List, Tuple, TypeVar, Union, Iterable,
+    Dict, List, Optional, Tuple, TypeVar, Union, Iterable,
     Hashable, Literal, Literal
 )
 import warnings
@@ -58,7 +58,7 @@ def check_missing_dim_names(
     dim_names: Tuple[Hashable, ...],
     missing_dims: Literal["raise", "warn", "ignore"],
 ) -> None:
-    """Check for indexers with a dimension name that does not appear in the FFTArray. 
+    """Check for indexers with a dimension name that does not appear in the FFTArray.
     Depending on the choice of missing_dims,
     either raises a ValueError, throws a warning or just ignores.
     These three different choices for how to handle missing dimensions are
@@ -166,3 +166,32 @@ def check_substepping(_slice: slice):
             "which is not well defined due to the arbitrary choice of " +
             "which part of the space to keep (constant min, middle or max?). "
         )
+
+def remap_index_check_int(
+    index: Optional[int],
+    dim_n: int,
+    index_kind: Literal["start", "stop"],
+) -> int:
+    # Special support for case of slice(None, None)
+    if index is None:
+        if index_kind == "start":
+            return 0
+        else:
+            return dim_n
+    # Catch invalid index objects, here everything that is not an integer
+    if not isinstance(index, int):
+        raise IndexError("only integers, slices (`:`), ellipsis (`...`) are valid indices.")
+    # Special case of slice objects smaller than length of dimension (assume 8)
+    # then slice(-20,None) would be mapped to slice(0, None) here
+    if index < -dim_n:
+        return 0
+    # Handle case of negative indices that start with -1 at
+    # last index and end with -dim_n for first value.
+    if index < 0:
+        return index + dim_n
+    # Special case of slice objects bigger than length of dimension,
+    # e.g., slice(None,20) would be mapped to slice(None, 8) with
+    # dimension length 8.
+    if index >= dim_n:
+        return dim_n
+    return index
