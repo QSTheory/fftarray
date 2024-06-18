@@ -338,7 +338,7 @@ label_indexers_test_samples = [
 @pytest.mark.parametrize("indexers", label_indexers_test_samples)
 @pytest.mark.parametrize("tlib_class", TENSOR_LIBS)
 @pytest.mark.parametrize("space", ["pos", "freq"])
-@pytest.mark.parametrize("method", ["nearest", "pad", "ffill", "backfill", "bfill", None])
+@pytest.mark.parametrize("method", ["nearest", "pad", "ffill", "backfill", "bfill", None, "unsupported"])
 def test_3d_fft_array_indexing_by_label(
     space: Space,
     tlib_class,
@@ -625,4 +625,33 @@ def test_invalid_tracer_index() -> None:
         index_with_tracer_isel(fft_arr, {'x': tracer_index})
     with pytest.raises(NotImplementedError):
         index_with_tracer_sel(fft_arr, {'x': tracer_index})
+
+def test_invalid_kw_and_pos_indexers() -> None:
+
+    fft_arr, _ = generate_test_fftarray_xrdataset(["x", "y"], dimension_length=8, tlib=NumpyTensorLib())
+
+    with pytest.raises(ValueError):
+        fft_arr.sel({'x': 3}, y=3)
+    with pytest.raises(ValueError):
+        fft_arr.isel({'x': 3}, y=3)
+
+@pytest.mark.parametrize("index_method", ["sel", "isel"])
+def test_missing_dims(
+    index_method: Literal["sel", "isel"]
+) -> None:
+
+    fft_arr, _ = generate_test_fftarray_xrdataset(["x", "y"], dimension_length=8, tlib=NumpyTensorLib())
+
+    with pytest.raises(ValueError):
+        getattr(fft_arr, index_method)({"x": 3}, missing_dims="unsupported")
+
+    with pytest.raises(ValueError):
+        getattr(fft_arr, index_method)({"unknown_dim": 3})
+    with pytest.raises(ValueError):
+        getattr(fft_arr, index_method)({"unknown_dim": 3}, missing_dims="raise")
+    with pytest.warns(UserWarning):
+        getattr(fft_arr, index_method)({"unknown_dim": 3}, missing_dims="warn")
+
+    getattr(fft_arr, index_method)({"x": 3}, missing_dims="raise")
+    getattr(fft_arr, index_method)({"unknown_dim": 3}, missing_dims="ignore")
 
