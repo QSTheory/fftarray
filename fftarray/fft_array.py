@@ -391,6 +391,7 @@ class FFTArray(metaclass=ABCMeta):
             try:
                 # We perform all index sanity checks in _dim_from_slice
                 new_dims.append(orig_dim._dim_from_slice(index, space))
+            # Do not specifically catch jax.errors.ConcretizationTypeError in order to not have to import jax here.
             except Exception as e:
                 if "Trace" in str(index):
                     raise NotImplementedError(
