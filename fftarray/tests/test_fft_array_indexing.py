@@ -288,6 +288,7 @@ tuple_indexers = [
     (..., slice(None, None)),
     (slice(None, None), ...),
     (...,),
+    ...,
     (slice(None,5), ),
     (slice(None,1), ..., slice(None,2)),
     (slice(None, None), slice(None, None))
