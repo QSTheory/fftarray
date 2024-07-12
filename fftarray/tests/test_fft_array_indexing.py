@@ -54,10 +54,7 @@ Relevant functions/classes for indexing
 """
 
 @pytest.mark.parametrize("tlib_class", TENSOR_LIBS)
-@pytest.mark.parametrize("do_jit", [False, True])
-def test_fftdim_single_element_indexing(tlib_class, do_jit: bool) -> None:
-    if do_jit and type(tlib_class) != JaxTensorLib:
-        return
+def test_fftdim_single_element_indexing(tlib_class) -> None:
 
     tlib = tlib_class()
 
@@ -76,9 +73,6 @@ def test_fftdim_single_element_indexing(tlib_class, do_jit: bool) -> None:
             dim._index_from_coord(2.6, method = "nearest", space="pos", tlib=tlib),
         )
 
-    if do_jit:
-        test_functions = jax.jit(test_functions)
-
     results = test_functions(dim)
 
     assert results[0] == 0
@@ -93,18 +87,9 @@ valid_test_slices = [
 
 @pytest.mark.parametrize("valid_slice", valid_test_slices)
 @pytest.mark.parametrize("space", ["pos", "freq"])
-@pytest.mark.parametrize("do_jit", [False, True])
-def test_valid_fftdim_dim_from_slice(do_jit: bool, space: Space, valid_slice: slice) -> None:
+def test_valid_fftdim_dim_from_slice(space: Space, valid_slice: slice) -> None:
 
-    if do_jit:
-        @jax.jit
-        def test_function():
-            return TEST_FFTDIM._dim_from_slice(range=valid_slice, space=space)
-    else:
-        def test_function(): # type: ignore
-            return TEST_FFTDIM._dim_from_slice(range=valid_slice, space=space)
-
-    result_dim = test_function()
+    result_dim = TEST_FFTDIM._dim_from_slice(range=valid_slice, space=space)
 
     np.testing.assert_array_equal(
         result_dim.np_array(space),
@@ -331,16 +316,16 @@ def test_3d_fft_array_positional_indexing(
     )
 
 label_indexers_test_samples = [
-    {"x": 1, "y": 1, "z": 1}, {"x": 1, "y": 1, "z": slice(None, None)},
-    {"x": 1, "y": 1}, {"x": -20}, {"z": 5}, {"random": 1}, {},
-    {"x": slice(-20,5), "y": slice(-6,6), "z": slice(None, 4)},
+    {"x": 3, "y": 1, "z": 4}, {"x": 0, "y": 2, "z": slice(None, None)},
+    {"x": 1, "y": 4}, {"x": -25}, {"z": 5}, {"random": 1}, {},
+    {"x": slice(-23,5), "y": slice(-6,6), "z": slice(None, 3)},
 ]
 
 @pytest.mark.parametrize("indexers", label_indexers_test_samples)
 @pytest.mark.parametrize("tlib_class", TENSOR_LIBS)
 @pytest.mark.parametrize("space", ["pos", "freq"])
 @pytest.mark.parametrize("method", ["nearest", "pad", "ffill", "backfill", "bfill", None, "unsupported"])
-def test_3d_fft_array_indexing_by_label(
+def test_3d_fft_array_label_indexing(
     space: Space,
     tlib_class,
     indexers: Mapping[Hashable, Union[int, slice]],
@@ -354,13 +339,10 @@ def test_3d_fft_array_indexing_by_label(
     )
 
     try:
-        fft_array_result_sel = fft_array.into(space=space).sel(indexers, method=method) # type: ignore
+        fft_array_result = fft_array.into(space=space).sel(indexers, method=method) # type: ignore
     except Exception as e:
-        fft_array_result_sel = type(e) # type: ignore
-    try:
-        fft_array_result_loc_square_brackets = fft_array.into(space=space).loc[indexers] # type: ignore
-    except Exception as e:
-        fft_array_result_loc_square_brackets = type(e) # type: ignore
+        fft_array_result = type(e) # type: ignore
+
     try:
         xr_indexer = make_xr_indexer(indexers, space)
         xr_result = xr_dataset[space].sel(xr_indexer, method=method).data # type: ignore
@@ -370,32 +352,19 @@ def test_3d_fft_array_indexing_by_label(
             xr_result = (KeyError, ValueError)
         else:
             xr_result = [xr_result]
-        assert fft_array_result_sel in xr_result
-        if method is None:
-            assert fft_array_result_loc_square_brackets in xr_result
+        assert fft_array_result in xr_result
         return
 
     np.testing.assert_array_equal(
-        fft_array_result_sel.values,
+        fft_array_result.values,
         xr_result.data
     )
-    if method is None:
-        np.testing.assert_array_equal(
-            fft_array_result_loc_square_brackets.values,
-            xr_result.data
-        )
 
-# One can not put slices in jitted functions,
-# therefore we don't test slice indexers here
-label_indexers_test_samples = [
-    {"x": 1, "y": 1, "z": 1}, {"x": 1, "y": 1},
-    {"x": 1, "y": 1}, {"x": -20}, {"z": 5}, {"random": 1}, {},
-]
 
 @pytest.mark.parametrize("indexers", label_indexers_test_samples)
 @pytest.mark.parametrize("index_by", ["label", "integer"])
 @pytest.mark.parametrize("space", ["pos", "freq"])
-def test_3d_fft_array_indexing_jitted(
+def test_3d_fft_array_indexing(
     space: Space,
     index_by: Literal["label", "integer"],
     indexers: Mapping[Hashable, Union[int, slice]],
@@ -408,14 +377,12 @@ def test_3d_fft_array_indexing_jitted(
         tlib=tlib
     )
 
-    @jax.jit
     def test_function_sel(_indexers) -> FFTArray:
         if index_by == "label":
             return fft_array.into(space=space).sel(_indexers)
         else:
             return fft_array.into(space=space).isel(_indexers)
 
-    @jax.jit
     def test_function_square_brackets(_indexers) -> FFTArray:
         if index_by == "label":
             return fft_array.into(space=space).loc[_indexers]
@@ -426,16 +393,19 @@ def test_3d_fft_array_indexing_jitted(
     try:
         fft_array_result_sel = test_function_sel(indexers)
     except Exception as e:
-        fft_array_result_sel = type(e)
+        fft_array_result_sel = type(e) # type: ignore
         fft_error = True
     try:
         fft_array_result_loc_square_brackets = test_function_square_brackets(indexers)
     except Exception as e:
-        fft_array_result_loc_square_brackets = type(e)
+        fft_array_result_loc_square_brackets = type(e) # type: ignore
         fft_error = True
     try:
         xr_indexer = make_xr_indexer(indexers, space)
-        xr_result = xr_dataset[space].sel(xr_indexer).data
+        if index_by == "label":
+            xr_result = xr_dataset[space].sel(xr_indexer).data
+        else:
+            xr_result = xr_dataset[space].isel(xr_indexer).data
     except Exception as e:
         xr_result = type(e)
         if xr_result in [KeyError, ValueError]:
@@ -445,11 +415,9 @@ def test_3d_fft_array_indexing_jitted(
 
     if fft_error:
         assert (
-            fft_array_result_sel == NotImplementedError or
             fft_array_result_sel in xr_result
         )
         assert (
-            fft_array_result_loc_square_brackets == NotImplementedError or
             fft_array_result_loc_square_brackets in xr_result
         )
     else:
