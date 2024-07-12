@@ -593,6 +593,39 @@ def test_invalid_tracer_index() -> None:
     with pytest.raises(NotImplementedError):
         index_with_tracer_sel(fft_arr, {'x': tracer_index})
 
+def test_jit_static_indexing() -> None:
+
+    fft_arr, xr_dataset = generate_test_fftarray_xrdataset(["x"], dimension_length=8, tlib=JaxTensorLib())
+
+    def test_function_isel(_indexers) -> FFTArray:
+        return fft_arr.isel(x=_indexers)
+
+    def test_function_square_brackets(_indexers) -> FFTArray:
+        return fft_arr[slice(*_indexers)]
+
+    test_function_isel = jax.jit(test_function_isel, static_argnums=(0,))
+    test_function_square_brackets = jax.jit(test_function_square_brackets, static_argnums=(0,))
+
+    isel_indexer = 3
+    sq_brackets_indexer = (1,4)
+
+    fft_array_result_isel = test_function_isel(isel_indexer)
+    fft_array_result_square_brackets = test_function_square_brackets(sq_brackets_indexer)
+
+    xr_result_isel = xr_dataset["pos"].isel(x_pos=isel_indexer).data
+    xr_result_square_brackets = xr_dataset["pos"][slice(*sq_brackets_indexer)].data
+
+    np.testing.assert_array_equal(
+        fft_array_result_isel.values,
+        xr_result_isel
+    )
+
+    np.testing.assert_array_equal(
+        fft_array_result_square_brackets.values,
+        xr_result_square_brackets
+    )
+
+
 def test_invalid_kw_and_pos_indexers() -> None:
 
     fft_arr, _ = generate_test_fftarray_xrdataset(["x", "y"], dimension_length=8, tlib=NumpyTensorLib())
