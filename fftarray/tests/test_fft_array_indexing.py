@@ -609,8 +609,8 @@ def test_jit_static_indexing() -> None:
     isel_indexer = 3
     sq_brackets_indexer = (1,4)
 
-    fft_array_result_isel = test_function_isel(isel_indexer)
-    fft_array_result_square_brackets = test_function_square_brackets(sq_brackets_indexer)
+    fft_array_result_isel = test_function_isel(isel_indexer) # type: ignore
+    fft_array_result_square_brackets = test_function_square_brackets(sq_brackets_indexer) # type: ignore
 
     xr_result_isel = xr_dataset["pos"].isel(x_pos=isel_indexer).data
     xr_result_square_brackets = xr_dataset["pos"][slice(*sq_brackets_indexer)].data
