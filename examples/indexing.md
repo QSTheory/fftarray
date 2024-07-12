@@ -79,3 +79,45 @@ indexed_fft_arr: FFTArray = fft_arr.sel(x=0.75, method="ffill") # equivalent: me
 indexed_fft_arr: FFTArray = fft_arr.sel(x=0.4, method="ffill") # equivalent: method="pad"
 
 ```
+## Some Sharp JAX-Bits
+Currently, `FFTArray` indexing does not support dynamically traced indexers.
+
+This is what you can **not** do. This applies to all indexing methods.
+
+```python
+
+fft_arr: FFTArray
+
+def indexing(fft_arr, indexer: int):
+    return fft_arr.isel(x=indexer)
+
+dynamic_indexer = jax.jit(indexing)
+
+dynamic_indexer(fft_arr, 3)  # NotImplementedError
+
+```
+
+However, you can still perform indexing **by integer** within jitted functions when using **static indexers**. You can achieve this by either using concrete values defined independently of your jitted function arguments or by marking the indexer argument as static.
+
+```python
+
+fft_arr: FFTArray
+
+### Concrete index value
+concerete_index_value = 3
+def indexing(fft_arr):
+    return fft_arr.isel(x=concerete_index_value)
+
+static_indexer = jax.jit(indexing)
+
+static_indexer(fft_arr) # no error
+
+### Mark index arg as static
+def indexing(fft_arr, indexer: int):
+    return fft_arr.isel(x=indexer)
+
+static_indexer = jax.jit(indexing, static_argnames="indexer")
+
+static_indexer(fft_arr, 3) # no error
+
+```
