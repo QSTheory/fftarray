@@ -199,8 +199,6 @@ def test_valid_index_from_coord(
     except (KeyError, NotImplementedError) as e:
         dim_index_result = type(e)
     try:
-        if isinstance(valid_coord, tuple):
-            valid_coord = slice(valid_coord[0], valid_coord[1])
         xr_result_coord = STANDARD_TEST_DATASET[space].sel({f"{space}_coord": valid_coord}, method=method)
         xr_result_dim_index = STANDARD_TEST_DATASET[space].isel({f"{space}_coord": dim_index_result})
         np.testing.assert_array_equal(
