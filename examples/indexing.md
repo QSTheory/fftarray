@@ -9,10 +9,10 @@ In the following overview, we understand `fft_arr` as an FFTArray object with tw
 
 Dimension lookup | Index lookup | FFTArray syntax |
 --- | --- | --- |
-Positional | By integer | `arr[:,0]` |
-Positional | By label | `arr.loc[:,1e-3]` |
-By name | By integer | `arr[dict(y=0)]` or `arr.isel(y=0)` |
-By name | By label | `arr.loc[dict(y=1e-3)]` or `arr.sel(y=1e-3)` |
+Positional | By integer | `fft_arr[:,0]` |
+Positional | By label | `fft_arr.loc[:,1e-3]` |
+By name | By integer | `fft_arr[dict(y=0)]` or `arr.isel(y=0)` |
+By name | By label | `fft_arr.loc[dict(y=1e-3)]` or `arr.sel(y=1e-3)` |
 
 ## Some Examples
 ```python
