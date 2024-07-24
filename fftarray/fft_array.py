@@ -1,6 +1,7 @@
 from __future__ import annotations
+from collections import abc
 from typing import (
-    Optional, Union, List, Any, Tuple, Dict, Hashable,
+    Mapping, Optional, Union, List, Any, Tuple, Dict, Hashable,
     Literal, TypeVar, Iterable, Set, Generic, get_args
 )
 from abc import ABCMeta
@@ -9,14 +10,20 @@ from numbers import Number
 from dataclasses import dataclass
 
 import numpy as np
-import numpy.lib.mixins
 
 from .named_array import align_named_arrays, get_axes_transpose
 from .backends.tensor_lib import TensorLib
 from .backends.np_backend import NumpyTensorLib
 from .helpers import UniformValue, format_bytes, format_n, truncate_str
 
+from .helpers import UniformValue
+from .indexing_helpers import (
+    check_substepping, parse_tuple_indexer_to_dims, check_missing_dim_names,
+    tuple_indexers_from_dict_or_tuple, tuple_indexers_from_mapping,
+    remap_index_check_int
+)
 T = TypeVar("T")
+EllipsisType = TypeVar('EllipsisType')
 
 Space = Literal["pos", "freq"]
 
@@ -37,26 +44,96 @@ def _unary_ufunc(op):
 
 class LocFFTArrayIndexer(Generic[T]):
     """
-        `wf.loc` allows indexing by dim index but by coordinate position.
-        In order to support the indexing operator on a property
-        we need this indexable helper class to be returned by the property `loc`.
+        `FFTArray.loc` allows indexing by coordinate position.
+        It supports both positional and name look up (via dict).
+        In order to support the indexing operator `__getitem__` for coordinate (label)
+        instead of integer (index) look up (e.g. `arr.loc[1:3]`), we need this indexable helper
+        class to be returned by the property `loc`.
     """
     _arr: FFTArray
 
     def __init__(self, arr: FFTArray) -> None:
         self._arr = arr
 
-    def __getitem__(self, item) -> FFTArray:
-        if isinstance(item, slice):
-            assert item == slice(None, None, None)
-            return self._arr.values
-        slices = []
-        for dim, dim_item, space in zip(self._arr.dims, item, self._arr._spaces):
-            if isinstance(dim_item, slice):
-                slices.append(dim_item)
-            else:
-                slices.append(dim._index_from_coord(dim_item, method=None, space=space, tlib=self._arr.tlib))
-        return self._arr.__getitem__(tuple(slices))
+    def __getitem__(
+            self,
+            item: Union[
+                int, slice, EllipsisType,
+                Tuple[Union[int, slice, EllipsisType],...],
+                Dict[str, Union[int, slice]],
+            ]
+        ) -> FFTArray:
+        """This method is called when indexing an FFTArray instance by label,
+            i.e., by using the coordinate value via FFTArray.loc[].
+            It supports dimensional lookup via position and name.
+            The indexing behaviour is mainly defined to match the one of
+            `xarray.DataArray` with the major difference that we always keep
+            all dimensions.
+            The indexing is performed in the current state of the FFTArray,
+            i.e., each dimension is indexed in its respective state (pos or freq).
+            When the indexing actually changes the returned FFTArray by removing some values,
+            its internal state will always have all fft factors applied.
+
+            Example usage:
+            arr_2d = (
+                x_dim.fft_array(space="pos", tlib=some_tlib)
+                + y_dim.fft_array(space="pos", tlib=some_tlib)
+            )
+            Four ways of retrieving an FFTArray object
+            with coordinate 3 along x and coordinates values
+            between the dimension min (either pos_min or freq_min)
+            and 5 along y:
+
+            arr_2d.loc[{"x": 3, "y": slice(None, 5)}]
+            arr_2d.loc[3,:5]
+            arr_2d.loc[3][:,:5] # don't use, just for explaining functionality
+            arr_2d.loc[:,:5][3] # don't use, vjust for explaining functionality
+
+        Parameters
+        ----------
+        item : Union[ int, slice, EllipsisType, Tuple[Union[int, slice, EllipsisType],...], Mapping[Hashable, Union[int, slice]], ]
+            An indexer object with dimension lookup method either
+            via position or name. When using positional lookup, the order
+            of the dimensions in the FFTArray object is used (FFTArray.dims).
+            Per dimension, each indexer can be supplied as an integer or a slice.
+            Array-like indexers are not supported as in the general case,
+            the resulting coordinates cannot be expressed as a valid FFTDimension.
+        FFTArray
+            A new FFTArray with the same dimensions as this FFTArray,
+            except each dimension and the FFTArray values are indexed.
+            The resulting FFTArray still fully supports FFTs.
+        """
+
+        if item is Ellipsis:
+            return self._arr
+
+        if isinstance(item, dict):
+            return self._arr.sel(item) # type: ignore
+
+        if not isinstance(item, tuple):
+            item = (item,)
+
+        tuple_indexers = parse_tuple_indexer_to_dims(
+            item,
+            n_dims=len(self._arr.dims)
+        )
+
+        integer_indexers: List[Union[int, slice]] = []
+        for index, dim, space in zip(
+            tuple_indexers, self._arr.dims, self._arr.space
+        ):
+            integer_indexers.append(
+                dim._index_from_coord(
+                    coord=index,
+                    space=space,
+                    tlib=self._arr.tlib,
+                    method=None,
+                )
+            )
+
+        return self._arr.__getitem__(
+            tuple(integer_indexers)
+        )
 
 def _norm_param(val: Union[T, Iterable[T]], n: int, types) -> Tuple[T, ...]:
     """
@@ -241,28 +318,97 @@ class FFTArray(metaclass=ABCMeta):
     # Selection
     #--------------------
 
-    def __getitem__(self, item) -> FFTArray:
+    def __getitem__(
+            self,
+            item: Union[
+                int, slice, EllipsisType,
+                Tuple[Union[int, slice, EllipsisType],...],
+                Mapping[Hashable, Union[int, slice]],
+            ]
+        ) -> FFTArray:
+        """This method is called when indexing an FFTArray instance by integer index,
+            i.e., by using the index value via FFTArray[].
+            It supports dimensional lookup via position and name.
+            The indexing behaviour is mainly defined to match the one of
+            xarray.DataArray with the major difference that we always keep
+            all dimensions.
+            The indexing is performed in the current state of the FFTArray,
+            i.e., each dimension is indexed in its respective state (pos or freq).
+            When the returned FFTArray object is effectively indexed,
+            its internal state will always have all fft factors applied.
+
+            Example usage:
+            arr_2d = (
+                x_dim.fft_array(space="pos", tlib=some_tlib)
+                + y_dim.fft_array(space="pos", tlib=some_tlib)
+            )
+            Four ways of retrieving an FFTArray object
+            with index 3 along x and first 5 values along y:
+
+            arr_2d[{"x": 3, "y": slice(0, 5)}]
+            arr_2d[3,:5]
+            arr_2d[3][:,:5] # do not use, just for explaining functionality
+            arr_2d[:,:5][3] # do not use, just for explaining functionality
+
+        Parameters
+        ----------
+        item : Union[ int, slice, EllipsisType, Tuple[Union[int, slice, EllipsisType],...], Mapping[Hashable, Union[int, slice]], ]
+            An indexer object with either dimension lookup method either
+            via position or name. When using positional lookup, the order
+            of the dimensions in the FFTArray object is applied (FFTArray.dims).
+            Per dimension, each indexer can be supplied as an integer or a slice.
+            Array-like indexers are not supported as in the general case,
+            the resulting coordinates can not be supported with a valid FFTDimension.
+        FFTArray
+            A new FFTArray with the same dimensionality as this FFTArray,
+            except each dimension and the FFTArray values are indexed.
+            The resulting FFTArray still fully supports FFTs.
+        """
+
+        # Catch special case where effectively no indexing happens,
+        # i.e., just return FFTArray object as is (without changing internal state)
+        if item is Ellipsis:
+            return self
+        if isinstance(item, abc.Mapping) and len(item) == 0:
+            return self
+
+        # Handle two cases of supplying indexing information, either
+        # via keyword args (Mapping) or via tuple using order of dims
+        # Return full tuple of indexers as slice or int object
+        tuple_indexers: Tuple[Union[int, slice], ...] = tuple_indexers_from_dict_or_tuple(
+            indexers=item, # type: ignore
+            dim_names=tuple(dim.name for dim in self.dims) # type: ignore
+        )
+
         new_dims = []
-
-        if isinstance(item, slice):
-            item = [item]
-        for index, dimension, space in zip(item, self._dims, self._spaces):
-            if not isinstance(index, slice):
-                new_dim = dimension._dim_from_start_and_n(
-                    start=index,
-                    n=1,
-                    space=space,
-                )
-                index = slice(index, index+1, None)
-            elif index == slice(None, None, None):
+        for index, orig_dim, space in zip(tuple_indexers, self._dims, self.space):
+            if index == slice(None, None, None):
                 # No selection, just keep the old dim.
-                new_dim = dimension
-            else:
-                new_dim = dimension._dim_from_slice(index, space)
+                new_dims.append(orig_dim)
+                continue
+            if not isinstance(index, slice):
+                index = slice(index, index+1, None)
+            try:
+                # We perform all index sanity checks in _dim_from_slice
+                new_dims.append(orig_dim._dim_from_slice(index, space))
+            # Do not specifically catch jax.errors.ConcretizationTypeError in order to not have to import jax here.
+            except Exception as e:
+                if "Trace" in str(index):
+                    raise NotImplementedError(
+                        f"FFTArray indexing does not support "
+                        + "jitted indexers. Here, your index for "
+                        + f"dimension {orig_dim.name} is a traced object"
+                    ) from e
+                else:
+                    additional_msg = (
+                        "An error occurred when evaluating the index "
+                        + f"dimension {orig_dim.name}: "
+                    )
+                    orig_msg = str(e)
+                    raise type(e)(additional_msg + orig_msg)
 
-            new_dims.append(new_dim)
 
-        selected_values = self.values.__getitem__(item)
+        selected_values = self.values.__getitem__(tuple_indexers)
         # Dimensions with the length 1 are dropped in numpy indexing.
         # We decided against this and keeping even dimensions of length 1.
         # So we have to reintroduce those dropped dimensions via reshape.
@@ -273,7 +419,7 @@ class FFTArray(metaclass=ABCMeta):
             dims=new_dims,
             space=self._spaces,
             eager=self._eager,
-            factors_applied=self._factors_applied,
+            factors_applied=[True]*len(new_dims),
             tlib=self.tlib,
         )
 
@@ -281,37 +427,137 @@ class FFTArray(metaclass=ABCMeta):
     def loc(self):
         return LocFFTArrayIndexer(self)
 
-    def isel(self, **kwargs):
-        slices = []
-        for dim in self.dims:
-            if dim.name in kwargs:
-                slices.append(kwargs[dim.name])
-            else:
-                slices.append(slice(None, None, None))
-        return self.__getitem__(tuple(slices))
+    def isel(
+            self,
+            indexers: Optional[Dict[str, Union[int, slice]]] = None,
+            missing_dims: Literal["raise", "warn", "ignore"] = 'raise',
+            **indexers_kwargs: Union[int, slice],
+        ) -> FFTArray:
+        """
+        Inspired by xarray.DataArray.isel
+        """
 
-    def sel(self, method: Optional[Literal["nearest"]] = None, **kwargs):
+        # Check for correct use of indexers (either via positional
+        # indexers arg or via indexers_kwargs)
+        if indexers is not None and indexers_kwargs:
+            raise ValueError(
+                "cannot specify both keyword arguments and "
+                + "positional arguments to FFTArray.isel"
+            )
+
+        # Handle two ways of supplying indexers, either via positional
+        # argument "indexers" or via keyword arguments for each dimension
+        final_indexers: Dict[str, Union[int, slice]]
+        if indexers is None:
+            final_indexers = indexers_kwargs
+        else:
+            final_indexers = indexers
+
+        if not isinstance(final_indexers, dict):
+            raise ValueError(
+                "indexers must be a dictionary or keyword arguments"
+            )
+
+        # handle case of empty indexers via supplying indexers={} or nothing at all
+        if len(final_indexers) == 0:
+            return self
+
+        # Check for indexer names that are not present in FFTArray and
+        # according to user choice, raise Error, throw warning or ignore
+        check_missing_dim_names(
+            indexer_names=final_indexers.keys(),
+            dim_names=tuple(self.dims_dict.keys()),
+            missing_dims=missing_dims
+        )
+
+        # Map indexers into full tuple of valid indexers, one entry per dimension
+        tuple_indexers: Tuple[Union[int, slice], ...] = tuple_indexers_from_mapping(
+            final_indexers, # type: ignore
+            dim_names=[dim.name for dim in self.dims], # type: ignore
+        )
+
+        return self.__getitem__(tuple_indexers)
+
+    def sel(
+            self,
+            indexers: Optional[Dict[str, Union[float, slice]]] = None,
+            missing_dims: Literal["raise", "warn", "ignore"] = 'raise',
+            method: Optional[Literal["nearest", "pad", "ffill", "backfill", "bfill"]] = None,
+            **indexers_kwargs: Union[float, slice],
+        ) -> FFTArray:
         """
-            Supports in addition to its xarray-counterpart tuples for ranges.
+            Inspired by xarray.DataArray.sel
+            In comparison to itx xarray implementation, there is an add-on:
+                - Implements missing_dims arg and accordingly raises errors
         """
-        slices = []
-        for dim, space in zip(self.dims, self._spaces):
-            if dim.name in kwargs:
-                slices.append(
-                    # mypy error: kwargs is of type "Dict[str, Any]" but
-                    # dim.name is of type "Hashable". However, the if condition
-                    # already makes sure that dim.name is a key of kwargs (so
-                    # also of type "str")
-                    dim._index_from_coord(
-                        kwargs[dim.name], # type: ignore
-                        method=method,
-                        space=space,
-                        tlib=self.tlib,
+
+        # Check for correct use of indexers (either via positional
+        # indexers arg or via indexers_kwargs)
+        if indexers is not None and indexers_kwargs:
+            raise ValueError(
+                "cannot specify both keyword arguments and "
+                + "positional arguments to FFTArray.sel"
+            )
+
+        # Handle two ways of supplying indexers, either via positional
+        # argument "indexers" or via keyword arguments for each dimension
+        final_indexers: Dict[str, Union[float, slice]]
+        if indexers is None:
+            final_indexers = indexers_kwargs
+        else:
+            final_indexers = indexers
+
+        if not isinstance(final_indexers, dict):
+            raise ValueError(
+                "indexers must be a dictionary or keyword arguments"
+            )
+
+        # handle case of empty indexers via supplying indexers={} or nothing at all
+        if len(final_indexers) == 0:
+            return self
+
+        # Check for indexer names that are not present in FFTArray and
+        # according to user choice, raise Error, throw warning or ignore
+        check_missing_dim_names(
+            indexer_names=final_indexers.keys(),
+            dim_names=tuple(self.dims_dict.keys()),
+            missing_dims=missing_dims
+        )
+
+        # As opposed to FFTArray.isel, here we have to find the appropriate
+        # indices for the coordinate indexers by checking the respective
+        # FFTDimension
+        tuple_indexers_as_integer = []
+        for dim, space in zip(self.dims, self.space):
+            if dim.name in final_indexers:
+                index = final_indexers[dim.name] # type: ignore
+                try:
+                    tuple_indexers_as_integer.append(
+                        dim._index_from_coord(
+                            coord=index,
+                            space=space,
+                            tlib=self.tlib,
+                            method=method,
+                        )
                     )
-                )
+                except Exception as e:
+                    # Here, we check for traced indexer values and throw
+                    # a helpful error message in addition to the original
+                    # error raised when trying to map the coord to an index
+                    if "Trace" in str(index):
+                        raise NotImplementedError(
+                            f"FFTArray indexing does not support "
+                            + "jitted indexers. Here, your index for "
+                            + f" dimension {dim.name} is a traced object"
+                        ) from e
+                    else:
+                        raise e
             else:
-                slices.append(slice(None, None, None))
-        return self.__getitem__(tuple(slices))
+                tuple_indexers_as_integer.append(slice(None, None))
+
+        # The rest can be handled by the integer indexing method as we
+        # mapped the coordinates to the index representation above
+        return self.__getitem__(tuple(tuple_indexers_as_integer))
 
     @property
     def dims_dict(self) -> Dict[Hashable, FFTDimension]:
@@ -1130,23 +1376,36 @@ class FFTDimension:
         """
         return (self.n - 1) * self.d_pos
 
-    def _dim_from_slice(self, range: slice, space: Space) -> FFTDimension:
+    def _dim_from_slice(
+            self,
+            range: slice,
+            space: Space,
+        ) -> FFTDimension:
         """
             Get a new FFTDimension for a interval selection in a given space.
             Does not support steps!=1.
+
+            Indexing behaviour is the same as for a numpy array with the
+            difference that we raise an IndexError if the resulting size
+            is not at least 1. We require n>=1 to create a valid FFTDimension.
         """
-        if not(range.step is None or range.step == 1):
-            raise ValueError(
-                "Substepping is not supported because it is not well defined " +
-                "how to cut frequency space with an arbitrary offset."
+
+        # Catch invalid slice objects with range.step != 1
+        check_substepping(range)
+
+        start = remap_index_check_int(range.start, self.n, index_kind="start")
+        end = remap_index_check_int(range.stop, self.n, index_kind="stop")
+
+        n = end - start
+        # Check validity of slice object which has to
+        # yield at least one dimension value
+        if n < 1:
+            raise IndexError(
+                f"Your indexing {range} is not valid. To create a valid "
+                + "FFTDimension, the stop index must be bigger than the start "
+                + "index in order to keep at least one sample (n>=1)."
             )
-        start = range.start
-        if range.stop is None:
-            stop = start+1
-        else:
-            stop = range.stop
-        n = stop - start
-        assert n >= 1
+
         return self._dim_from_start_and_n(start=start, n=n, space=space)
 
     def _dim_from_start_and_n(
@@ -1155,74 +1414,134 @@ class FFTDimension:
             n: int,
             space: Space,
         ) -> FFTDimension:
-        new = self.__class__.__new__(self.__class__)
-        new._name = self.name
-        new._n = n
+        """Returns new FFTDimension instance starting at a specific value
+        in either pos or freq space and setting variable dimension length.
+        """
 
-        # d_freq * d_pos * n == 1,
         if space == "pos":
-            new._pos_min = self.pos_min + start*self.d_pos
-            new._freq_min = self.freq_min
-            new._d_pos = self.d_pos
+            pos_min = self.pos_min + start*self.d_pos
+            freq_min = self.freq_min
+            d_pos = self.d_pos
         elif space == "freq":
-            new._pos_min = self.pos_min
-            new._freq_min = self.freq_min + start*self.d_freq
-            new._d_pos = 1./(self.d_freq*n)
+            pos_min = self.pos_min
+            freq_min = self.freq_min + start*self.d_freq
+            d_pos = 1./(self.d_freq*n)
         else:
             assert False, "Unreachable"
-        return new
 
+        return FFTDimension(
+            name=self.name, # type: ignore
+            n=n,
+            pos_min=pos_min,
+            freq_min=freq_min,
+            d_pos=d_pos,
+        )
 
     def _index_from_coord(
             self,
-            x,
-            method: Optional[Literal["nearest", "min", "max"]],
+            coord: Union[float, slice],
             space: Space,
             tlib: TensorLib,
-        ):
+            method: Optional[Literal["nearest", "pad", "ffill", "backfill", "bfill"]] = None,
+        ) -> Union[int, slice]:
+        """Compute index from given coordinate which can be float or slice.
+        In case of slice input, find the dimension indices which are
+        including the selected coordinates, and return appropriate slice object.
+
+        Short explanation what "pad", "ffill", "backfill", "bfill" do:
+            bfill, backfill: maps 2.5 to next valid index 3
+            pad, ffill: maps 2.5 to previous valid index 2
         """
-            Compute index from given coordinate `x`.
-        """
-        if isinstance(x, tuple):
-            sel_min, sel_max = x
-            idx_min = self._index_from_coord(sel_min, method="min", space=space, tlib=tlib)
-            idx_max = self._index_from_coord(sel_max, method="max", space=space, tlib=tlib)
-            # The max is an open intervel, therefore add one.
-            return slice(idx_min, idx_max+1)
-
-        if space == "pos":
-            raw_idx = (x - self.pos_min) / self.d_pos
-        else:
-            raw_idx = (x - self.freq_min) / self.d_freq
-
-
-        if method is None:
-            # TODO This is not jittable.
-            # Either fix it or document it.
-            # Would probably need a tlib if...
-            if tlib.numpy_ufuncs.round(raw_idx) != raw_idx:
-                raise KeyError(
-                    f"No exact index found for {x} in {space}-space of dim " +
-                    f'"{self.name}". Try the keyword argument ' +
-                    'method="nearest".'
+        # The first part handles coords supplied as slice object whereas
+        # it prepares those and distributes the actual work to the second
+        # part of this function which handles scalar objects
+        if isinstance(coord, slice):
+            check_substepping(coord)
+            if method is not None:
+                # This catches slices supplied to FFTArray.sel or isel with
+                # a method != None (e.g. nearest) which is not supported
+                raise NotImplementedError(
+                    f"cannot use method: `{method}` if the coord argument "
+                    + f"is not scalar, here: {coord}."
                 )
-            idx = raw_idx
-        elif method in ["nearest", "min", "max"]:
-            # Clamp index into valid range
-            raw_idx = tlib.numpy_ufuncs.max(tlib.array([0, raw_idx]))
-            raw_idx = tlib.numpy_ufuncs.min(tlib.array([self.n, raw_idx]))
-            if  method == "nearest":
+            # Handle slice objects with start or end being None whereas
+            # we substitute those with the FFTDimension bounds
+            if coord.start is None:
+                coord_start = getattr(self, f"{space}_min")
+            else:
+                coord_start = coord.start
+            if coord.stop is None:
+                coord_stop = getattr(self, f"{space}_max")
+            else:
+                coord_stop = coord.stop
+
+            # Use the scalar part of this function with the methods bfill and ffill
+            # to yield indices to include the respective coordinates
+            idx_min: int = self._index_from_coord(coord_start, method="bfill", space=space, tlib=tlib) # type: ignore
+            idx_max: int = self._index_from_coord(coord_stop, method="ffill", space=space, tlib=tlib) # type: ignore
+            return slice(
+                idx_min,
+                idx_max + 1 # as slice.stop is non-inclusive, add 1
+            )
+        else:
+            # Calculate the float index regarding the FFTDimension as
+            # an infinite grid
+            if space == "pos":
+                raw_idx = (coord - self.pos_min) / self.d_pos
+            else:
+                raw_idx = (coord - self.freq_min) / self.d_freq
+
+            # Clamp float index to the valid range of 0 to n-1
+            clamped_index = min(
+                max(0, raw_idx),
+                self.n - 1
+            )
+
+            # Handle different methods case by case here
+            if method is None:
+                # We round the raw float indices here and check whether they
+                # match their rounded int-like value, if not we throw a KeyError
+                if (
+                    tlib.numpy_ufuncs.round(raw_idx) != raw_idx or
+                    not tlib.numpy_ufuncs.array_equal(clamped_index, raw_idx)
+                ):
+                    raise KeyError(
+                        f"No exact index found for {coord} in {space}-space of dim " +
+                        f'"{self.name}". Try the keyword argument ' +
+                        'method="nearest".'
+                    )
+                final_idx = raw_idx
+            elif  method == "nearest":
                 # The combination of floor and +0.5 prevents the "ties to even" rounding of floating point numbers.
                 # We only need one branch since our indices are always positive.
-                idx = tlib.numpy_ufuncs.floor(raw_idx + 0.5)
-            elif method == "min":
-                idx = tlib.numpy_ufuncs.ceil(raw_idx)
-            elif method == "max":
-                idx = tlib.numpy_ufuncs.floor(raw_idx)
-        else:
-            raise ValueError("Specified unsupported look-up method.")
+                final_idx = tlib.numpy_ufuncs.floor(clamped_index + 0.5)
+            elif method in ["bfill", "backfill"]:
+                # We propagate towards the next highest index and then check
+                # its validity by checking if it's smaller or equal than
+                # the dimension length n
+                final_idx = np.ceil(clamped_index)
+                if raw_idx > self.n - 1:
+                    raise KeyError(
+                        f"Coord {coord} not found with method '{method}', "
+                        + "you could try one of the following instead: "
+                        + "'ffill', 'pad' or 'nearest'."
+                    )
+            elif method in ["ffill", "pad"]:
+                # We propagate back to the next smalles index and then check
+                # its validity by checking if it's at least 0
+                final_idx = np.floor(clamped_index)
+                if raw_idx < 0:
+                    raise KeyError(
+                        f"Coord {coord} not found with method '{method}', "
+                        + "you could try one of the following instead: "
+                        + "'bfill', 'backfill' or 'nearest'."
+                    )
+            else:
+                raise ValueError(f"Specified unsupported look-up method `{method}`.")
 
-        return tlib.array(idx, dtype=int)
+            # Transform index to integer here. We can do this because we
+            # ensured validity in the cases above, especially for method = None
+            return int(final_idx)
 
     # ---------------------------- Frequency Space --------------------------- #
 

@@ -1,4 +1,4 @@
-from typing import Iterable, TypeVar, Generic, Any, List
+from typing import Iterable, TypeVar, Generic, Any
 import numpy as np
 from functools import reduce
 
