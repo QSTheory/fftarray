@@ -5,7 +5,7 @@ In total, FFTArray objects can be indexed via four different methods, two dimens
 
 The main difference between `FFTArray` indexing and `xarray` indexing lies in the fact that an `FFTArray` object can be in different internal states, i.e., each dimension can be either in position or frequency space and will always be indexed within this space. This is especially important when indexing by label, i.e., by position or frequency coordinate values.
 
-In the following overview, we understand `fft_arr` as an FFTArray object with two dimensions in the order `("x", "y")`.
+In the following overview, we understand `fft_arr` as an FFTArray object with two dimensions in the order `("x", "y")`. FFTArray supports four possible ways of indexing, here shown by selecting the first `y` coordinate (`y=1e-3`).
 
 Dimension lookup | Index lookup | FFTArray syntax |
 --- | --- | --- |
