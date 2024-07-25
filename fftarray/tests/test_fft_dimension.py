@@ -98,3 +98,55 @@ def test_equality() -> None:
     assert dim_1 != dim_2
     assert dim_1 == dim_1
     assert dim_1 == copy.copy(dim_1)
+
+@pytest.mark.parametrize("dtc", [True, False])
+def test_dynamically_traced_coords(dtc: bool) -> None:
+    """
+    Test the tracing of an FFTDimension. The tracing behavior (dynamic/static)
+    is determined by its property `dynamically_traced_coords` (False/True).
+
+    If `dynamically_traced_coords=True`, `d_pos`, `pos_min` and `freq_min`
+    should be jax-leaves.
+    If `dynamically_traced_coords=True`, all properties should be static.
+
+    Here, only the basics are tested, whether the FFTDimension properties can be
+    change within a jax.lax.scan step function.
+    """
+
+    fftdim_test = FFTDimension("x",
+        pos_min = 3e-6,
+        d_pos = 1e-5,
+        freq_min = 0.,
+        n = 16,
+        dynamically_traced_coords = dtc
+    )
+
+    def jax_step_func_static(fftdim: FFTDimension, a: float) -> FFTDimension:
+        o = fftdim._n * fftdim._d_pos + a * fftdim._freq_min
+        return fftdim, o
+
+    def jax_step_func_dynamic(fftdim: FFTDimension, a: float) -> FFTDimension:
+        fftdim._pos_min = fftdim._pos_min - a
+        fftdim._d_pos = a*fftdim._d_pos
+        fftdim._freq_min = fftdim._freq_min/a
+        return fftdim, None
+
+    def jax_step_func_forbidden(fftdim: FFTDimension, a: float) -> FFTDimension:
+        fftdim._name = f"new{fftdim._name}"
+        fftdim._n = fftdim._n + a
+        fftdim._dynamically_traced_coords = not fftdim._dynamically_traced_coords
+        return fftdim, None
+
+    # both (static and dynamic) should support this
+    jax.lax.scan(jax_step_func_static, fftdim_test, jax.numpy.arange(3))
+
+    if dtc:
+        # dynamic
+        jax.lax.scan(jax_step_func_dynamic, fftdim_test, jax.numpy.arange(3))
+    else:
+        # static
+        with pytest.raises(jax.errors.UnexpectedTracerError):
+            jax.lax.scan(jax_step_func_dynamic, fftdim_test, jax.numpy.arange(3))
+
+    with pytest.raises(TypeError):
+        jax.lax.scan(jax_step_func_forbidden, fftdim_test, jax.numpy.arange(3))
