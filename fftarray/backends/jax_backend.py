@@ -50,22 +50,21 @@ class JaxTensorLib(TensorLib):
 def fftarray_flatten(
     arr: FFTArray
 ) -> Tuple[
-        Tuple[Any],
+        Tuple[Any, Tuple[FFTDimension, ...]],
         Tuple[
-            Tuple[FFTDimension, ...],
             Tuple[Space, ...],
             Tuple[bool, ...],
             Tuple[bool, ...],
             TensorLib
         ]
     ]:
-    children = (arr._values,)
-    aux_data = (arr._dims, arr._spaces, arr._eager, arr._factors_applied, arr._tlib)
+    children = (arr._values, arr._dims)
+    aux_data = (arr._spaces, arr._eager, arr._factors_applied, arr._tlib)
     return (children, aux_data)
 
 def fftarray_unflatten(aux_data, children) -> FFTArray:
-    (values,) = children
-    (dims, spaces, eager, factors_applied, tensor_lib) = aux_data
+    (values, dims) = children
+    (spaces, eager, factors_applied, tensor_lib) = aux_data
     # We explicitly do not want to call the constructor here.
     # The consistency check fails (needlessly) for PyTreeArrays and other special "tricks".
     self = FFTArray.__new__(FFTArray)
