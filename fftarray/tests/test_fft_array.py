@@ -525,8 +525,12 @@ def test_grid_manipulation_in_jax_scan(space: Space, dtc: bool, sel_method: str)
     Tests FFTDimension's `dynamically_traced_coords` property on the level of an
     `FFTArray`.
 
-    For this, the test scales and moves the grid of an FFTArray inside a
-    `jax.lax.scan` step function.
+    Allowed by dynamic, error for static:
+    - change FFTDimension properties of an FFTArray inside a `jax.lax.scan` step
+    function
+
+    Allowed by static, error for dynamic:
+    - selection by coordinate
     """
     xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1, dynamically_traced_coords=dtc)
     ydim = FFTDimension("y", n=8, d_pos=0.03, pos_min=-0.4, freq_min=-4.2, dynamically_traced_coords=dtc)
@@ -545,7 +549,7 @@ def test_grid_manipulation_in_jax_scan(space: Space, dtc: bool, sel_method: str)
     def jax_scan_step_fun_static(carry, a):
         # static should support coordinate selection
         # dynamic should throw an error
-        xval = carry._dims[0]._pos_min# + carry._dims[0]._d_pos
+        xval = carry._dims[0]._pos_min + carry._dims[0]._d_pos
         carry_sel = carry.sel(x=xval, method=sel_method)
         return carry, a
 
