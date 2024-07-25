@@ -24,7 +24,7 @@ spaces: List[Space] = ["pos", "freq"]
 
 # Currently only tests the values type
 def test_fft_array_constructor():
-    """Tests whether the type checking of the FFTArray input values works. 
+    """Tests whether the type checking of the FFTArray input values works.
     An FFTArray can only be initialized if the values array type is compatible
     with the provided TensorLib.
     """
@@ -516,3 +516,45 @@ def test_fft_ifft_invariance(tensor_lib, space: Space):
         return
     rtol = 1e-5 if arr.tlib.precision == "fp32" else 1e-6
     np.testing.assert_allclose(arr.values, arr_fft_ifft.values, rtol=rtol, atol=1e-38)
+
+@pytest.mark.parametrize("space", spaces)
+@pytest.mark.parametrize("dtc", [True, False])
+@pytest.mark.parametrize("sel_method", ["nearest", "pad", "ffill", "backfill", "bfill"])
+def test_grid_manipulation_in_jax_scan(space: Space, dtc: bool, sel_method: str) -> None:
+    """
+    Tests FFTDimension's `dynamically_traced_coords` property on the level of an
+    `FFTArray`.
+
+    For this, the test scales and moves the grid of an FFTArray inside a
+    `jax.lax.scan` step function.
+    """
+    xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1, dynamically_traced_coords=dtc)
+    ydim = FFTDimension("y", n=8, d_pos=0.03, pos_min=-0.4, freq_min=-4.2, dynamically_traced_coords=dtc)
+    fftarr = xdim.fft_array(tlib=JaxTensorLib(), space=space) + ydim.fft_array(tlib=JaxTensorLib(), space=space)
+
+    def jax_scan_step_fun_dynamic(carry, a):
+        # dynamic should support resizing and shifting of the grid
+        # static should throw an error
+        newdims = list(carry._dims)
+        newdims[0]._pos_min = 0.
+        newdims[0]._d_pos = newdims[0]._d_pos/2.
+        newdims[1]._freq_min = newdims[1]._freq_min + 2.
+        carry._dims = tuple(newdims)
+        return carry, a
+
+    def jax_scan_step_fun_static(carry, a):
+        # static should support coordinate selection
+        # dynamic should throw an error
+        xval = carry._dims[0]._pos_min# + carry._dims[0]._d_pos
+        carry_sel = carry.sel(x=xval, method=sel_method)
+        return carry, a
+
+    if dtc:
+        jax.lax.scan(jax_scan_step_fun_dynamic, fftarr, jnp.arange(3))
+        # internal logic in sel throws NotImplementedError for jitted index
+        with pytest.raises(NotImplementedError):
+            jax.lax.scan(jax_scan_step_fun_static, fftarr, jnp.arange(3))
+    else:
+        jax.lax.scan(jax_scan_step_fun_static, fftarr, jnp.arange(3))
+        with pytest.raises(TypeError):
+            jax.lax.scan(jax_scan_step_fun_dynamic, fftarr, jnp.arange(3))

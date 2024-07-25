@@ -129,13 +129,13 @@ def test_dynamically_traced_coords(dtc: bool) -> None:
         fftdim._pos_min = fftdim._pos_min - a
         fftdim._d_pos = a*fftdim._d_pos
         fftdim._freq_min = fftdim._freq_min/a
-        return fftdim, None
+        return fftdim, a
 
     def jax_step_func_forbidden(fftdim: FFTDimension, a):
         fftdim._name = f"new{fftdim._name}"
         fftdim._n = fftdim._n + 1
         fftdim._dynamically_traced_coords = not fftdim._dynamically_traced_coords
-        return fftdim, None
+        return fftdim, a
 
     # both (static and dynamic) should support this
     jax.lax.scan(jax_step_func_static, fftdim_test, jax.numpy.arange(3))
