@@ -104,15 +104,31 @@ def fft_dimension_flatten(v: FFTDimension) -> Tuple[List[Any], List[Any]]:
     --------
     jax.tree_util.register_pytree_node
     """
+    if v._dynamically_traced_coords:
+        # dynamically traced, write _pos_min, _freq_min and _d_pos into children
+        children: List[Any] = [
+            v._pos_min,
+            v._freq_min,
+            v._d_pos,
+        ]
+        aux_data: List[Any] = [
+            v._name,
+            v._n,
+            v._dynamically_traced_coords,
+        ]
+        return (children, aux_data)
+    # static, write everything into aux_data
+    children: List[Any] = []
     aux_data: List[Any] = [
-        v._n,
         v._name,
+        v._n,
         v._pos_min,
         v._freq_min,
         v._d_pos,
+        v._dynamically_traced_coords,
     ]
-    children: List[Any] = []
     return (children, aux_data)
+
 
 def fft_dimension_unflatten(aux_data, children) -> FFTDimension:
     """The `unflatten_func` used by `jax.tree_util.register_pytree_node` to
@@ -136,15 +152,26 @@ def fft_dimension_unflatten(aux_data, children) -> FFTDimension:
     --------
     jax.tree_util.register_pytree_node
     """
+    if aux_data[-1]:
+        # dynamically traced, _pos_min, _freq_min, _d_pos in children
+        fftdim = FFTDimension.__new__(FFTDimension)
+        fftdim._name = aux_data[0]
+        fftdim._n = aux_data[1]
+        fftdim._pos_min = children[0]
+        fftdim._freq_min = children[1]
+        fftdim._d_pos = children[2]
+        fftdim._dynamically_traced_coords = aux_data[2]
+        return fftdim
+    # static, everything in aux_data
     fftdim = FFTDimension.__new__(FFTDimension)
-    fftdim._n = aux_data[0]
-    fftdim._name = aux_data[1]
+    fftdim._name = aux_data[0]
+    fftdim._n = aux_data[1]
     fftdim._pos_min = aux_data[2]
     fftdim._freq_min = aux_data[3]
     fftdim._d_pos = aux_data[4]
+    fftdim._dynamically_traced_coords = aux_data[5]
     return fftdim
 
-from jax.tree_util import register_pytree_node
 register_pytree_node(
     FFTDimension,
     fft_dimension_flatten,

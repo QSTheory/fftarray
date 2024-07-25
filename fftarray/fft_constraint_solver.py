@@ -55,6 +55,7 @@ class GridParams(TypedDict):
 def fft_dim_from_constraints(
         name: str,
         *,
+        dynamically_traced_coords: bool = False,
         n: Union[int, Literal["power_of_two", "even"]] = "power_of_two",
         d_pos: Optional[float] = None,
         d_freq: Optional[float] = None,
@@ -97,6 +98,10 @@ def fft_dim_from_constraints(
     ----------
     name : str
         Name identifying the dimension.
+    dynamically_traced_coords : bool, optional
+        Only relevant for JAX backend. Whether the coordinate values should be
+        dynamically traced such that the grid can be altered inside a jitted
+        function, by default False
     n : Union[int, Literal[&quot;power_of_two&quot;, &quot;even&quot;]], optional
         Number of grid points, by default "power_of_two"
     d_pos : Optional[float], optional
@@ -156,6 +161,7 @@ def fft_dim_from_constraints(
         d_pos=params["d_pos"],
         pos_min=params["pos_min"],
         freq_min=params["freq_min"],
+        dynamically_traced_coords=dynamically_traced_coords
     )
 
 def fft_grid_params_from_constraints(

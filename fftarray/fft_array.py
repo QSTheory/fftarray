@@ -1266,6 +1266,7 @@ class FFTDimension:
     _d_pos: float
     _n: int
     _name: Hashable
+    _dynamically_traced_coords: bool
 
     def __init__(
             self,
@@ -1274,12 +1275,14 @@ class FFTDimension:
             d_pos: float,
             pos_min: float,
             freq_min: float,
+            dynamically_traced_coords: bool = False,
         ):
         self._name = name
         self._n = n
         self._d_pos = d_pos
         self._pos_min = pos_min
         self._freq_min = freq_min
+        self._dynamically_traced_coords = dynamically_traced_coords
 
     def __repr__(self: FFTDimension) -> str:
         arg_str = ", ".join(
