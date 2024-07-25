@@ -121,19 +121,19 @@ def test_dynamically_traced_coords(dtc: bool) -> None:
         dynamically_traced_coords = dtc
     )
 
-    def jax_step_func_static(fftdim: FFTDimension, a: float) -> FFTDimension:
+    def jax_step_func_static(fftdim: FFTDimension, a):
         o = fftdim._n * fftdim._d_pos + a * fftdim._freq_min
         return fftdim, o
 
-    def jax_step_func_dynamic(fftdim: FFTDimension, a: float) -> FFTDimension:
+    def jax_step_func_dynamic(fftdim: FFTDimension, a):
         fftdim._pos_min = fftdim._pos_min - a
         fftdim._d_pos = a*fftdim._d_pos
         fftdim._freq_min = fftdim._freq_min/a
         return fftdim, None
 
-    def jax_step_func_forbidden(fftdim: FFTDimension, a: float) -> FFTDimension:
+    def jax_step_func_forbidden(fftdim: FFTDimension, a):
         fftdim._name = f"new{fftdim._name}"
-        fftdim._n = fftdim._n + a
+        fftdim._n = fftdim._n + 1
         fftdim._dynamically_traced_coords = not fftdim._dynamically_traced_coords
         return fftdim, None
 

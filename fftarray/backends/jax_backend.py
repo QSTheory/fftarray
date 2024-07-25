@@ -104,22 +104,24 @@ def fft_dimension_flatten(v: FFTDimension) -> Tuple[List[Any], List[Any]]:
     --------
     jax.tree_util.register_pytree_node
     """
+    children: List[Any]
+    aux_data: List[Any]
     if v._dynamically_traced_coords:
         # dynamically traced, write _pos_min, _freq_min and _d_pos into children
-        children: List[Any] = [
+        children = [
             v._pos_min,
             v._freq_min,
             v._d_pos,
         ]
-        aux_data: List[Any] = [
+        aux_data = [
             v._name,
             v._n,
             v._dynamically_traced_coords,
         ]
         return (children, aux_data)
     # static, write everything into aux_data
-    children: List[Any] = []
-    aux_data: List[Any] = [
+    children = []
+    aux_data = [
         v._name,
         v._n,
         v._pos_min,
