@@ -548,7 +548,7 @@ class FFTArray(metaclass=ABCMeta):
                         raise NotImplementedError(
                             f"FFTArray indexing does not support "
                             + "jitted indexers. Here, your index for "
-                            + f" dimension {dim.name} is a traced object"
+                            + f"dimension {dim.name} is a traced object"
                         ) from e
                     else:
                         raise e
@@ -1504,10 +1504,7 @@ class FFTDimension:
             if method is None:
                 # We round the raw float indices here and check whether they
                 # match their rounded int-like value, if not we throw a KeyError
-                if (
-                    tlib.numpy_ufuncs.round(raw_idx) != raw_idx or
-                    not tlib.numpy_ufuncs.array_equal(clamped_index, raw_idx)
-                ):
+                if (round(raw_idx) != raw_idx or clamped_index != raw_idx):
                     raise KeyError(
                         f"No exact index found for {coord} in {space}-space of dim " +
                         f'"{self.name}". Try the keyword argument ' +
@@ -1517,7 +1514,7 @@ class FFTDimension:
             elif  method == "nearest":
                 # The combination of floor and +0.5 prevents the "ties to even" rounding of floating point numbers.
                 # We only need one branch since our indices are always positive.
-                final_idx = tlib.numpy_ufuncs.floor(clamped_index + 0.5)
+                final_idx = np.floor(clamped_index + 0.5)
             elif method in ["bfill", "backfill"]:
                 # We propagate towards the next highest index and then check
                 # its validity by checking if it's smaller or equal than
