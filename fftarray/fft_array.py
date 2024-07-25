@@ -394,6 +394,11 @@ class FFTArray(metaclass=ABCMeta):
             # Do not specifically catch jax.errors.ConcretizationTypeError in order to not have to import jax here.
             except Exception as e:
                 if "Trace" in str(index):
+                    if orig_dim._dynamically_traced_coords:
+                        raise NotImplementedError(
+                            "dynamically_traced_coords must be False to index "
+                            + "by label/coordinate."
+                        ) from e
                     raise NotImplementedError(
                         f"FFTArray indexing does not support "
                         + "jitted indexers. Here, your index for "
@@ -1275,7 +1280,7 @@ class FFTDimension:
             d_pos: float,
             pos_min: float,
             freq_min: float,
-            dynamically_traced_coords: bool = False,
+            dynamically_traced_coords: bool = True,
         ):
         self._name = name
         self._n = n
