@@ -107,10 +107,10 @@ def test_dynamically_traced_coords(dtc: bool) -> None:
 
     If `dynamically_traced_coords=True`, `d_pos`, `pos_min` and `freq_min`
     should be jax-leaves.
-    If `dynamically_traced_coords=True`, all properties should be static.
+    If `dynamically_traced_coords=False`, all properties should be static.
 
     Here, only the basics are tested, whether the FFTDimension properties can be
-    change within a jax.lax.scan step function.
+    changed within a jax.lax.scan step function.
     """
 
     fftdim_test = FFTDimension("x",

@@ -153,6 +153,7 @@ def fft_dimension_unflatten(aux_data, children) -> FFTDimension:
     --------
     jax.tree_util.register_pytree_node
     """
+    # the last element of aux_data is the dynamically_traced_coords flag
     if aux_data[-1]:
         # dynamically traced, _pos_min, _freq_min, _d_pos in children
         fftdim = FFTDimension.__new__(FFTDimension)
