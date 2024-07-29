@@ -536,7 +536,7 @@ def test_grid_manipulation_in_jax_scan(space: Space, dtc: bool, sel_method: str)
     ydim = FFTDimension("y", n=8, d_pos=0.03, pos_min=-0.4, freq_min=-4.2, dynamically_traced_coords=dtc)
     fftarr = xdim.fft_array(tlib=JaxTensorLib(), space=space) + ydim.fft_array(tlib=JaxTensorLib(), space=space)
 
-    def jax_scan_step_fun_dynamic(carry, a):
+    def jax_scan_step_fun_dynamic(carry, *_):
         # dynamic should support resizing and shifting of the grid
         # static should throw an error
         newdims = list(carry._dims)
@@ -544,14 +544,14 @@ def test_grid_manipulation_in_jax_scan(space: Space, dtc: bool, sel_method: str)
         newdims[0]._d_pos = newdims[0]._d_pos/2.
         newdims[1]._freq_min = newdims[1]._freq_min + 2.
         carry._dims = tuple(newdims)
-        return carry, a
+        return carry, None
 
-    def jax_scan_step_fun_static(carry, a):
+    def jax_scan_step_fun_static(carry, *_):
         # static should support coordinate selection
         # dynamic should throw an error
         xval = carry._dims[0]._pos_min + carry._dims[0]._d_pos
         carry_sel = carry.sel(x=xval, method=sel_method)
-        return carry, a
+        return carry, None
 
     if dtc:
         jax.lax.scan(jax_scan_step_fun_dynamic, fftarr, jnp.arange(3))
@@ -562,3 +562,37 @@ def test_grid_manipulation_in_jax_scan(space: Space, dtc: bool, sel_method: str)
         jax.lax.scan(jax_scan_step_fun_static, fftarr, jnp.arange(3))
         with pytest.raises(TypeError):
             jax.lax.scan(jax_scan_step_fun_dynamic, fftarr, jnp.arange(3))
+
+def test_different_dimension_dynamic_prop() -> None:
+
+    x_dim = FFTDimension(name="x", pos_min=0, freq_min=0, d_pos=1, n=8, dynamically_traced_coords=False)
+    y_dim = FFTDimension(name="y", pos_min=0, freq_min=0, d_pos=1, n=4, dynamically_traced_coords=True)
+    fftarr = x_dim.fft_array(tlib=JaxTensorLib(), space="pos") + y_dim.fft_array(tlib=JaxTensorLib(), space="pos")
+
+    def jax_scan_step_fun_valid(carry, *_):
+        xval = carry._dims[0]._pos_min + carry._dims[0]._d_pos # static dimension
+        new_dims = list(carry._dims)
+        new_dims[1]._pos_min = 0.123 # dynamic dimension
+        carry_sel = carry.sel(x=xval, method="nearest")
+        carry._dims = tuple(new_dims)
+        return carry, carry_sel
+
+    jax.lax.scan(jax_scan_step_fun_valid, fftarr, jnp.arange(3))
+
+    def jax_scan_step_fun_invalid_change(carry, *_):
+        new_dims = list(carry._dims)
+        new_dims[0]._pos_min = 0.123
+        carry._dims = tuple(new_dims)
+        return carry, None
+
+    def jax_scan_step_fun_invalid_sel(carry, *_):
+        yval = carry._dims[1]._pos_min + carry._dims[1]._d_pos
+        carry_sel = carry.sel(y=0, method="nearest")
+        return carry, carry_sel
+
+    with pytest.raises(TypeError):
+        jax.lax.scan(jax_scan_step_fun_invalid_change, fftarr, jnp.arange(3))
+
+    with pytest.raises(NotImplementedError):
+        jax.lax.scan(jax_scan_step_fun_invalid_sel, fftarr, jnp.arange(3))
+

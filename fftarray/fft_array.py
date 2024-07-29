@@ -393,12 +393,8 @@ class FFTArray(metaclass=ABCMeta):
                 new_dims.append(orig_dim._dim_from_slice(index, space))
             # Do not specifically catch jax.errors.ConcretizationTypeError in order to not have to import jax here.
             except Exception as e:
+                # This condition is fullfilled when the index is a traced object
                 if "Trace" in str(index):
-                    if orig_dim._dynamically_traced_coords:
-                        raise NotImplementedError(
-                            "dynamically_traced_coords must be False to index "
-                            + "by label/coordinate."
-                        ) from e
                     raise NotImplementedError(
                         f"FFTArray indexing does not support "
                         + "jitted indexers. Here, your index for "
@@ -546,14 +542,21 @@ class FFTArray(metaclass=ABCMeta):
                         )
                     )
                 except Exception as e:
-                    # Here, we check for traced indexer values and throw
-                    # a helpful error message in addition to the original
-                    # error raised when trying to map the coord to an index
+                    # Here, we check for traced indexer values or
+                    # traced FFTDimension and throw a helpful error message
+                    # in addition to the original error raised when trying
+                    # to map the coord to an index
                     if "Trace" in str(index):
                         raise NotImplementedError(
                             f"FFTArray indexing does not support "
                             + "jitted indexers. Here, your index for "
                             + f"dimension {dim.name} is a traced object"
+                        ) from e
+                    elif dim._dynamically_traced_coords and "Trace" in str(e):
+                        raise NotImplementedError(
+                            "dynamically_traced_coords of dimension "
+                            + f"{dim.name} must be False to index "
+                            + "by label/coordinate."
                         ) from e
                     else:
                         raise e
