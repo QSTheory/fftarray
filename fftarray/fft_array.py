@@ -2,7 +2,7 @@ from __future__ import annotations
 from collections import abc
 from typing import (
     Mapping, Optional, Union, List, Any, Tuple, Dict, Hashable,
-    Literal, TypeVar, Iterable, Set, Generic, get_args
+    Literal, TypeVar, Iterable, Set, get_args
 )
 from abc import ABCMeta
 from copy import copy
@@ -14,205 +14,21 @@ import numpy as np
 from .named_array import align_named_arrays, get_axes_transpose
 from .backends.tensor_lib import TensorLib
 from .backends.np_backend import NumpyTensorLib
-from .helpers import UniformValue, format_bytes, format_n, truncate_str
 
-from .helpers import UniformValue
-from .indexing_helpers import (
-    check_substepping, parse_tuple_indexer_to_dims, check_missing_dim_names,
+from ._utils._ufuncs import binary_ufuncs, unary_ufunc
+from ._utils._formatting import (
+    fft_dim_table, fft_array_props_table, format_bytes, format_n
+)
+from ._utils._unpacking import UniformValue, norm_param
+from ._utils._indexing import (
+    LocFFTArrayIndexer, check_substepping, check_missing_dim_names,
     tuple_indexers_from_dict_or_tuple, tuple_indexers_from_mapping,
     remap_index_check_int
 )
-T = TypeVar("T")
-EllipsisType = TypeVar('EllipsisType')
 
+EllipsisType = TypeVar('EllipsisType')
 Space = Literal["pos", "freq"]
 
-#-------------
-# Helper functions to support type inference on binary and unary functions in FFTArray
-#-------------
-def _binary_ufuncs(op):
-    def fun(self: FFTArray, other) -> FFTArray:
-        return op(self, other)
-    def fun_ref(self: FFTArray, other) -> FFTArray:
-        return op(other, self)
-    return fun, fun_ref
-
-def _unary_ufunc(op):
-    def fun(self: FFTArray) -> FFTArray:
-        return op(self)
-    return fun
-
-class LocFFTArrayIndexer(Generic[T]):
-    """
-        `FFTArray.loc` allows indexing by coordinate position.
-        It supports both positional and name look up (via dict).
-        In order to support the indexing operator `__getitem__` for coordinate (label)
-        instead of integer (index) look up (e.g. `arr.loc[1:3]`), we need this indexable helper
-        class to be returned by the property `loc`.
-    """
-    _arr: FFTArray
-
-    def __init__(self, arr: FFTArray) -> None:
-        self._arr = arr
-
-    def __getitem__(
-            self,
-            item: Union[
-                int, slice, EllipsisType,
-                Tuple[Union[int, slice, EllipsisType],...],
-                Dict[str, Union[int, slice]],
-            ]
-        ) -> FFTArray:
-        """This method is called when indexing an FFTArray instance by label,
-            i.e., by using the coordinate value via FFTArray.loc[].
-            It supports dimensional lookup via position and name.
-            The indexing behaviour is mainly defined to match the one of
-            `xarray.DataArray` with the major difference that we always keep
-            all dimensions.
-            The indexing is performed in the current state of the FFTArray,
-            i.e., each dimension is indexed in its respective state (pos or freq).
-            When the indexing actually changes the returned FFTArray by removing some values,
-            its internal state will always have all fft factors applied.
-
-            Example usage:
-            arr_2d = (
-                x_dim.fft_array(space="pos", tlib=some_tlib)
-                + y_dim.fft_array(space="pos", tlib=some_tlib)
-            )
-            Four ways of retrieving an FFTArray object
-            with coordinate 3 along x and coordinates values
-            between the dimension min (either pos_min or freq_min)
-            and 5 along y:
-
-            arr_2d.loc[{"x": 3, "y": slice(None, 5)}]
-            arr_2d.loc[3,:5]
-            arr_2d.loc[3][:,:5] # don't use, just for explaining functionality
-            arr_2d.loc[:,:5][3] # don't use, vjust for explaining functionality
-
-        Parameters
-        ----------
-        item : Union[ int, slice, EllipsisType, Tuple[Union[int, slice, EllipsisType],...], Mapping[Hashable, Union[int, slice]], ]
-            An indexer object with dimension lookup method either
-            via position or name. When using positional lookup, the order
-            of the dimensions in the FFTArray object is used (FFTArray.dims).
-            Per dimension, each indexer can be supplied as an integer or a slice.
-            Array-like indexers are not supported as in the general case,
-            the resulting coordinates cannot be expressed as a valid FFTDimension.
-        FFTArray
-            A new FFTArray with the same dimensions as this FFTArray,
-            except each dimension and the FFTArray values are indexed.
-            The resulting FFTArray still fully supports FFTs.
-        """
-
-        if item is Ellipsis:
-            return self._arr
-
-        if isinstance(item, dict):
-            return self._arr.sel(item) # type: ignore
-
-        if not isinstance(item, tuple):
-            item = (item,)
-
-        tuple_indexers = parse_tuple_indexer_to_dims(
-            item,
-            n_dims=len(self._arr.dims)
-        )
-
-        integer_indexers: List[Union[int, slice]] = []
-        for index, dim, space in zip(
-            tuple_indexers, self._arr.dims, self._arr.space
-        ):
-            integer_indexers.append(
-                dim._index_from_coord(
-                    coord=index,
-                    space=space,
-                    tlib=self._arr.tlib,
-                    method=None,
-                )
-            )
-
-        return self._arr.__getitem__(
-            tuple(integer_indexers)
-        )
-
-def _norm_param(val: Union[T, Iterable[T]], n: int, types) -> Tuple[T, ...]:
-    """
-       `val` has to be immutable.
-    """
-    if isinstance(val, types):
-        return (val,)*n
-
-    # TODO: Can we make this type check work?
-    return tuple(val) # type: ignore
-
-def _fft_dim_table(
-        dim: FFTDimension,
-        include_header=True,
-        include_dim_name=False,
-        dim_index: Optional[int] = None,
-    ) -> str:
-    """Constructs a table for FFTDimension.__str__ and FFTArrar.__str__
-    containting the grid parameters for each space.
-    """
-    str_out = ""
-    headers = ["space", "d", "min", "middle", "max", "extent"]
-    if include_dim_name:
-        headers.insert(0, "dimension")
-    if include_header:
-        if dim_index is not None:
-            # handled separately to give it a smaller width
-            str_out += "| # "
-        for header in headers:
-            # give space smaller width to stay below 80 characters per line
-            str_out += f"|{header:^7}" if header == "space" else f"|{header:^10}"
-        str_out += "|\n" + int(dim_index is not None)*"+---"
-        for header in headers:
-            str_out += "+" + (7*"-" if header == "space" else 10*"-")
-        str_out += "+\n"
-    dim_prop_headers = headers[int(include_dim_name)+1:]
-    for k, space in enumerate(get_args(Space)):
-        if dim_index is not None:
-            str_out += f"|{dim_index:^3}" if k==0 else f"|{'':^3}"
-        if include_dim_name:
-            dim_name = str(dim.name)
-            if len(dim_name) > 10:
-                if k == 0:
-                    str_out += f"|{dim_name[:10]}"
-                else:
-                    str_out += f"|{truncate_str(dim_name[10:], 10)}"
-            else:
-                str_out += f"|{dim_name:^10}" if k==0 else f"|{'':^10}"
-        str_out += f"|{space:^7}|"
-        for header in dim_prop_headers:
-            attr = f"d_{space}" if header == "d" else f"{space}_{header}"
-            nmbr = getattr(dim, attr)
-            frmt_nmbr = f"{nmbr:.2e}" if abs(nmbr)>1e3 or abs(nmbr)<1e-2 else f"{nmbr:.2f}"
-            str_out += f"{frmt_nmbr:^10}|"
-        str_out += "\n"
-    return str_out[:-1]
-
-def _fft_array_props_table(fftarr: FFTArray) -> str:
-    """Constructs a table for FFTArray.__str__ containing the FFTArray
-    properties (space, n, eager, factors_applied) per dimension
-    """
-    str_out = "| # "
-    headers = ["dimension", "space", "n", "eager", "factors_applied"]
-    for header in headers:
-        # give space smaller width to stay below 80 characters per line
-        str_out += f"|{header:^7}" if header == "space" else f"|{header:^10}"
-    str_out += "|\n+---"
-    for header in headers:
-        str_out += "+" + (10 + 5*int(header=='factors_applied') - 3*int(header=="space"))*"-"
-    str_out += "+\n"
-    for i, dim in enumerate(fftarr.dims):
-        str_out += f"|{i:^3}"
-        str_out += f"|{truncate_str(str(dim.name), 10):^10}"
-        str_out += f"|{(fftarr.space[i]):^7}"
-        str_out += f"|{format_n(dim.n):^10}"
-        str_out += f"|{repr(fftarr.eager[i]):^10}"
-        str_out += f"|{repr(fftarr._factors_applied[i]):^15}"
-        str_out += "|\n"
-    return str_out[:-1]
 
 class FFTArray(metaclass=ABCMeta):
     """
@@ -250,9 +66,9 @@ class FFTArray(metaclass=ABCMeta):
         self._dims = tuple(dims)
         n_dims = len(self._dims)
         self._values = values
-        self._spaces = _norm_param(space, n_dims, str)
-        self._eager = _norm_param(eager, n_dims, bool)
-        self._factors_applied = _norm_param(factors_applied, n_dims, bool)
+        self._spaces = norm_param(space, n_dims, str)
+        self._eager = norm_param(eager, n_dims, bool)
+        self._factors_applied = norm_param(factors_applied, n_dims, bool)
         self._tlib = tlib
         self._check_consistency()
 
@@ -270,9 +86,9 @@ class FFTArray(metaclass=ABCMeta):
         str_out += "Dimensions:\n"
         for i, dim in enumerate(self.dims):
             str_out += f" # {i}: {repr(dim.name)}\n"
-        str_out += "\n" + _fft_array_props_table(self) + "\n\n"
+        str_out += "\n" + fft_array_props_table(self) + "\n\n"
         for i, dim in enumerate(self.dims):
-            str_out += _fft_dim_table(dim, i==0, True, i) + "\n"
+            str_out += fft_dim_table(dim, i==0, True, i) + "\n"
         str_out += f"\nvalues:\n{self.values}"
         return str_out
 
@@ -292,27 +108,27 @@ class FFTArray(metaclass=ABCMeta):
 
     # Implement binary operations between FFTArray and also e.g. 1+wf and wf+1
     # This does intentionally not list all possible operators.
-    __add__, __radd__ = _binary_ufuncs(np.add)
-    __sub__, __rsub__ = _binary_ufuncs(np.subtract)
-    __mul__, __rmul__ = _binary_ufuncs(np.multiply)
-    __truediv__, __rtruediv__ = _binary_ufuncs(np.true_divide)
-    __floordiv__, __rfloordiv__ = _binary_ufuncs(np.floor_divide)
-    __pow__, __rpow__ = _binary_ufuncs(np.power)
+    __add__, __radd__ = binary_ufuncs(np.add)
+    __sub__, __rsub__ = binary_ufuncs(np.subtract)
+    __mul__, __rmul__ = binary_ufuncs(np.multiply)
+    __truediv__, __rtruediv__ = binary_ufuncs(np.true_divide)
+    __floordiv__, __rfloordiv__ = binary_ufuncs(np.floor_divide)
+    __pow__, __rpow__ = binary_ufuncs(np.power)
 
     # Implement comparison operators
-    __gt__, _ = _binary_ufuncs(np.greater)
-    __ge__, _ = _binary_ufuncs(np.greater_equal)
-    __lt__, _ = _binary_ufuncs(np.less)
-    __le__, _ = _binary_ufuncs(np.less_equal)
-    __ne__, _ = _binary_ufuncs(np.not_equal)
-    __eq__, _ = _binary_ufuncs(np.equal)
+    __gt__, _ = binary_ufuncs(np.greater)
+    __ge__, _ = binary_ufuncs(np.greater_equal)
+    __lt__, _ = binary_ufuncs(np.less)
+    __le__, _ = binary_ufuncs(np.less_equal)
+    __ne__, _ = binary_ufuncs(np.not_equal)
+    __eq__, _ = binary_ufuncs(np.equal)
 
 
     # Implement unary operations
-    __neg__ = _unary_ufunc(np.negative)
-    __pos__ = _unary_ufunc(np.positive)
-    __abs__ = _unary_ufunc(np.absolute)
-    __invert__ = _unary_ufunc(np.invert)
+    __neg__ = unary_ufunc(np.negative)
+    __pos__ = unary_ufunc(np.positive)
+    __abs__ = unary_ufunc(np.absolute)
+    __invert__ = unary_ufunc(np.invert)
 
     #--------------------
     # Selection
@@ -616,12 +432,12 @@ class FFTArray(metaclass=ABCMeta):
         if space is None:
             space_norm = self._spaces
         else:
-            space_norm = _norm_param(space, n_dims, str)
+            space_norm = norm_param(space, n_dims, str)
 
         if eager is None:
             eager_norm = self._eager
         else:
-            eager_norm = _norm_param(eager, n_dims, bool)
+            eager_norm = norm_param(eager, n_dims, bool)
 
 
 
@@ -678,7 +494,7 @@ class FFTArray(metaclass=ABCMeta):
                     factors_norm_list.append(is_applied)
             factors_norm = tuple(factors_norm_list)
         else:
-            factors_norm = _norm_param(factors_applied, n_dims, bool)
+            factors_norm = norm_param(factors_applied, n_dims, bool)
 
         # Bring values into the target form respective lazy state
         values = tlib_norm.get_values_with_lazy_factors(
@@ -1292,7 +1108,7 @@ class FFTDimension:
         n_str = format_n(self.n)
         str_out = f"<fftarray.FFTDimension (name={repr(self.name)})>\n"
         str_out += f"n={n_str}\n"
-        str_out += _fft_dim_table(self)
+        str_out += fft_dim_table(self)
         return str_out
 
     @property
