@@ -1,11 +1,108 @@
 from typing import (
     Dict, List, Optional, Tuple, TypeVar, Union, Iterable,
-    Hashable, Literal, Literal
+    Hashable, Literal, Literal, Generic, TYPE_CHECKING
 )
 import warnings
 
+if TYPE_CHECKING:
+    from ..fft_array import FFTArray
+
 # there is no EllipsisType unfortunately, but this helps the reader at least
 EllipsisType = TypeVar('EllipsisType')
+T = TypeVar("T")
+
+class LocFFTArrayIndexer(Generic[T]):
+    """
+        `FFTArray.loc` allows indexing by coordinate position.
+        It supports both positional and name look up (via dict).
+        In order to support the indexing operator `__getitem__` for coordinate (label)
+        instead of integer (index) look up (e.g. `arr.loc[1:3]`), we need this indexable helper
+        class to be returned by the property `loc`.
+    """
+    _arr: "FFTArray"
+
+    def __init__(self, arr: "FFTArray") -> None:
+        self._arr = arr
+
+    def __getitem__(
+            self,
+            item: Union[
+                int, slice, EllipsisType,
+                Tuple[Union[int, slice, EllipsisType],...],
+                Dict[str, Union[int, slice]],
+            ]
+        ) -> "FFTArray":
+        """This method is called when indexing an FFTArray instance by label,
+            i.e., by using the coordinate value via FFTArray.loc[].
+            It supports dimensional lookup via position and name.
+            The indexing behaviour is mainly defined to match the one of
+            `xarray.DataArray` with the major difference that we always keep
+            all dimensions.
+            The indexing is performed in the current state of the FFTArray,
+            i.e., each dimension is indexed in its respective state (pos or freq).
+            When the indexing actually changes the returned FFTArray by removing some values,
+            its internal state will always have all fft factors applied.
+
+            Example usage:
+            arr_2d = (
+                x_dim.fft_array(space="pos", tlib=some_tlib)
+                + y_dim.fft_array(space="pos", tlib=some_tlib)
+            )
+            Four ways of retrieving an FFTArray object
+            with coordinate 3 along x and coordinates values
+            between the dimension min (either pos_min or freq_min)
+            and 5 along y:
+
+            arr_2d.loc[{"x": 3, "y": slice(None, 5)}]
+            arr_2d.loc[3,:5]
+            arr_2d.loc[3][:,:5] # don't use, just for explaining functionality
+            arr_2d.loc[:,:5][3] # don't use, vjust for explaining functionality
+
+        Parameters
+        ----------
+        item : Union[ int, slice, EllipsisType, Tuple[Union[int, slice, EllipsisType],...], Mapping[Hashable, Union[int, slice]], ]
+            An indexer object with dimension lookup method either
+            via position or name. When using positional lookup, the order
+            of the dimensions in the FFTArray object is used (FFTArray.dims).
+            Per dimension, each indexer can be supplied as an integer or a slice.
+            Array-like indexers are not supported as in the general case,
+            the resulting coordinates cannot be expressed as a valid FFTDimension.
+        FFTArray
+            A new FFTArray with the same dimensions as this FFTArray,
+            except each dimension and the FFTArray values are indexed.
+            The resulting FFTArray still fully supports FFTs.
+        """
+
+        if item is Ellipsis:
+            return self._arr
+
+        if isinstance(item, dict):
+            return self._arr.sel(item) # type: ignore
+
+        if not isinstance(item, tuple):
+            item = (item,)
+
+        tuple_indexers = parse_tuple_indexer_to_dims(
+            item,
+            n_dims=len(self._arr.dims)
+        )
+
+        integer_indexers: List[Union[int, slice]] = []
+        for index, dim, space in zip(
+            tuple_indexers, self._arr.dims, self._arr.space
+        ):
+            integer_indexers.append(
+                dim._index_from_coord(
+                    coord=index,
+                    space=space,
+                    tlib=self._arr.tlib,
+                    method=None,
+                )
+            )
+
+        return self._arr.__getitem__(
+            tuple(integer_indexers)
+        )
 
 def parse_tuple_indexer_to_dims(
     tuple_indexers: Tuple[Union[float, slice, EllipsisType], ...],
