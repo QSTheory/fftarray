@@ -521,9 +521,8 @@ def test_fft_ifft_invariance(tensor_lib, space: Space):
 @pytest.mark.parametrize("dtc", [True, False])
 @pytest.mark.parametrize("sel_method", ["nearest", "pad", "ffill", "backfill", "bfill"])
 def test_grid_manipulation_in_jax_scan(space: Space, dtc: bool, sel_method: str) -> None:
-    """
-    Tests FFTDimension's `dynamically_traced_coords` property on the level of an
-    `FFTArray`.
+    """Tests FFTDimension's `dynamically_traced_coords` property on the level of
+    an `FFTArray`.
 
     Allowed by dynamic, error for static:
     - change FFTDimension properties of an FFTArray inside a `jax.lax.scan` step
@@ -564,7 +563,9 @@ def test_grid_manipulation_in_jax_scan(space: Space, dtc: bool, sel_method: str)
             jax.lax.scan(jax_scan_step_fun_dynamic, fftarr, jnp.arange(3))
 
 def test_different_dimension_dynamic_prop() -> None:
-
+    """Tests tracing of an FFTArray whose dimensions have different
+    `dynamically_traced_coords`.
+    """
     x_dim = FFTDimension(name="x", pos_min=0, freq_min=0, d_pos=1, n=8, dynamically_traced_coords=False)
     y_dim = FFTDimension(name="y", pos_min=0, freq_min=0, d_pos=1, n=4, dynamically_traced_coords=True)
     fftarr = x_dim.fft_array(tlib=JaxTensorLib(), space="pos") + y_dim.fft_array(tlib=JaxTensorLib(), space="pos")
