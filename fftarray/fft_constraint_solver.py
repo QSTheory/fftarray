@@ -67,6 +67,7 @@ def fft_dim_from_constraints(
         freq_extent: Optional[float] = None,
         freq_middle: Optional[float] = None,
         loose_params: Optional[Union[str, List[str]]] = None,
+        dynamically_traced_coords: bool = True,
     ) -> FFTDimension:
     """Creates an FFTDimension from an arbitrary subset of all possible grid
     parameters using the z3 constraint solver. Note that the specified grid
@@ -123,6 +124,10 @@ def fft_dim_from_constraints(
         List of loose grid parameters (parameters that can be changed by the
         constraint solver when rounding up to an even or power of two `n`), by
         default None
+    dynamically_traced_coords : bool, optional
+        Only relevant for JAX backend. Whether the coordinate values should be
+        dynamically traced such that the grid can be altered inside a jitted
+        function, by default True
 
     Returns
     -------
@@ -156,6 +161,7 @@ def fft_dim_from_constraints(
         d_pos=params["d_pos"],
         pos_min=params["pos_min"],
         freq_min=params["freq_min"],
+        dynamically_traced_coords=dynamically_traced_coords
     )
 
 def fft_grid_params_from_constraints(
