@@ -393,6 +393,7 @@ class FFTArray(metaclass=ABCMeta):
                 new_dims.append(orig_dim._dim_from_slice(index, space))
             # Do not specifically catch jax.errors.ConcretizationTypeError in order to not have to import jax here.
             except Exception as e:
+                # This condition is fullfilled when the index is a traced object
                 if "Trace" in str(index):
                     raise NotImplementedError(
                         f"FFTArray indexing does not support "
@@ -541,14 +542,21 @@ class FFTArray(metaclass=ABCMeta):
                         )
                     )
                 except Exception as e:
-                    # Here, we check for traced indexer values and throw
-                    # a helpful error message in addition to the original
-                    # error raised when trying to map the coord to an index
+                    # Here, we check for traced indexer values or
+                    # traced FFTDimension and throw a helpful error message
+                    # in addition to the original error raised when trying
+                    # to map the coord to an index
                     if "Trace" in str(index):
                         raise NotImplementedError(
                             f"FFTArray indexing does not support "
                             + "jitted indexers. Here, your index for "
-                            + f" dimension {dim.name} is a traced object"
+                            + f"dimension {dim.name} is a traced object"
+                        ) from e
+                    elif dim._dynamically_traced_coords and "Trace" in str(e):
+                        raise NotImplementedError(
+                            "dynamically_traced_coords of dimension "
+                            + f"{dim.name} must be False to index "
+                            + "by label/coordinate."
                         ) from e
                     else:
                         raise e
@@ -1266,6 +1274,7 @@ class FFTDimension:
     _d_pos: float
     _n: int
     _name: Hashable
+    _dynamically_traced_coords: bool
 
     def __init__(
             self,
@@ -1274,12 +1283,14 @@ class FFTDimension:
             d_pos: float,
             pos_min: float,
             freq_min: float,
+            dynamically_traced_coords: bool = True,
         ):
         self._name = name
         self._n = n
         self._d_pos = d_pos
         self._pos_min = pos_min
         self._freq_min = freq_min
+        self._dynamically_traced_coords = dynamically_traced_coords
 
     def __repr__(self: FFTDimension) -> str:
         arg_str = ", ".join(
@@ -1501,10 +1512,7 @@ class FFTDimension:
             if method is None:
                 # We round the raw float indices here and check whether they
                 # match their rounded int-like value, if not we throw a KeyError
-                if (
-                    tlib.numpy_ufuncs.round(raw_idx) != raw_idx or
-                    not tlib.numpy_ufuncs.array_equal(clamped_index, raw_idx)
-                ):
+                if (round(raw_idx) != raw_idx or clamped_index != raw_idx):
                     raise KeyError(
                         f"No exact index found for {coord} in {space}-space of dim " +
                         f'"{self.name}". Try the keyword argument ' +
@@ -1514,7 +1522,7 @@ class FFTDimension:
             elif  method == "nearest":
                 # The combination of floor and +0.5 prevents the "ties to even" rounding of floating point numbers.
                 # We only need one branch since our indices are always positive.
-                final_idx = tlib.numpy_ufuncs.floor(clamped_index + 0.5)
+                final_idx = np.floor(clamped_index + 0.5)
             elif method in ["bfill", "backfill"]:
                 # We propagate towards the next highest index and then check
                 # its validity by checking if it's smaller or equal than
