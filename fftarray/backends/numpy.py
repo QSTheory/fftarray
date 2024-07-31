@@ -8,7 +8,7 @@ from numpy.typing import NDArray
 from .tensor_lib import TensorLib, PrecisionSpec
 
 
-class NumpyTensorLib(TensorLib):
+class NumpyBackend(TensorLib):
 
     def __init__(self, precision: PrecisionSpec = "default"):
         TensorLib.__init__(self, precision=precision)

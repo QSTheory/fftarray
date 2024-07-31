@@ -1,6 +1,6 @@
 import numpy as np
 
-from fftarray.backends.jax_backend import JaxTensorLib
+from fftarray.backends.jax import JaxBackend
 from fftarray import FFTDimension
 
 from jax import config

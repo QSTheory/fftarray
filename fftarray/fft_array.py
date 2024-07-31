@@ -13,7 +13,7 @@ import numpy as np
 
 from .named_array import align_named_arrays, get_axes_transpose
 from .backends.tensor_lib import TensorLib
-from .backends.np_backend import NumpyTensorLib
+from .backends.numpy import NumpyBackend
 
 from ._utils._ufuncs import binary_ufuncs, unary_ufunc
 from ._utils._formatting import (
@@ -1475,4 +1475,4 @@ class FFTDimension:
         )
 
     def np_array(self: FFTDimension, space: Space):
-        return self._raw_coord_array(tlib=NumpyTensorLib(), space=space)
+        return self._raw_coord_array(tlib=NumpyBackend(), space=space)

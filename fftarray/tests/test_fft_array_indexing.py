@@ -8,15 +8,15 @@ import xarray as xr
 
 from fftarray.fft_array import FFTArray, FFTDimension, Space
 from fftarray.backends.tensor_lib import TensorLib
-from fftarray.backends.jax_backend import JaxTensorLib
-from fftarray.backends.np_backend import NumpyTensorLib
-from fftarray.backends.pyfftw_backend import PyFFTWTensorLib
+from fftarray.backends.jax import JaxBackend
+from fftarray.backends.numpy import NumpyBackend
+from fftarray.backends.pyfftw import PyFFTWBackend
 
 jax.config.update("jax_enable_x64", True)
 
 EllipsisType = TypeVar('EllipsisType')
 
-TENSOR_LIBS = [NumpyTensorLib, JaxTensorLib, PyFFTWTensorLib]
+TENSOR_LIBS = [NumpyBackend, JaxBackend, PyFFTWBackend]
 
 TEST_FFTDIM = FFTDimension(
     name="x", n=8, d_pos=1, pos_min=0, freq_min=0
@@ -368,7 +368,7 @@ def test_3d_fft_array_indexing(
     indexers: Mapping[Hashable, Union[int, slice]],
 ) -> None:
 
-    tlib = JaxTensorLib()
+    tlib = JaxBackend()
     fft_array, xr_dataset = generate_test_fftarray_xrdataset(
         ["x", "y", "z"],
         dimension_length=8,
@@ -581,7 +581,7 @@ def index_with_tracer_sel(obj, idx):
     return obj.sel(idx)
 
 def test_invalid_tracer_index() -> None:
-    fft_arr = TEST_FFTDIM.fft_array(tlib=JaxTensorLib(), space="pos")
+    fft_arr = TEST_FFTDIM.fft_array(tlib=JaxBackend(), space="pos")
     tracer_index = jax.numpy.array(3)
 
     with pytest.raises(NotImplementedError):
@@ -595,7 +595,7 @@ def test_invalid_tracer_index() -> None:
 
 def test_jit_static_indexing() -> None:
 
-    fft_arr, xr_dataset = generate_test_fftarray_xrdataset(["x"], dimension_length=8, tlib=JaxTensorLib())
+    fft_arr, xr_dataset = generate_test_fftarray_xrdataset(["x"], dimension_length=8, tlib=JaxBackend())
 
     def test_function_isel(_indexers) -> FFTArray:
         return fft_arr.isel(x=_indexers)
@@ -628,7 +628,7 @@ def test_jit_static_indexing() -> None:
 
 def test_invalid_kw_and_pos_indexers() -> None:
 
-    fft_arr, _ = generate_test_fftarray_xrdataset(["x", "y"], dimension_length=8, tlib=NumpyTensorLib())
+    fft_arr, _ = generate_test_fftarray_xrdataset(["x", "y"], dimension_length=8, tlib=NumpyBackend())
 
     with pytest.raises(ValueError):
         fft_arr.sel({'x': 3}, y=3)
@@ -640,7 +640,7 @@ def test_missing_dims(
     index_method: Literal["sel", "isel"]
 ) -> None:
 
-    fft_arr, _ = generate_test_fftarray_xrdataset(["x", "y"], dimension_length=8, tlib=NumpyTensorLib())
+    fft_arr, _ = generate_test_fftarray_xrdataset(["x", "y"], dimension_length=8, tlib=NumpyBackend())
 
     with pytest.raises(ValueError):
         getattr(fft_arr, index_method)({"x": 3}, missing_dims="unsupported")

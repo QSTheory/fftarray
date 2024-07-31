@@ -10,7 +10,7 @@ import jax.numpy as jnp
 from jax.typing import ArrayLike
 
 
-class JaxTensorLib(TensorLib):
+class JaxBackend(TensorLib):
 
     def __init__(self, precision: PrecisionSpec = "default"):
         TensorLib.__init__(self, precision = precision)

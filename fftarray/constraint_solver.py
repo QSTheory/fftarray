@@ -17,7 +17,7 @@ from z3 import (
 import numpy as np
 
 from .fft_array import FFTDimension
-from .fft_constraint_solver_exceptions import *
+from .constraint_solver_exceptions import *
 
 # This dict contains all possible user constraints
 # and their optimized directions for n widening
@@ -52,7 +52,7 @@ class GridParams(TypedDict):
     freq_extent: float
     freq_middle: float
 
-def fft_dim_from_constraints(
+def get_fft_dim_from_constraints(
         name: str,
         *,
         n: Union[int, Literal["power_of_two", "even"]] = "power_of_two",
@@ -140,7 +140,7 @@ def fft_dim_from_constraints(
     fftarray.fft_constraint_solver.fft_grid_params_from_constraints
     """
 
-    params = fft_grid_params_from_constraints(
+    params = get_fft_grid_params_from_constraints(
         n = n,
         d_pos = d_pos,
         d_freq = d_freq,
@@ -164,7 +164,7 @@ def fft_dim_from_constraints(
         dynamically_traced_coords=dynamically_traced_coords
     )
 
-def fft_grid_params_from_constraints(
+def get_fft_grid_params_from_constraints(
         n: Union[int, Literal["power_of_two", "even"]] = "power_of_two",
         d_pos: Optional[float] = None,
         d_freq: Optional[float] = None,

@@ -9,7 +9,7 @@ from .tensor_lib import TensorLib, PrecisionSpec
 pyfftw.interfaces.cache.enable()
 
 
-class PyFFTWTensorLib(TensorLib):
+class PyFFTWBackend(TensorLib):
 
     def __init__(self, precision: PrecisionSpec = "default"):
         TensorLib.__init__(self, precision=precision)

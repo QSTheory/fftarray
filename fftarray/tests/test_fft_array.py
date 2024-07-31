@@ -7,9 +7,9 @@ import jax
 import jax.numpy as jnp
 
 from fftarray.fft_array import FFTArray, FFTDimension, Space
-from fftarray.backends.jax_backend import JaxTensorLib
-from fftarray.backends.np_backend import NumpyTensorLib
-from fftarray.backends.pyfftw_backend import PyFFTWTensorLib
+from fftarray.backends.jax import JaxBackend
+from fftarray.backends.numpy import NumpyBackend
+from fftarray.backends.pyfftw import PyFFTWBackend
 from fftarray.backends.tensor_lib import TensorLib, PrecisionSpec
 from fftarray.xr_helpers import as_xr_pos
 
@@ -18,7 +18,7 @@ jax.config.update("jax_enable_x64", True)
 def assert_scalars_almost_equal_nulp(x, y, nulp = 1):
     np.testing.assert_array_almost_equal_nulp(np.array([x]), np.array([y]), nulp = nulp)
 
-tensor_libs: List[Type[TensorLib]] = [NumpyTensorLib, JaxTensorLib, PyFFTWTensorLib]
+tensor_libs: List[Type[TensorLib]] = [NumpyBackend, JaxBackend, PyFFTWBackend]
 precisions: List[PrecisionSpec] = ["fp32", "fp64", "default"]
 spaces: List[Space] = ["pos", "freq"]
 
@@ -34,9 +34,9 @@ def test_fft_array_constructor():
     jnp_arr = jnp.array(values)
 
     failing_sets = [
-        (values, [NumpyTensorLib(), JaxTensorLib(), PyFFTWTensorLib()]),
-        (np_arr, [JaxTensorLib()]),
-        (jnp_arr, [NumpyTensorLib(), PyFFTWTensorLib()]),
+        (values, [NumpyBackend(), JaxBackend(), PyFFTWBackend()]),
+        (np_arr, [JaxBackend()]),
+        (jnp_arr, [NumpyBackend(), PyFFTWBackend()]),
     ]
     for arr, tlibs in failing_sets:
         for tlib in tlibs:
@@ -51,9 +51,9 @@ def test_fft_array_constructor():
                 )
 
     working_sets = [
-        (np_arr, NumpyTensorLib()),
-        (np_arr, PyFFTWTensorLib()),
-        (jnp_arr, JaxTensorLib()),
+        (np_arr, NumpyBackend()),
+        (np_arr, PyFFTWBackend()),
+        (jnp_arr, JaxBackend()),
     ]
     for arr, tlib in working_sets:
             _ = FFTArray(
@@ -179,13 +179,13 @@ def test_broadcasting(nulp: int = 1) -> None:
 
     x_ref = np.arange(0., 4.)
     y_ref = np.arange(0., 8.)
-    np.testing.assert_array_almost_equal_nulp(np.array(x_dim.fft_array(tlib=NumpyTensorLib(), space="pos")), x_ref, nulp = 0)
-    np.testing.assert_array_almost_equal_nulp(np.array(y_dim.fft_array(tlib=NumpyTensorLib(), space="pos")), y_ref, nulp = 0)
+    np.testing.assert_array_almost_equal_nulp(np.array(x_dim.fft_array(tlib=NumpyBackend(), space="pos")), x_ref, nulp = 0)
+    np.testing.assert_array_almost_equal_nulp(np.array(y_dim.fft_array(tlib=NumpyBackend(), space="pos")), y_ref, nulp = 0)
 
     x_ref_broadcast = x_ref.reshape(1,-1)
     y_ref_broadcast = y_ref.reshape(-1,1)
-    np.testing.assert_array_almost_equal_nulp((x_dim.fft_array(tlib=NumpyTensorLib(), space="pos") + y_dim.fft_array(tlib=NumpyTensorLib(), space="pos")).transpose("x", "y").values, (x_ref_broadcast+y_ref_broadcast).transpose(), nulp = 0)
-    np.testing.assert_array_almost_equal_nulp((x_dim.fft_array(tlib=NumpyTensorLib(), space="pos") + y_dim.fft_array(tlib=NumpyTensorLib(), space="pos")).transpose("y", "x").values, x_ref_broadcast+y_ref_broadcast, nulp = 0)
+    np.testing.assert_array_almost_equal_nulp((x_dim.fft_array(tlib=NumpyBackend(), space="pos") + y_dim.fft_array(tlib=NumpyBackend(), space="pos")).transpose("x", "y").values, (x_ref_broadcast+y_ref_broadcast).transpose(), nulp = 0)
+    np.testing.assert_array_almost_equal_nulp((x_dim.fft_array(tlib=NumpyBackend(), space="pos") + y_dim.fft_array(tlib=NumpyBackend(), space="pos")).transpose("y", "x").values, x_ref_broadcast+y_ref_broadcast, nulp = 0)
 
 
 @pytest.mark.parametrize("tensor_lib", tensor_libs)
@@ -266,7 +266,7 @@ def test_fftarray_lazyness(fftarr):
     assert_single_operand_fun_equivalence(fftarr, all(fftarr._factors_applied), note)
     assert_dual_operand_fun_equivalence(fftarr, all(fftarr._factors_applied), note)
     # Jax only supports FFT for dim<4
-    if len(fftarr.dims) < 4 or not isinstance(fftarr.tlib, JaxTensorLib):
+    if len(fftarr.dims) < 4 or not isinstance(fftarr.tlib, JaxBackend):
         # -- test eager, factors_applied logic
         assert_fftarray_eager_factors_applied(fftarr, note)
 
@@ -533,7 +533,7 @@ def test_grid_manipulation_in_jax_scan(space: Space, dtc: bool, sel_method: str)
     """
     xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1, dynamically_traced_coords=dtc)
     ydim = FFTDimension("y", n=8, d_pos=0.03, pos_min=-0.4, freq_min=-4.2, dynamically_traced_coords=dtc)
-    fftarr = xdim.fft_array(tlib=JaxTensorLib(), space=space) + ydim.fft_array(tlib=JaxTensorLib(), space=space)
+    fftarr = xdim.fft_array(tlib=JaxBackend(), space=space) + ydim.fft_array(tlib=JaxBackend(), space=space)
 
     def jax_scan_step_fun_dynamic(carry, *_):
         # dynamic should support resizing and shifting of the grid
@@ -568,7 +568,7 @@ def test_different_dimension_dynamic_prop() -> None:
     """
     x_dim = FFTDimension(name="x", pos_min=0, freq_min=0, d_pos=1, n=8, dynamically_traced_coords=False)
     y_dim = FFTDimension(name="y", pos_min=0, freq_min=0, d_pos=1, n=4, dynamically_traced_coords=True)
-    fftarr = x_dim.fft_array(tlib=JaxTensorLib(), space="pos") + y_dim.fft_array(tlib=JaxTensorLib(), space="pos")
+    fftarr = x_dim.fft_array(tlib=JaxBackend(), space="pos") + y_dim.fft_array(tlib=JaxBackend(), space="pos")
 
     def jax_scan_step_fun_valid(carry, *_):
         xval = carry._dims[0]._pos_min + carry._dims[0]._d_pos # static dimension
