@@ -20,7 +20,7 @@ x_dim = FFTDimension(name="x", n=8, d_pos=0.4, pos_min=0, freq_min=0)
 y_dim = FFTDimension(name="y", n=8, d_pos=0.4, pos_min=0, freq_min=0)
 z_dim = FFTDimension(name="z", n=8, d_pos=0.4, pos_min=0, freq_min=0)
 
-tlib = NumpyTensorLib()
+tlib = NumpyBackend()
 fft_arr = (
     x_dim.fft_array(space="pos", tlib=tlib) +
     y_dim.fft_array(space="pos", tlib=tlib) +
