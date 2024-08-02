@@ -18,7 +18,7 @@ jax.config.update("jax_enable_x64", True)
 def assert_scalars_almost_equal_nulp(x, y, nulp = 1):
     np.testing.assert_array_almost_equal_nulp(np.array([x]), np.array([y]), nulp = nulp)
 
-tensor_libs: List[Type[Backend]] = [NumpyBackend, JaxBackend, PyFFTWBackend]
+backends: List[Type[Backend]] = [NumpyBackend, JaxBackend, PyFFTWBackend]
 precisions: List[PrecisionSpec] = ["fp32", "fp64", "default"]
 spaces: List[Space] = ["pos", "freq"]
 
@@ -66,7 +66,7 @@ def test_fft_array_constructor():
             )
 
 
-@pytest.mark.parametrize("backend_class", tensor_libs)
+@pytest.mark.parametrize("backend_class", backends)
 @pytest.mark.parametrize("space", ["pos", "freq"])
 def test_comparison(backend_class, space) -> None:
     x_dim = FFTDimension("x",
@@ -88,16 +88,16 @@ def test_comparison(backend_class, space) -> None:
         np.testing.assert_array_equal(a == b, np.array(a) == np.array(b), strict=True)
 
 @pytest.mark.filterwarnings("ignore")
-@pytest.mark.parametrize("tensor_lib", tensor_libs)
+@pytest.mark.parametrize("backend", backends)
 @pytest.mark.parametrize("precision", ("fp32", "fp64", "default"))
 @pytest.mark.parametrize("override", (None, "fp32", "fp64", "default"))
 @pytest.mark.parametrize("eager", [False, True])
-def test_dtype(tensor_lib, precision, override, eager: bool) -> None:
-    backend = tensor_lib(precision=precision)
+def test_dtype(backend, precision, override, eager: bool) -> None:
+    backend = backend(precision=precision)
     if override is None:
         backend_override = None
     else:
-        backend_override = tensor_lib(precision=override)
+        backend_override = backend(precision=override)
 
     x_dim = FFTDimension("x",
         n=4,
@@ -154,9 +154,9 @@ def test_dtype(tensor_lib, precision, override, eager: bool) -> None:
     assert bool_arr.values.dtype == bool_arr.into(backend=backend_override).values.dtype
 
 
-@pytest.mark.parametrize("tensor_lib", tensor_libs)
-@pytest.mark.parametrize("override", tensor_libs)
-def test_backend_override(tensor_lib, override) -> None:
+@pytest.mark.parametrize("backend", backends)
+@pytest.mark.parametrize("override", backends)
+def test_backend_override(backend, override) -> None:
     x_dim = FFTDimension("x",
         n=4,
         d_pos=1,
@@ -164,13 +164,13 @@ def test_backend_override(tensor_lib, override) -> None:
         freq_min=0.,
     )
 
-    assert type(x_dim.fft_array(tensor_lib(), space="pos").into(backend=override()).values) == type(x_dim.fft_array(override(), space="pos").values)
-    assert type(x_dim.fft_array(tensor_lib(), space="freq").into(backend=override()).values) == type(x_dim.fft_array(override(), space="freq").values)
-    assert type(x_dim.fft_array(tensor_lib(), space="pos").into(backend=override()).into(space="freq").values) == type(x_dim.fft_array(override(), space="freq").values)
-    assert type(x_dim.fft_array(tensor_lib(), space="freq").into(backend=override()).into(space="pos").values) == type(x_dim.fft_array(override(), space="pos").values)
+    assert type(x_dim.fft_array(backend(), space="pos").into(backend=override()).values) == type(x_dim.fft_array(override(), space="pos").values)
+    assert type(x_dim.fft_array(backend(), space="freq").into(backend=override()).values) == type(x_dim.fft_array(override(), space="freq").values)
+    assert type(x_dim.fft_array(backend(), space="pos").into(backend=override()).into(space="freq").values) == type(x_dim.fft_array(override(), space="freq").values)
+    assert type(x_dim.fft_array(backend(), space="freq").into(backend=override()).into(space="pos").values) == type(x_dim.fft_array(override(), space="pos").values)
 
-    assert type(x_dim.fft_array(tensor_lib(), space="pos").into(space="freq", backend=override()).values) == type(x_dim.fft_array(override(), space="freq").values)
-    assert type(x_dim.fft_array(tensor_lib(), space="freq").into(space="pos", backend=override()).values) == type(x_dim.fft_array(override(), space="freq").values)
+    assert type(x_dim.fft_array(backend(), space="pos").into(space="freq", backend=override()).values) == type(x_dim.fft_array(override(), space="freq").values)
+    assert type(x_dim.fft_array(backend(), space="freq").into(space="pos", backend=override()).values) == type(x_dim.fft_array(override(), space="freq").values)
 
 
 def test_broadcasting(nulp: int = 1) -> None:
@@ -188,9 +188,9 @@ def test_broadcasting(nulp: int = 1) -> None:
     np.testing.assert_array_almost_equal_nulp((x_dim.fft_array(backend=NumpyBackend(), space="pos") + y_dim.fft_array(backend=NumpyBackend(), space="pos")).transpose("y", "x").values, x_ref_broadcast+y_ref_broadcast, nulp = 0)
 
 
-@pytest.mark.parametrize("tensor_lib", tensor_libs)
+@pytest.mark.parametrize("backend", backends)
 @pytest.mark.parametrize("space", spaces)
-def test_sel_order(tensor_lib, space):
+def test_sel_order(backend, space):
     """Tests whether the selection order matters. Assuming an input FFTArray of
     dimensions A and B. Then
 
@@ -200,7 +200,7 @@ def test_sel_order(tensor_lib, space):
     """
     xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
     ydim = FFTDimension("y", n=8, d_pos=0.03, pos_min=-0.5, freq_min=-4.7)
-    arr = xdim.fft_array(backend=tensor_lib(), space=space) + ydim.fft_array(backend=tensor_lib(), space=space)
+    arr = xdim.fft_array(backend=backend(), space=space) + ydim.fft_array(backend=backend(), space=space)
     arr_selx = arr.sel(**{"x": getattr(xdim, f"{space}_middle")})
     arr_sely = arr.sel(**{"y": getattr(ydim, f"{space}_middle")})
     arr_selx_sely = arr_selx.sel(**{"y": getattr(ydim, f"{space}_middle")})
@@ -230,16 +230,16 @@ def fftarray_strategy(draw):
     note(f"eager={eager}") # TODO: remove when FFTArray.__repr__ is implemented
     init_space = draw(st.sampled_from(["pos", "freq"]))
     note(f"space={init_space}") # TODO: remove when FFTArray.__repr__ is implemented
-    backend = draw(st.sampled_from(tensor_libs))
+    backend = draw(st.sampled_from(backends))
     precision = draw(st.sampled_from(precisions))
 
-    tensor_lib = backend(precision=precision)
-    note(tensor_lib)
+    backend = backend(precision=precision)
+    note(backend)
     dims = [
         FFTDimension(f"{ndim}", n=draw(st.integers(min_value=2, max_value=8)), d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
     for ndim in range(ndims)]
     note(dims)
-    fftarr_values = tensor_lib.array(draw_hypothesis_fft_array_values(draw, value, [dim.n for dim in dims]))
+    fftarr_values = backend.array(draw_hypothesis_fft_array_values(draw, value, [dim.n for dim in dims]))
     note(fftarr_values.dtype)
     note(fftarr_values)
 
@@ -249,7 +249,7 @@ def fftarray_strategy(draw):
         space=init_space,
         eager=eager,
         factors_applied=factors_applied,
-        backend=tensor_lib
+        backend=backend
     )
 
 @pytest.mark.slow
@@ -270,19 +270,19 @@ def test_fftarray_lazyness(fftarr):
         # -- test eager, factors_applied logic
         assert_fftarray_eager_factors_applied(fftarr, note)
 
-@pytest.mark.parametrize("tensor_lib", tensor_libs)
+@pytest.mark.parametrize("backend", backends)
 @pytest.mark.parametrize("precision", precisions)
 @pytest.mark.parametrize("space", spaces)
 @pytest.mark.parametrize("eager", [True, False])
 @pytest.mark.parametrize("factors_applied", [True, False])
-def test_fftarray_lazyness_reduced(tensor_lib, precision, space, eager, factors_applied):
+def test_fftarray_lazyness_reduced(backend, precision, space, eager, factors_applied):
     """Tests the lazyness of an FFTArray, i.e., the correct behavior of
     factors_applied and eager. This is the reduced/faster version of the test
     using hypothesis.
     """
     xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
     ydim = FFTDimension("y", n=8, d_pos=0.03, pos_min=-0.5, freq_min=-4.7)
-    backend = tensor_lib(precision=precision)
+    backend = backend(precision=precision)
     fftarr = xdim.fft_array(backend, space, eager) + ydim.fft_array(backend, space, eager)
     fftarr._factors_applied = (factors_applied, factors_applied)
     assert_basic_lazy_logic(fftarr, print)
@@ -497,9 +497,9 @@ def assert_fftarray_eager_factors_applied(arr: FFTArray, log):
     for ffapplied, feager in zip(arr_fft._factors_applied, arr_fft.eager):
         assert (feager and ffapplied) or (not feager and not ffapplied)
 
-@pytest.mark.parametrize("tensor_lib", tensor_libs)
+@pytest.mark.parametrize("backend", backends)
 @pytest.mark.parametrize("space", spaces)
-def test_fft_ifft_invariance(tensor_lib, space: Space):
+def test_fft_ifft_invariance(backend, space: Space):
     """Tests whether ifft(fft(*)) is an identity.
 
        ifft(fft(FFTArray)) == FFTArray
@@ -507,7 +507,7 @@ def test_fft_ifft_invariance(tensor_lib, space: Space):
     """
     xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
     ydim = FFTDimension("y", n=8, d_pos=0.03, pos_min=-0.4, freq_min=-4.2)
-    arr = xdim.fft_array(backend=tensor_lib(), space=space) + ydim.fft_array(backend=tensor_lib(), space=space)
+    arr = xdim.fft_array(backend=backend(), space=space) + ydim.fft_array(backend=backend(), space=space)
     other_space = get_other_space(space)
     arr_fft = arr.into(space=other_space)
     arr_fft_ifft = arr_fft.into(space=space)

@@ -14,7 +14,7 @@ jax.config.update("jax_enable_x64", True)
 def assert_scalars_almost_equal_nulp(x, y, nulp = 1):
     np.testing.assert_array_almost_equal_nulp(np.array([x]), np.array([y]), nulp = nulp)
 
-tensor_libs = [NumpyBackend(precision="fp64"), JaxBackend(precision="fp64"), PyFFTWBackend(precision="fp64")]
+backends = [NumpyBackend(precision="fp64"), JaxBackend(precision="fp64"), PyFFTWBackend(precision="fp64")]
 
 
 def test_fftdim_accessors():
@@ -54,8 +54,8 @@ def test_fftdim_jax():
     assert jax_func(fftdim) == fftdim
 
 
-@pytest.mark.parametrize("tensor_lib", tensor_libs)
-def test_arrays(tensor_lib) -> None:
+@pytest.mark.parametrize("backend", backends)
+def test_arrays(backend) -> None:
     """
     Test that the manual arrays and the performance-optimized kernels create the same values in the supplied direction.
     """
@@ -69,14 +69,14 @@ def test_arrays(tensor_lib) -> None:
         n = n,
     )
 
-    pos_grid = np.array(fftdim.fft_array(tensor_lib, space="pos"))
+    pos_grid = np.array(fftdim.fft_array(backend, space="pos"))
     assert_scalars_almost_equal_nulp(fftdim.pos_min, np.min(pos_grid))
     assert_scalars_almost_equal_nulp(fftdim.pos_min, pos_grid[0])
     assert_scalars_almost_equal_nulp(fftdim.pos_max, np.max(pos_grid))
     assert_scalars_almost_equal_nulp(fftdim.pos_max, pos_grid[-1])
     assert_scalars_almost_equal_nulp(fftdim.pos_middle, pos_grid[int(n/2)])
 
-    freq_grid = np.array(fftdim.fft_array(tensor_lib, space="freq"))
+    freq_grid = np.array(fftdim.fft_array(backend, space="freq"))
     assert_scalars_almost_equal_nulp(fftdim.freq_min, np.min(freq_grid))
     assert_scalars_almost_equal_nulp(fftdim.freq_min, freq_grid[0])
     assert_scalars_almost_equal_nulp(fftdim.freq_max, np.max(freq_grid))

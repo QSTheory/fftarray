@@ -64,7 +64,7 @@ def fftarray_flatten(
 
 def fftarray_unflatten(aux_data, children) -> FFTArray:
     (values, dims) = children
-    (spaces, eager, factors_applied, tensor_lib) = aux_data
+    (spaces, eager, factors_applied, backend) = aux_data
     # We explicitly do not want to call the constructor here.
     # The consistency check fails (needlessly) for PyTreeArrays and other special "tricks".
     self = FFTArray.__new__(FFTArray)
@@ -73,7 +73,7 @@ def fftarray_unflatten(aux_data, children) -> FFTArray:
     self._spaces = spaces
     self._eager = eager
     self._factors_applied = factors_applied
-    self._backend = tensor_lib
+    self._backend = backend
     return self
 
 register_pytree_node(

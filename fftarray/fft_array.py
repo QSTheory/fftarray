@@ -707,7 +707,7 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
 
     # Look up the actual ufunc
     try:
-        tensor_lib_ufunc = getattr(unp_inp.backend.numpy_ufuncs, ufunc.__name__)
+        backend_ufunc = getattr(unp_inp.backend.numpy_ufuncs, ufunc.__name__)
     except:
         return NotImplemented
 
@@ -777,7 +777,7 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
                 spaces=unp_inp.space,
             )
 
-    values = tensor_lib_ufunc(*unp_inp.values, **kwargs)
+    values = backend_ufunc(*unp_inp.values, **kwargs)
     return FFTArray(
         values=values,
         space=unp_inp.space,
@@ -789,14 +789,14 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
 
 def _single_element_ufunc(ufunc, inp: FFTArray, kwargs):
     try:
-        tensor_lib_ufunc = getattr(inp.backend.numpy_ufuncs, ufunc.__name__)
+        backend_ufunc = getattr(inp.backend.numpy_ufuncs, ufunc.__name__)
     except:
         return NotImplemented
 
     if ufunc == np.abs:
         # For abs the final result does not change if we apply the phases
         # to the values so we can simply ignore the phases.
-        values = tensor_lib_ufunc(inp._values, **kwargs)
+        values = backend_ufunc(inp._values, **kwargs)
         # The scale can be applied after abs which is more efficient in the case of a complex input
         signs: List[Literal[-1, 1, None]] | None = inp.backend.get_transform_signs(
             # Can use input because with a single value no broadcasting happened.
@@ -821,7 +821,7 @@ def _single_element_ufunc(ufunc, inp: FFTArray, kwargs):
         )
 
     # Fallback if no special case applies
-    values = tensor_lib_ufunc(inp.values, **kwargs)
+    values = backend_ufunc(inp.values, **kwargs)
     return FFTArray(
         values=values,
         space=inp.space,
