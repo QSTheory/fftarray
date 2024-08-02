@@ -88,7 +88,7 @@ class UnpackedValues:
     dims: Tuple["FFTDimension", ...]
     # Values without any dimensions, etc.
     values: List[Union[Number, Any]]
-    # Shared tensor-lib between all values.
+    # Shared backend between all values.
     backend: Backend
     # outer list: dim_idx, inner_list: op_idx, None: dim does not appear in operand
     factors_applied: List[List[bool]]

@@ -11,7 +11,6 @@ from fftarray.backends.jax import JaxBackend
 from fftarray.backends.numpy import NumpyBackend
 from fftarray.backends.pyfftw import PyFFTWBackend
 from fftarray.backends.backend import Backend, PrecisionSpec
-from fftarray.xr_helpers import as_xr_pos
 
 jax.config.update("jax_enable_x64", True)
 

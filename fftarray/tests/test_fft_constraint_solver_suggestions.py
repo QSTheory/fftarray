@@ -1,5 +1,3 @@
-import numpy as np
-
 from fftarray.constraint_solver import _z3_constraint_solver
 from fftarray.constraint_solver import NoSolutionFoundError, NoUniqueSolutionError
 

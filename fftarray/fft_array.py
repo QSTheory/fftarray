@@ -657,7 +657,7 @@ class FFTArray(metaclass=ABCMeta):
             raise ValueError(
                 f"Passed in values of type '{type(self._values)}' "
                 + f"which is not the array type '{self._backend.array_type}'"
-                + f" of the tensor-lib '{self._backend}'."
+                + f" of the backend '{self._backend}'."
             )
         assert len(self._dims) == len(self._values.shape)
         assert len(self._spaces) == len(self._values.shape)
@@ -837,7 +837,7 @@ class UnpackedValues:
     dims: Tuple[FFTDimension, ...]
     # Values without any dimensions, etc.
     values: List[Union[Number, Any]]
-    # Shared tensor-lib between all values.
+    # Shared backend between all values.
     backend: Backend
     # outer list: dim_idx, inner_list: op_idx, None: dim does not appear in operand
     factors_applied: List[List[bool]]

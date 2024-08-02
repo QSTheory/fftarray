@@ -16,7 +16,7 @@ jax.config.update("jax_enable_x64", True)
 
 EllipsisType = TypeVar('EllipsisType')
 
-TENSOR_LIBS = [NumpyBackend, JaxBackend, PyFFTWBackend]
+BACKENDS = [NumpyBackend, JaxBackend, PyFFTWBackend]
 
 TEST_FFTDIM = FFTDimension(
     name="x", n=8, d_pos=1, pos_min=0, freq_min=0
@@ -53,7 +53,7 @@ Relevant functions/classes for indexing
 - method FFTDimension._dim_from_start_and_n
 """
 
-@pytest.mark.parametrize("backend_class", TENSOR_LIBS)
+@pytest.mark.parametrize("backend_class", BACKENDS)
 def test_fftdim_single_element_indexing(backend_class) -> None:
 
     backend = backend_class()
@@ -116,7 +116,7 @@ invalid_substepping_slices = [
 ]
 
 @pytest.mark.parametrize("as_dict", [True, False])
-@pytest.mark.parametrize("backend_class", TENSOR_LIBS)
+@pytest.mark.parametrize("backend_class", BACKENDS)
 @pytest.mark.parametrize("invalid_slice", invalid_substepping_slices)
 @pytest.mark.parametrize("space", ["pos", "freq"])
 def test_errors_fftarray_index_substepping(
@@ -154,7 +154,7 @@ invalid_tuples = [
     (slice(None, None), slice(None, None), Ellipsis),
 ]
 
-@pytest.mark.parametrize("backend_class", TENSOR_LIBS)
+@pytest.mark.parametrize("backend_class", BACKENDS)
 @pytest.mark.parametrize("invalid_tuple", invalid_tuples)
 @pytest.mark.parametrize("space", ["pos", "freq"])
 def test_errors_fftarray_invalid_indexes(
@@ -180,7 +180,7 @@ coord_test_samples = [
     slice(-5,10), slice(None, None), slice(0,7), slice(0,8), slice(0.5,0.1)
 ]
 
-@pytest.mark.parametrize("backend_class", TENSOR_LIBS)
+@pytest.mark.parametrize("backend_class", BACKENDS)
 @pytest.mark.parametrize("method", ["nearest", "pad", "ffill", "backfill", "bfill", None])
 @pytest.mark.parametrize("valid_coord", coord_test_samples)
 @pytest.mark.parametrize("space", ["pos", "freq"])
@@ -222,7 +222,7 @@ integer_indexers_test_samples = [
 ]
 
 @pytest.mark.parametrize("indexers", integer_indexers_test_samples)
-@pytest.mark.parametrize("backend_class", TENSOR_LIBS)
+@pytest.mark.parametrize("backend_class", BACKENDS)
 @pytest.mark.parametrize("space", ["pos", "freq"])
 def test_3d_fft_array_indexing_by_integer(
     space: Space,
@@ -278,7 +278,7 @@ tuple_indexers = [
 ]
 
 @pytest.mark.parametrize("indexers", tuple_indexers)
-@pytest.mark.parametrize("backend_class", TENSOR_LIBS)
+@pytest.mark.parametrize("backend_class", BACKENDS)
 @pytest.mark.parametrize("space", ["pos", "freq"])
 def test_3d_fft_array_positional_indexing(
     space: Space,
@@ -320,7 +320,7 @@ label_indexers_test_samples = [
 ]
 
 @pytest.mark.parametrize("indexers", label_indexers_test_samples)
-@pytest.mark.parametrize("backend_class", TENSOR_LIBS)
+@pytest.mark.parametrize("backend_class", BACKENDS)
 @pytest.mark.parametrize("space", ["pos", "freq"])
 @pytest.mark.parametrize("method", ["nearest", "pad", "ffill", "backfill", "bfill", None, "unsupported"])
 def test_3d_fft_array_label_indexing(
@@ -441,7 +441,7 @@ space_combinations = [
 ]
 
 @pytest.mark.parametrize("indexers", valid_indexers)
-@pytest.mark.parametrize("backend_class", TENSOR_LIBS)
+@pytest.mark.parametrize("backend_class", BACKENDS)
 @pytest.mark.parametrize("space_combination", space_combinations)
 def test_fftarray_state_management(
     space_combination: Dict[str, Space],
