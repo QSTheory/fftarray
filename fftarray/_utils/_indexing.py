@@ -45,8 +45,8 @@ class LocFFTArrayIndexer(Generic[T]):
 
             Example usage:
             arr_2d = (
-                x_dim.fft_array(space="pos", tlib=some_tlib)
-                + y_dim.fft_array(space="pos", tlib=some_tlib)
+                x_dim.fft_array(space="pos", backend=some_backend)
+                + y_dim.fft_array(space="pos", backend=some_backend)
             )
             Four ways of retrieving an FFTArray object
             with coordinate 3 along x and coordinates values
@@ -95,7 +95,7 @@ class LocFFTArrayIndexer(Generic[T]):
                 dim._index_from_coord(
                     coord=index,
                     space=space,
-                    tlib=self._arr.tlib,
+                    backend=self._arr.backend,
                     method=None,
                 )
             )

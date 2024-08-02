@@ -2,7 +2,7 @@ from typing import Callable, Tuple, Any, List, Sequence
 from types import ModuleType
 
 from ..fft_array import FFTDimension, FFTArray, Space
-from .tensor_lib import TensorLib, PrecisionSpec
+from .backend import Backend, PrecisionSpec
 
 import jax
 from jax.tree_util import register_pytree_node
@@ -10,10 +10,10 @@ import jax.numpy as jnp
 from jax.typing import ArrayLike
 
 
-class JaxTensorLib(TensorLib):
+class JaxBackend(Backend):
 
     def __init__(self, precision: PrecisionSpec = "default"):
-        TensorLib.__init__(self, precision = precision)
+        Backend.__init__(self, precision = precision)
 
     def fftn(self, values: ArrayLike, axes: Sequence[int]) -> jax.Array: # type: ignore[override]
         return jnp.fft.fftn(values, axes=axes)
@@ -55,16 +55,16 @@ def fftarray_flatten(
             Tuple[Space, ...],
             Tuple[bool, ...],
             Tuple[bool, ...],
-            TensorLib
+            Backend
         ]
     ]:
     children = (arr._values, arr._dims)
-    aux_data = (arr._spaces, arr._eager, arr._factors_applied, arr._tlib)
+    aux_data = (arr._spaces, arr._eager, arr._factors_applied, arr._backend)
     return (children, aux_data)
 
 def fftarray_unflatten(aux_data, children) -> FFTArray:
     (values, dims) = children
-    (spaces, eager, factors_applied, tensor_lib) = aux_data
+    (spaces, eager, factors_applied, backend) = aux_data
     # We explicitly do not want to call the constructor here.
     # The consistency check fails (needlessly) for PyTreeArrays and other special "tricks".
     self = FFTArray.__new__(FFTArray)
@@ -73,7 +73,7 @@ def fftarray_unflatten(aux_data, children) -> FFTArray:
     self._spaces = spaces
     self._eager = eager
     self._factors_applied = factors_applied
-    self._tlib = tensor_lib
+    self._backend = backend
     return self
 
 register_pytree_node(

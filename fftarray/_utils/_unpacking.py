@@ -5,7 +5,7 @@ from typing import (
 from numbers import Number
 from functools import reduce
 from dataclasses import dataclass
-from ..backends.tensor_lib import TensorLib
+from ..backends.backend import Backend
 from ..named_array import align_named_arrays
 
 if TYPE_CHECKING:
@@ -88,8 +88,8 @@ class UnpackedValues:
     dims: Tuple["FFTDimension", ...]
     # Values without any dimensions, etc.
     values: List[Union[Number, Any]]
-    # Shared tensor-lib between all values.
-    tlib: TensorLib
+    # Shared backend between all values.
+    backend: Backend
     # outer list: dim_idx, inner_list: op_idx, None: dim does not appear in operand
     factors_applied: List[List[bool]]
     # Space per dimension, must be homogeneous over all values
@@ -126,7 +126,7 @@ def unpack_fft_arrays(
     arrays_to_align: List[Tuple[List[Hashable], Any]] = []
     array_indices = []
     unpacked_values: List[Optional[Union[Number, Any]]] = [None]*len(values)
-    tlib: UniformValue[TensorLib] = UniformValue()
+    backend: UniformValue[Backend] = UniformValue()
 
     for op_idx, x in enumerate(values):
         if isinstance(x, Number):
@@ -142,7 +142,7 @@ def unpack_fft_arrays(
             array_indices.append(op_idx)
             assert isinstance(x, FFTArray)
 
-            tlib.set(x.tlib)
+            backend.set(x.backend)
             # input_factors_applied = x._factors_applied
             # target_factors_applied = list(x._factors_applied)
 
@@ -189,7 +189,7 @@ def unpack_fft_arrays(
 
 
     # Broadcasting
-    dim_names, aligned_arrs = align_named_arrays(arrays_to_align, tlib=tlib.get())
+    dim_names, aligned_arrs = align_named_arrays(arrays_to_align, backend=backend.get())
     for op_idx, arr in zip(array_indices, aligned_arrs):
         unpacked_values[op_idx] = arr
 
@@ -198,7 +198,7 @@ def unpack_fft_arrays(
     eager_list = [dims[dim_name].eager.get() for dim_name in dim_names]
     factors_applied = [dims[dim_name].factors_applied for dim_name in dim_names]
     # TODO: Why is this necessary?
-    # unpacked_values = [tlib.get().as_array(x) for x in unpacked_values]
+    # unpacked_values = [backend.get().as_array(x) for x in unpacked_values]
 
     for value in unpacked_values:
         assert value is not None
@@ -209,5 +209,5 @@ def unpack_fft_arrays(
         space = space_list,
         factors_applied=factors_applied,
         eager=eager_list,
-        tlib = tlib.get(),
+        backend = backend.get(),
     )

@@ -12,8 +12,8 @@ from dataclasses import dataclass
 import numpy as np
 
 from .named_array import align_named_arrays, get_axes_transpose
-from .backends.tensor_lib import TensorLib
-from .backends.np_backend import NumpyTensorLib
+from .backends.backend import Backend
+from .backends.numpy import NumpyBackend
 
 from ._utils._ufuncs import binary_ufuncs, unary_ufunc
 from ._utils._formatting import (
@@ -38,7 +38,7 @@ class FFTArray(metaclass=ABCMeta):
     # _dims are stored as a sequence and not by name because their oder needs
     # to match the order of dimensions in _values.
     _dims: Tuple[FFTDimension, ...]
-    # Contains an array instance of _tlib with _lazy_state not yet applied.
+    # Contains an array instance of _backend with _lazy_state not yet applied.
     _values: Any
     # Marks each dimension whether it is in position or frequency space
     _spaces: Tuple[Space, ...]
@@ -48,7 +48,7 @@ class FFTArray(metaclass=ABCMeta):
     _factors_applied: Tuple[bool, ...]
     # TODO: implement device [#18](https://github.com/QSTheory/fftarray/issues/18)
     # Contains the array backend, precision and device to be used for operations.
-    _tlib: TensorLib
+    _backend: Backend
 
     def __init__(
             self,
@@ -57,7 +57,7 @@ class FFTArray(metaclass=ABCMeta):
             space: Union[Space, Iterable[Space]],
             eager: Union[bool, Iterable[bool]],
             factors_applied: Union[bool, Iterable[bool]],
-            tlib: TensorLib,
+            backend: Backend,
         ):
         """
             This constructor is not meant for normal usage.
@@ -69,7 +69,7 @@ class FFTArray(metaclass=ABCMeta):
         self._spaces = norm_param(space, n_dims, str)
         self._eager = norm_param(eager, n_dims, bool)
         self._factors_applied = norm_param(factors_applied, n_dims, bool)
-        self._tlib = tlib
+        self._backend = backend
         self._check_consistency()
 
     def __repr__(self: FFTArray) -> str:
@@ -82,7 +82,7 @@ class FFTArray(metaclass=ABCMeta):
     def __str__(self: FFTArray) -> str:
         bytes_str = format_bytes(self._values.nbytes)
         str_out = f"<fftarray.FFTArray ({bytes_str})>\n"
-        str_out += f"TensorLib: {self.tlib}\n"
+        str_out += f"Backend: {self.backend}\n"
         str_out += "Dimensions:\n"
         for i, dim in enumerate(self.dims):
             str_out += f" # {i}: {repr(dim.name)}\n"
@@ -155,8 +155,8 @@ class FFTArray(metaclass=ABCMeta):
 
             Example usage:
             arr_2d = (
-                x_dim.fft_array(space="pos", tlib=some_tlib)
-                + y_dim.fft_array(space="pos", tlib=some_tlib)
+                x_dim.fft_array(space="pos", backend=some_backend)
+                + y_dim.fft_array(space="pos", backend=some_backend)
             )
             Four ways of retrieving an FFTArray object
             with index 3 along x and first 5 values along y:
@@ -237,7 +237,7 @@ class FFTArray(metaclass=ABCMeta):
             space=self._spaces,
             eager=self._eager,
             factors_applied=[True]*len(new_dims),
-            tlib=self.tlib,
+            backend=self.backend,
         )
 
     @property
@@ -353,7 +353,7 @@ class FFTArray(metaclass=ABCMeta):
                         dim._index_from_coord(
                             coord=index,
                             space=space,
-                            tlib=self.tlib,
+                            backend=self.backend,
                             method=method,
                         )
                     )
@@ -417,7 +417,7 @@ class FFTArray(metaclass=ABCMeta):
             Use `evaluate_lazy_state` if you want to evaluate it once and reuse it multiple times.
         """
         # TODO Ensure defensive copy here for the Numpy Backend?
-        return self._tlib.get_values_with_lazy_factors(
+        return self._backend.get_values_with_lazy_factors(
             values=self._values,
             dims=self._dims,
             input_factors_applied=self._factors_applied,
@@ -430,7 +430,7 @@ class FFTArray(metaclass=ABCMeta):
             space: Optional[Union[Space, Iterable[Space]]] = None,
             eager: Optional[Union[bool, Iterable[bool]]] = None,
             factors_applied: Optional[Union[bool, Iterable[bool]]] = None,
-            tlib: Optional[TensorLib] = None,
+            backend: Optional[Backend] = None,
         ) -> FFTArray:
 
         values = self._values
@@ -449,16 +449,16 @@ class FFTArray(metaclass=ABCMeta):
 
 
 
-        if tlib is None:
-            tlib_norm = self._tlib
+        if backend is None:
+            backend_norm = self._backend
         else:
-            tlib_norm = tlib
-            if tlib_norm.numpy_ufuncs.iscomplexobj(values):
-                values = tlib_norm.array(values, dtype=tlib_norm.complex_type)
-            elif tlib_norm.numpy_ufuncs.issubdtype(values.dtype, tlib_norm.numpy_ufuncs.floating):
-                values = tlib_norm.array(values, dtype=tlib_norm.real_type)
+            backend_norm = backend
+            if backend_norm.numpy_ufuncs.iscomplexobj(values):
+                values = backend_norm.array(values, dtype=backend_norm.complex_type)
+            elif backend_norm.numpy_ufuncs.issubdtype(values.dtype, backend_norm.numpy_ufuncs.floating):
+                values = backend_norm.array(values, dtype=backend_norm.real_type)
             else:
-                values = tlib_norm.array(values)
+                values = backend_norm.array(values)
 
 
         needs_fft = [old != new for old, new in zip(self._spaces, space_norm)]
@@ -468,7 +468,7 @@ class FFTArray(metaclass=ABCMeta):
                 False if fft_needed else old_lazy
                 for fft_needed, old_lazy in zip(needs_fft, self._factors_applied)
             ]
-            values = tlib_norm.get_values_with_lazy_factors(
+            values = backend_norm.get_values_with_lazy_factors(
                 values=values,
                 dims=dims,
                 input_factors_applied=self._factors_applied,
@@ -486,10 +486,10 @@ class FFTArray(metaclass=ABCMeta):
                     current_factors_applied[dim_idx] = False
 
             if len(fft_axes) > 0:
-                values = tlib_norm.fftn(values, axes=fft_axes)
+                values = backend_norm.fftn(values, axes=fft_axes)
 
             if len(ifft_axes) > 0:
-                values = tlib_norm.ifftn(values, axes=ifft_axes)
+                values = backend_norm.ifftn(values, axes=ifft_axes)
 
 
         if factors_applied is None:
@@ -505,7 +505,7 @@ class FFTArray(metaclass=ABCMeta):
             factors_norm = norm_param(factors_applied, n_dims, bool)
 
         # Bring values into the target form respective lazy state
-        values = tlib_norm.get_values_with_lazy_factors(
+        values = backend_norm.get_values_with_lazy_factors(
             values=values,
             dims=dims,
             input_factors_applied=current_factors_applied,
@@ -519,12 +519,12 @@ class FFTArray(metaclass=ABCMeta):
             space=space_norm,
             eager=eager_norm,
             factors_applied=factors_norm,
-            tlib=tlib_norm,
+            backend=backend_norm,
         )
 
     @property
-    def tlib(self) -> TensorLib:
-        return self._tlib
+    def backend(self) -> Backend:
+        return self._backend
 
     # @property
     # def is_eager(self) -> bool:
@@ -552,7 +552,7 @@ class FFTArray(metaclass=ABCMeta):
             assert len(new_dim_names) == len(self._dims)
 
         axes_transpose = get_axes_transpose(old_dim_names, new_dim_names)
-        transposed_values = self._tlib.numpy_ufuncs.transpose(self._values, tuple(axes_transpose))
+        transposed_values = self._backend.numpy_ufuncs.transpose(self._values, tuple(axes_transpose))
 
         transposed_arr = FFTArray(
             values=transposed_values,
@@ -560,29 +560,29 @@ class FFTArray(metaclass=ABCMeta):
             space=[self._spaces[idx] for idx in axes_transpose],
             eager=[self._eager[idx] for idx in axes_transpose],
             factors_applied=[self._factors_applied[idx] for idx in axes_transpose],
-            tlib=self.tlib,
+            backend=self.backend,
         )
         return transposed_arr
 
-    # def _set_tlib(self: TFFTArray, tlib: Optional[TensorLib] = None) -> TFFTArray:
+    # def _set_backend(self: TFFTArray, backend: Optional[Backend] = None) -> TFFTArray:
     #     """
-    #         Set tlib if it is not None.
+    #         Set backend if it is not None.
     #         Collects just a bit of code from all `pos_array` and `freq_array` implementations.
     #     """
     #     res = self
-    #     if tlib:
-    #         res = res.with_tlib(tlib)
+    #     if backend:
+    #         res = res.with_backend(backend)
     #     return res
 
     #--------------------
     # Interface to implement
     #--------------------
     # @abstractmethod
-    # def pos_array(self, tlib: Optional[TensorLib] = None) -> PosArray:
+    # def pos_array(self, backend: Optional[Backend] = None) -> PosArray:
     #     ...
 
     # @abstractmethod
-    # def freq_array(self, tlib: Optional[TensorLib] = None) -> FreqArray:
+    # def freq_array(self, backend: Optional[Backend] = None) -> FreqArray:
     #     ...
 
     @property
@@ -632,8 +632,8 @@ class FFTArray(metaclass=ABCMeta):
         float
             The product of the `d_freq` of all active dimensions.
         """
-        return self._tlib.reduce_multiply(
-            self._tlib.array([fft_dim.d_freq for fft_dim in self._dims])
+        return self._backend.reduce_multiply(
+            self._backend.array([fft_dim.d_freq for fft_dim in self._dims])
         )
 
     @property
@@ -645,19 +645,19 @@ class FFTArray(metaclass=ABCMeta):
         float
             The product of the `d_pos` of all active dimensions.
         """
-        return self._tlib.reduce_multiply(
-            self._tlib.array([fft_dim.d_pos for fft_dim in self._dims])
+        return self._backend.reduce_multiply(
+            self._backend.array([fft_dim.d_pos for fft_dim in self._dims])
         )
 
     def _check_consistency(self) -> None:
         """
             Check some invariants of FFTArray.
         """
-        if not isinstance(self._values, self._tlib.array_type):
+        if not isinstance(self._values, self._backend.array_type):
             raise ValueError(
                 f"Passed in values of type '{type(self._values)}' "
-                + f"which is not the array type '{self._tlib.array_type}'"
-                + f" of the tensor-lib '{self._tlib}'."
+                + f"which is not the array type '{self._backend.array_type}'"
+                + f" of the backend '{self._backend}'."
             )
         assert len(self._dims) == len(self._values.shape)
         assert len(self._spaces) == len(self._values.shape)
@@ -707,7 +707,7 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
 
     # Look up the actual ufunc
     try:
-        tensor_lib_ufunc = getattr(unp_inp.tlib.numpy_ufuncs, ufunc.__name__)
+        backend_ufunc = getattr(unp_inp.backend.numpy_ufuncs, ufunc.__name__)
     except:
         return NotImplemented
 
@@ -758,7 +758,7 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
         # both operators because there is no special case applicable
         for op_idx in [0,1]:
             if isinstance(inputs[op_idx], FFTArray):
-                res = unp_inp.tlib.get_transform_signs(
+                res = unp_inp.backend.get_transform_signs(
                     input_factors_applied=[unp_inp.factors_applied[dim_idx][op_idx] for dim_idx in range(len(unp_inp.dims))],
                     target_factors_applied=[True]*len(unp_inp.dims),
                 )
@@ -770,41 +770,41 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
     # Apply above defined scale and phase factors depending on the specific case
     for op_idx, signs_op in zip([0,1], factor_transforms):
         if isinstance(inputs[op_idx], FFTArray):
-            unp_inp.values[op_idx] = unp_inp.tlib.apply_scale_phases(
+            unp_inp.values[op_idx] = unp_inp.backend.apply_scale_phases(
                 values=unp_inp.values[op_idx],
                 dims=unp_inp.dims,
                 signs=signs_op,
                 spaces=unp_inp.space,
             )
 
-    values = tensor_lib_ufunc(*unp_inp.values, **kwargs)
+    values = backend_ufunc(*unp_inp.values, **kwargs)
     return FFTArray(
         values=values,
         space=unp_inp.space,
         dims=unp_inp.dims,
         eager=unp_inp.eager,
         factors_applied=final_factors_applied,
-        tlib=unp_inp.tlib,
+        backend=unp_inp.backend,
     )
 
 def _single_element_ufunc(ufunc, inp: FFTArray, kwargs):
     try:
-        tensor_lib_ufunc = getattr(inp.tlib.numpy_ufuncs, ufunc.__name__)
+        backend_ufunc = getattr(inp.backend.numpy_ufuncs, ufunc.__name__)
     except:
         return NotImplemented
 
     if ufunc == np.abs:
         # For abs the final result does not change if we apply the phases
         # to the values so we can simply ignore the phases.
-        values = tensor_lib_ufunc(inp._values, **kwargs)
+        values = backend_ufunc(inp._values, **kwargs)
         # The scale can be applied after abs which is more efficient in the case of a complex input
-        signs: List[Literal[-1, 1, None]] | None = inp.tlib.get_transform_signs(
+        signs: List[Literal[-1, 1, None]] | None = inp.backend.get_transform_signs(
             # Can use input because with a single value no broadcasting happened.
             input_factors_applied=inp._factors_applied,
             target_factors_applied=[True]*len(inp._factors_applied),
         )
         if signs is not None:
-            values = inp.tlib.apply_scale(
+            values = inp.backend.apply_scale(
                 values=values,
                 dims=inp.dims,
                 signs=signs,
@@ -817,18 +817,18 @@ def _single_element_ufunc(ufunc, inp: FFTArray, kwargs):
             dims=inp.dims,
             eager=inp.eager,
             factors_applied=True,
-            tlib=inp.tlib,
+            backend=inp.backend,
         )
 
     # Fallback if no special case applies
-    values = tensor_lib_ufunc(inp.values, **kwargs)
+    values = backend_ufunc(inp.values, **kwargs)
     return FFTArray(
         values=values,
         space=inp.space,
         dims=inp.dims,
         eager=inp.eager,
         factors_applied=True,
-        tlib=inp.tlib,
+        backend=inp.backend,
     )
 
 @dataclass
@@ -837,8 +837,8 @@ class UnpackedValues:
     dims: Tuple[FFTDimension, ...]
     # Values without any dimensions, etc.
     values: List[Union[Number, Any]]
-    # Shared tensor-lib between all values.
-    tlib: TensorLib
+    # Shared backend between all values.
+    backend: Backend
     # outer list: dim_idx, inner_list: op_idx, None: dim does not appear in operand
     factors_applied: List[List[bool]]
     # Space per dimension, must be homogeneous over all values
@@ -875,7 +875,7 @@ def _unpack_fft_arrays(
     arrays_to_align: List[Tuple[List[Hashable], Any]] = []
     array_indices = []
     unpacked_values: List[Optional[Union[Number, Any]]] = [None]*len(values)
-    tlib: UniformValue[TensorLib] = UniformValue()
+    backend: UniformValue[Backend] = UniformValue()
 
     for op_idx, x in enumerate(values):
         if isinstance(x, Number):
@@ -891,7 +891,7 @@ def _unpack_fft_arrays(
             array_indices.append(op_idx)
             assert isinstance(x, FFTArray)
 
-            tlib.set(x.tlib)
+            backend.set(x.backend)
             # input_factors_applied = x._factors_applied
             # target_factors_applied = list(x._factors_applied)
 
@@ -938,7 +938,7 @@ def _unpack_fft_arrays(
 
 
     # Broadcasting
-    dim_names, aligned_arrs = align_named_arrays(arrays_to_align, tlib=tlib.get())
+    dim_names, aligned_arrs = align_named_arrays(arrays_to_align, backend=backend.get())
     for op_idx, arr in zip(array_indices, aligned_arrs):
         unpacked_values[op_idx] = arr
 
@@ -947,7 +947,7 @@ def _unpack_fft_arrays(
     eager_list = [dims[dim_name].eager.get() for dim_name in dim_names]
     factors_applied = [dims[dim_name].factors_applied for dim_name in dim_names]
     # TODO: Why is this necessary?
-    # unpacked_values = [tlib.get().as_array(x) for x in unpacked_values]
+    # unpacked_values = [backend.get().as_array(x) for x in unpacked_values]
 
     for value in unpacked_values:
         assert value is not None
@@ -958,7 +958,7 @@ def _unpack_fft_arrays(
         space = space_list,
         factors_applied=factors_applied,
         eager=eager_list,
-        tlib = tlib.get(),
+        backend = backend.get(),
     )
 
 
@@ -1268,7 +1268,7 @@ class FFTDimension:
             self,
             coord: Union[float, slice],
             space: Space,
-            tlib: TensorLib,
+            backend: Backend,
             method: Optional[Literal["nearest", "pad", "ffill", "backfill", "bfill"]] = None,
         ) -> Union[int, slice]:
         """Compute index from given coordinate which can be float or slice.
@@ -1304,8 +1304,8 @@ class FFTDimension:
 
             # Use the scalar part of this function with the methods bfill and ffill
             # to yield indices to include the respective coordinates
-            idx_min: int = self._index_from_coord(coord_start, method="bfill", space=space, tlib=tlib) # type: ignore
-            idx_max: int = self._index_from_coord(coord_stop, method="ffill", space=space, tlib=tlib) # type: ignore
+            idx_min: int = self._index_from_coord(coord_start, method="bfill", space=space, backend=backend) # type: ignore
+            idx_max: int = self._index_from_coord(coord_stop, method="ffill", space=space, backend=backend) # type: ignore
             return slice(
                 idx_min,
                 idx_max + 1 # as slice.stop is non-inclusive, add 1
@@ -1429,14 +1429,14 @@ class FFTDimension:
 
     def _raw_coord_array(
                 self: FFTDimension,
-                tlib: TensorLib,
+                backend: Backend,
                 space: Space,
             ):
 
-        indices = tlib.numpy_ufuncs.arange(
+        indices = backend.numpy_ufuncs.arange(
             0,
             self.n,
-            dtype = tlib.real_type,
+            dtype = backend.real_type,
         )
 
         if space == "pos":
@@ -1448,7 +1448,7 @@ class FFTDimension:
 
     def fft_array(
             self: FFTDimension,
-            tlib: TensorLib,
+            backend: Backend,
             space: Space,
             eager: bool = False,
         ) -> FFTArray:
@@ -1461,7 +1461,7 @@ class FFTDimension:
         """
 
         values = self._raw_coord_array(
-            tlib=tlib,
+            backend=backend,
             space=space,
         )
 
@@ -1471,8 +1471,8 @@ class FFTDimension:
             eager=eager,
             factors_applied=True,
             space=space,
-            tlib=tlib,
+            backend=backend,
         )
 
     def np_array(self: FFTDimension, space: Space):
-        return self._raw_coord_array(tlib=NumpyTensorLib(), space=space)
+        return self._raw_coord_array(backend=NumpyBackend(), space=space)
