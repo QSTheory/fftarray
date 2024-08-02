@@ -12,7 +12,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from .named_array import align_named_arrays, get_axes_transpose
-from .backends.tensor_lib import TensorLib
+from .backends.backend import Backend
 from .backends.numpy import NumpyBackend
 
 from ._utils._ufuncs import binary_ufuncs, unary_ufunc
@@ -48,7 +48,7 @@ class FFTArray(metaclass=ABCMeta):
     _factors_applied: Tuple[bool, ...]
     # TODO: implement device [#18](https://github.com/QSTheory/fftarray/issues/18)
     # Contains the array backend, precision and device to be used for operations.
-    _tlib: TensorLib
+    _tlib: Backend
 
     def __init__(
             self,
@@ -57,7 +57,7 @@ class FFTArray(metaclass=ABCMeta):
             space: Union[Space, Iterable[Space]],
             eager: Union[bool, Iterable[bool]],
             factors_applied: Union[bool, Iterable[bool]],
-            tlib: TensorLib,
+            tlib: Backend,
         ):
         """
             This constructor is not meant for normal usage.
@@ -82,7 +82,7 @@ class FFTArray(metaclass=ABCMeta):
     def __str__(self: FFTArray) -> str:
         bytes_str = format_bytes(self._values.nbytes)
         str_out = f"<fftarray.FFTArray ({bytes_str})>\n"
-        str_out += f"TensorLib: {self.tlib}\n"
+        str_out += f"Backend: {self.tlib}\n"
         str_out += "Dimensions:\n"
         for i, dim in enumerate(self.dims):
             str_out += f" # {i}: {repr(dim.name)}\n"
@@ -430,7 +430,7 @@ class FFTArray(metaclass=ABCMeta):
             space: Optional[Union[Space, Iterable[Space]]] = None,
             eager: Optional[Union[bool, Iterable[bool]]] = None,
             factors_applied: Optional[Union[bool, Iterable[bool]]] = None,
-            tlib: Optional[TensorLib] = None,
+            tlib: Optional[Backend] = None,
         ) -> FFTArray:
 
         values = self._values
@@ -523,7 +523,7 @@ class FFTArray(metaclass=ABCMeta):
         )
 
     @property
-    def tlib(self) -> TensorLib:
+    def tlib(self) -> Backend:
         return self._tlib
 
     # @property
@@ -564,7 +564,7 @@ class FFTArray(metaclass=ABCMeta):
         )
         return transposed_arr
 
-    # def _set_tlib(self: TFFTArray, tlib: Optional[TensorLib] = None) -> TFFTArray:
+    # def _set_tlib(self: TFFTArray, tlib: Optional[Backend] = None) -> TFFTArray:
     #     """
     #         Set tlib if it is not None.
     #         Collects just a bit of code from all `pos_array` and `freq_array` implementations.
@@ -578,11 +578,11 @@ class FFTArray(metaclass=ABCMeta):
     # Interface to implement
     #--------------------
     # @abstractmethod
-    # def pos_array(self, tlib: Optional[TensorLib] = None) -> PosArray:
+    # def pos_array(self, tlib: Optional[Backend] = None) -> PosArray:
     #     ...
 
     # @abstractmethod
-    # def freq_array(self, tlib: Optional[TensorLib] = None) -> FreqArray:
+    # def freq_array(self, tlib: Optional[Backend] = None) -> FreqArray:
     #     ...
 
     @property
@@ -838,7 +838,7 @@ class UnpackedValues:
     # Values without any dimensions, etc.
     values: List[Union[Number, Any]]
     # Shared tensor-lib between all values.
-    tlib: TensorLib
+    tlib: Backend
     # outer list: dim_idx, inner_list: op_idx, None: dim does not appear in operand
     factors_applied: List[List[bool]]
     # Space per dimension, must be homogeneous over all values
@@ -875,7 +875,7 @@ def _unpack_fft_arrays(
     arrays_to_align: List[Tuple[List[Hashable], Any]] = []
     array_indices = []
     unpacked_values: List[Optional[Union[Number, Any]]] = [None]*len(values)
-    tlib: UniformValue[TensorLib] = UniformValue()
+    tlib: UniformValue[Backend] = UniformValue()
 
     for op_idx, x in enumerate(values):
         if isinstance(x, Number):
@@ -1268,7 +1268,7 @@ class FFTDimension:
             self,
             coord: Union[float, slice],
             space: Space,
-            tlib: TensorLib,
+            tlib: Backend,
             method: Optional[Literal["nearest", "pad", "ffill", "backfill", "bfill"]] = None,
         ) -> Union[int, slice]:
         """Compute index from given coordinate which can be float or slice.
@@ -1429,7 +1429,7 @@ class FFTDimension:
 
     def _raw_coord_array(
                 self: FFTDimension,
-                tlib: TensorLib,
+                tlib: Backend,
                 space: Space,
             ):
 
@@ -1448,7 +1448,7 @@ class FFTDimension:
 
     def fft_array(
             self: FFTDimension,
-            tlib: TensorLib,
+            tlib: Backend,
             space: Space,
             eager: bool = False,
         ) -> FFTArray:

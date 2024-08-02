@@ -5,13 +5,13 @@ import warnings
 import numpy as np
 from numpy.typing import NDArray
 
-from .tensor_lib import TensorLib, PrecisionSpec
+from .backend import Backend, PrecisionSpec
 
 
-class NumpyBackend(TensorLib):
+class NumpyBackend(Backend):
 
     def __init__(self, precision: PrecisionSpec = "default"):
-        TensorLib.__init__(self, precision=precision)
+        Backend.__init__(self, precision=precision)
 
     def fftn(self, values, axes: Sequence[int]) -> Union[NDArray[np.complex64], NDArray[np.complex128]]:
         transformed = np.fft.fftn(values, axes=axes)

@@ -7,7 +7,7 @@ import jax
 import xarray as xr
 
 from fftarray.fft_array import FFTArray, FFTDimension, Space
-from fftarray.backends.tensor_lib import TensorLib
+from fftarray.backends.backend import Backend
 from fftarray.backends.jax import JaxBackend
 from fftarray.backends.numpy import NumpyBackend
 from fftarray.backends.pyfftw import PyFFTWBackend
@@ -535,7 +535,7 @@ def test_fftarray_state_management(
 def generate_test_fftarray_xrdataset(
     dimension_names: List[str],
     dimension_length: Union[int, List[int]],
-    tlib: TensorLib,
+    tlib: Backend,
 ) -> Tuple[FFTArray, xr.Dataset]:
 
     if isinstance(dimension_length, int):

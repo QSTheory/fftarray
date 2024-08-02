@@ -2,7 +2,7 @@ from typing import Callable, Tuple, Any, List, Sequence
 from types import ModuleType
 
 from ..fft_array import FFTDimension, FFTArray, Space
-from .tensor_lib import TensorLib, PrecisionSpec
+from .backend import Backend, PrecisionSpec
 
 import jax
 from jax.tree_util import register_pytree_node
@@ -10,10 +10,10 @@ import jax.numpy as jnp
 from jax.typing import ArrayLike
 
 
-class JaxBackend(TensorLib):
+class JaxBackend(Backend):
 
     def __init__(self, precision: PrecisionSpec = "default"):
-        TensorLib.__init__(self, precision = precision)
+        Backend.__init__(self, precision = precision)
 
     def fftn(self, values: ArrayLike, axes: Sequence[int]) -> jax.Array: # type: ignore[override]
         return jnp.fft.fftn(values, axes=axes)
@@ -55,7 +55,7 @@ def fftarray_flatten(
             Tuple[Space, ...],
             Tuple[bool, ...],
             Tuple[bool, ...],
-            TensorLib
+            Backend
         ]
     ]:
     children = (arr._values, arr._dims)

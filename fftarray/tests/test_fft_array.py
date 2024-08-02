@@ -10,7 +10,7 @@ from fftarray.fft_array import FFTArray, FFTDimension, Space
 from fftarray.backends.jax import JaxBackend
 from fftarray.backends.numpy import NumpyBackend
 from fftarray.backends.pyfftw import PyFFTWBackend
-from fftarray.backends.tensor_lib import TensorLib, PrecisionSpec
+from fftarray.backends.backend import Backend, PrecisionSpec
 from fftarray.xr_helpers import as_xr_pos
 
 jax.config.update("jax_enable_x64", True)
@@ -18,7 +18,7 @@ jax.config.update("jax_enable_x64", True)
 def assert_scalars_almost_equal_nulp(x, y, nulp = 1):
     np.testing.assert_array_almost_equal_nulp(np.array([x]), np.array([y]), nulp = nulp)
 
-tensor_libs: List[Type[TensorLib]] = [NumpyBackend, JaxBackend, PyFFTWBackend]
+tensor_libs: List[Type[Backend]] = [NumpyBackend, JaxBackend, PyFFTWBackend]
 precisions: List[PrecisionSpec] = ["fp32", "fp64", "default"]
 spaces: List[Space] = ["pos", "freq"]
 
@@ -26,7 +26,7 @@ spaces: List[Space] = ["pos", "freq"]
 def test_fft_array_constructor():
     """Tests whether the type checking of the FFTArray input values works.
     An FFTArray can only be initialized if the values array type is compatible
-    with the provided TensorLib.
+    with the provided Backend.
     """
     dim = FFTDimension("x", n=4, d_pos=0.1, pos_min=0., freq_min=0.)
     values = [1,2,3,4]

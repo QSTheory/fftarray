@@ -5,7 +5,7 @@ from typing import (
 from numbers import Number
 from functools import reduce
 from dataclasses import dataclass
-from ..backends.tensor_lib import TensorLib
+from ..backends.backend import Backend
 from ..named_array import align_named_arrays
 
 if TYPE_CHECKING:
@@ -89,7 +89,7 @@ class UnpackedValues:
     # Values without any dimensions, etc.
     values: List[Union[Number, Any]]
     # Shared tensor-lib between all values.
-    tlib: TensorLib
+    tlib: Backend
     # outer list: dim_idx, inner_list: op_idx, None: dim does not appear in operand
     factors_applied: List[List[bool]]
     # Space per dimension, must be homogeneous over all values
@@ -126,7 +126,7 @@ def unpack_fft_arrays(
     arrays_to_align: List[Tuple[List[Hashable], Any]] = []
     array_indices = []
     unpacked_values: List[Optional[Union[Number, Any]]] = [None]*len(values)
-    tlib: UniformValue[TensorLib] = UniformValue()
+    tlib: UniformValue[Backend] = UniformValue()
 
     for op_idx, x in enumerate(values):
         if isinstance(x, Number):

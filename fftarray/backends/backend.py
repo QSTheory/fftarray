@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 PrecisionSpec = Literal["default", "fp32", "fp64"]
 
 @dataclass
-class TensorLib(metaclass=ABCMeta):
+class Backend(metaclass=ABCMeta):
 
     precision: PrecisionSpec
 
