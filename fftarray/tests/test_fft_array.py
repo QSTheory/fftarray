@@ -92,7 +92,7 @@ def test_comparison(backend_class, space) -> None:
 @pytest.mark.parametrize("override", (None, "fp32", "fp64", "default"))
 @pytest.mark.parametrize("eager", [False, True])
 def test_dtype(backend, precision, override, eager: bool) -> None:
-    backend = backend(precision=precision)
+    backend_init = backend(precision=precision)
     if override is None:
         backend_override = None
     else:
@@ -106,48 +106,48 @@ def test_dtype(backend, precision, override, eager: bool) -> None:
     )
 
     if backend_override is None:
-        assert x_dim.fft_array(backend, space="pos").values.dtype == backend.real_type
+        assert x_dim.fft_array(backend_init, space="pos").values.dtype == backend_init.real_type
     else:
         assert x_dim.fft_array(backend_override, space="pos", eager=eager).values.dtype == backend_override.real_type
-        assert x_dim.fft_array(backend, space="pos", eager=eager).into(backend=backend_override).values.dtype == backend_override.real_type
+        assert x_dim.fft_array(backend_init, space="pos", eager=eager).into(backend=backend_override).values.dtype == backend_override.real_type
 
 
     if backend_override is None:
-        assert x_dim.fft_array(backend, space="freq", eager=eager).values.dtype == backend.real_type
+        assert x_dim.fft_array(backend_init, space="freq", eager=eager).values.dtype == backend_init.real_type
     else:
         assert x_dim.fft_array(backend_override, space="freq", eager=eager).values.dtype == backend_override.real_type
-        assert x_dim.fft_array(backend, space="freq", eager=eager).into(backend=backend_override).values.dtype == backend_override.real_type
+        assert x_dim.fft_array(backend_init, space="freq", eager=eager).into(backend=backend_override).values.dtype == backend_override.real_type
 
-    assert x_dim.fft_array(backend, space="pos", eager=eager).into(space="freq").values.dtype == backend.complex_type
-    assert x_dim.fft_array(backend, space="freq", eager=eager).into(space="pos").values.dtype == backend.complex_type
+    assert x_dim.fft_array(backend_init, space="pos", eager=eager).into(space="freq").values.dtype == backend_init.complex_type
+    assert x_dim.fft_array(backend_init, space="freq", eager=eager).into(space="pos").values.dtype == backend_init.complex_type
 
-    assert np.abs(x_dim.fft_array(backend, space="pos", eager=eager).into(space="freq")).values.dtype == backend.real_type # type: ignore
-    assert np.abs(x_dim.fft_array(backend, space="freq", eager=eager).into(space="pos")).values.dtype == backend.real_type # type: ignore
+    assert np.abs(x_dim.fft_array(backend_init, space="pos", eager=eager).into(space="freq")).values.dtype == backend_init.real_type # type: ignore
+    assert np.abs(x_dim.fft_array(backend_init, space="freq", eager=eager).into(space="pos")).values.dtype == backend_init.real_type # type: ignore
 
     if backend_override is not None:
-        assert x_dim.fft_array(backend, space="pos", eager=eager).into(space="freq", backend=backend_override).values.dtype == backend_override.complex_type
-        assert x_dim.fft_array(backend, space="freq", eager=eager).into(space="pos", backend=backend_override).values.dtype == backend_override.complex_type
+        assert x_dim.fft_array(backend_init, space="pos", eager=eager).into(space="freq", backend=backend_override).values.dtype == backend_override.complex_type
+        assert x_dim.fft_array(backend_init, space="freq", eager=eager).into(space="pos", backend=backend_override).values.dtype == backend_override.complex_type
 
     # For non-float and non-complex dtypes, we do not force the backend precision types
     # onto the values. Therefore, the FFTArray.values dtype should not be affected by the
     # backend_override precision for both integer values and boolean values
 
     int_arr = FFTArray(
-        values=backend.array([1,2,3,4]),
+        values=backend_init.array([1,2,3,4]),
         dims=[x_dim],
         space="pos",
         eager=eager,
-        backend=backend,
+        backend=backend_init,
         factors_applied=True,
     )
     assert int_arr.values.dtype == int_arr.into(backend=backend_override).values.dtype
 
     bool_arr = FFTArray(
-        values=backend.array([False, True, False, False]),
+        values=backend_init.array([False, True, False, False]),
         dims=[x_dim],
         space="pos",
         eager=eager,
-        backend=backend,
+        backend=backend_init,
         factors_applied=True,
     )
     assert bool_arr.values.dtype == bool_arr.into(backend=backend_override).values.dtype
