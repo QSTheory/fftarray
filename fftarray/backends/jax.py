@@ -59,7 +59,7 @@ def fftarray_flatten(
         ]
     ]:
     children = (arr._values, arr._dims)
-    aux_data = (arr._spaces, arr._eager, arr._factors_applied, arr._tlib)
+    aux_data = (arr._spaces, arr._eager, arr._factors_applied, arr._backend)
     return (children, aux_data)
 
 def fftarray_unflatten(aux_data, children) -> FFTArray:
@@ -73,7 +73,7 @@ def fftarray_unflatten(aux_data, children) -> FFTArray:
     self._spaces = spaces
     self._eager = eager
     self._factors_applied = factors_applied
-    self._tlib = tensor_lib
+    self._backend = tensor_lib
     return self
 
 register_pytree_node(

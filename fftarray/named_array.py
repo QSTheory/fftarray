@@ -6,7 +6,7 @@ from dataclasses import dataclass
 #-------------------
 def align_named_arrays(
         arrays: Sequence[Tuple[Sequence[Hashable], Any]],
-        tlib
+        backend
     ) -> Tuple[Sequence[Hashable], List[Any]]:
     """
         The arrays may have longer shapes than there are named dims.
@@ -41,7 +41,7 @@ def align_named_arrays(
             arr,
             old_dims=dim_names,
             new_dims=list(target_shape.keys()),
-            tlib=tlib
+            backend=backend
         )
         aligned_arrays.append(arr)
     return list(target_indices.keys()), aligned_arrays
@@ -66,7 +66,7 @@ def get_axes_transpose(
 
 def transpose_array(
         array: Any,
-        tlib,
+        backend,
         old_dims: Sequence[Hashable],
         new_dims: Sequence[Hashable]
     ) -> Any:
@@ -75,5 +75,5 @@ def transpose_array(
         They may be shorter than array.shape. The last dims are left untouched.
     """
     axes_transpose = get_axes_transpose(old_dims, new_dims)
-    array = tlib.numpy_ufuncs.transpose(array, tuple(axes_transpose))
+    array = backend.numpy_ufuncs.transpose(array, tuple(axes_transpose))
     return array

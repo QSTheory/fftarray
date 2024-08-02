@@ -20,11 +20,11 @@ x_dim = FFTDimension(name="x", n=8, d_pos=0.4, pos_min=0, freq_min=0)
 y_dim = FFTDimension(name="y", n=8, d_pos=0.4, pos_min=0, freq_min=0)
 z_dim = FFTDimension(name="z", n=8, d_pos=0.4, pos_min=0, freq_min=0)
 
-tlib = NumpyBackend()
+backend = NumpyBackend()
 fft_arr = (
-    x_dim.fft_array(space="pos", tlib=tlib) +
-    y_dim.fft_array(space="pos", tlib=tlib) +
-    z_dim.fft_array(space="pos", tlib=tlib)
+    x_dim.fft_array(space="pos", backend=backend) +
+    y_dim.fft_array(space="pos", backend=backend) +
+    z_dim.fft_array(space="pos", backend=backend)
 )
 ```
 ### Indexing by Integer
