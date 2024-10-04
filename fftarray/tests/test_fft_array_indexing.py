@@ -260,11 +260,11 @@ def test_3d_fft_array_indexing_by_integer(
 
     np.testing.assert_array_equal(
         fft_array_result_isel.values,
-        xr_result.data
+        xr_result
     )
     np.testing.assert_array_equal(
         fft_array_result_square_brackets.values,
-        xr_result.data
+        xr_result
     )
 
 tuple_indexers = [
@@ -302,7 +302,7 @@ def test_3d_fft_array_positional_indexing(
 
     np.testing.assert_array_equal(
         fft_array_result_square_brackets.values,
-        xr_result_square_bracket.data
+        xr_result_square_bracket
     )
 
     fft_array_result_loc_square_brackets = test_function_loc_square_brackets(indexers) # type: ignore
@@ -310,7 +310,7 @@ def test_3d_fft_array_positional_indexing(
 
     np.testing.assert_array_equal(
         fft_array_result_loc_square_brackets.values,
-        xr_result_loc_square_bracket.data
+        xr_result_loc_square_bracket
     )
 
 label_indexers_test_samples = [
@@ -355,7 +355,7 @@ def test_3d_fft_array_label_indexing(
 
     np.testing.assert_array_equal(
         fft_array_result.values,
-        xr_result.data
+        xr_result
     )
 
 
@@ -421,11 +421,11 @@ def test_3d_fft_array_indexing(
     else:
         np.testing.assert_array_equal(
             fft_array_result_sel.values,
-            xr_result.data
+            xr_result
         )
         np.testing.assert_array_equal(
             fft_array_result_loc_square_brackets.values,
-            xr_result.data
+            xr_result
         )
 
 valid_indexers = [
@@ -559,8 +559,8 @@ def generate_test_fftarray_xrdataset(
 
     xr_dataset = xr.Dataset(
         data_vars={
-            'pos': ([f"{name}_pos" for name in dimension_names], fft_array.values),
-            'freq': ([f"{name}_freq" for name in dimension_names], fft_array.into(space="freq").values),
+            'pos': ([f"{name}_pos" for name in dimension_names], np.array(fft_array.values)),
+            'freq': ([f"{name}_freq" for name in dimension_names], np.array(fft_array.into(space="freq").values)),
         },
         coords=pos_coords | freq_coords
     )
