@@ -1,0 +1,102 @@
+[project]
+name = "fftarray"
+
+# You can get the current version via 'pixi run -e dev hatch version'
+# It does not get updated automatically in editable installs.
+# A workaround can be found under https://github.com/maresb/hatch-vcs-footgun-example
+# But currently we do not have a usage where this was important.
+dynamic = [
+    "version"
+]
+authors = [
+    { name="Stefan Seckmeyer"},
+    { name="Gabriel Müller"},
+    { name="Christian Struckmann"},
+]
+description = "A library to manage and effiently implement all complexities around the complex Fast Fourier Transform."
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "numpy>=1.25",
+]
+
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatchling", "hatch-vcs"]
+
+[project.urls]
+Homepage = "https://github.com/QSTheory/fftarray"
+Issues = "https://github.com/QSTheory/fftarray/issues"
+
+[project.optional-dependencies]
+"jax" = [
+    "jax>=0.4.30"
+]
+"pyFFTW" = [
+    "pyFFTW"
+]
+"helpers" = [
+    "z3-solver",
+    "xarray"
+]
+"dashboards" = [
+    "fftarray[helpers]",
+    "ipython",
+    "bokeh"
+]
+"dev" = [
+    "fftarray[jax, pyFFTW, helpers, dashboards]",
+    "mypy>=0.910",
+    "pytest",
+    "hypothesis",
+    "sphinx>=4.2",
+    "sphinx_rtd_theme",
+    "myst_parser",
+    "mistune==0.8.4",
+    "m2r2",
+    "nbformat",
+    "pytest-cov",
+    "hatch",
+]
+
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "_version.py"
+
+[tool.pixi.tasks]
+test = { cmd = ["python", "-m", "pytest"]}
+test_all = { cmd = ["python", "-m", "pytest", "--include-slow"]}
+mypy = { cmd = ["mypy", "fftarray"]}
+check = { cmd = [], depends-on = ["mypy", "test"]}
+cov_html = { cmd = ["python", "-m", "pytest", "--cov=./fftarray", "--cov=./examples", "--cov-report=html"]}
+cov_xml = { cmd = ["python", "-m", "pytest", "--cov=./fftarray", "--cov=./examples", "--cov-report=xml"]}
+
+[tool.pixi.project]
+channels = ["conda-forge"]
+platforms = ["linux-64", "linux-aarch64", "osx-arm64", "osx-64", "win-64"]
+
+[tool.pixi.pypi-dependencies]
+fftarray = { path = ".", editable = true }
+
+[tool.pixi.feature.jaxcuda]
+# Needs to be disabled as workaround Part 1 for https://github.com/prefix-dev/pixi/issues/1051
+# platforms = ["linux-64"]
+system-requirements = {cuda = "12"}
+
+# List jax cuda depdency here as linux-64 specific as workaround Part 2 for https://github.com/prefix-dev/pixi/issues/1051
+[tool.pixi.feature.jaxcuda.target.linux-64.pypi-dependencies]
+"fftarray" = {version="*", extras=["jax"]}
+"jax" = {version=">=0.4.30", extras=["cuda12"]}
+
+[tool.pixi.environments]
+# Recursive optional dependencies are currently ignored by pixi environments: https://github.com/prefix-dev/pixi/issues/2024
+devcuda = ["dev", "jaxcuda", "pyFFTW", "helpers", "dashboards"]
+dev = ["dev", "jax", "pyFFTW", "helpers", "dashboards"]
