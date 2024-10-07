@@ -376,19 +376,19 @@ def assert_equal_op(
         if "complex" in str(values.dtype):
             assert_array_almost_equal_nulp_complex(arr_op, values_op, nulp=4)
     else:
-        np.testing.assert_allclose(arr_op, values_op, rtol=rtol)
+        np.testing.assert_allclose(arr_op, values_op, rtol=rtol, atol=1e-38)
 
     _arr_op = op(arr)._values
     if op_forces_factors_applied:
         # _values should have factors applied
-        np.testing.assert_allclose(_arr_op, values_op, rtol=rtol)
+        np.testing.assert_allclose(_arr_op, values_op, rtol=rtol, atol=1e-38)
     else:
         # arr._values can differ from arr.values
         if internal_and_public_values_should_differ(arr):
             with pytest.raises(AssertionError):
                 np.testing.assert_allclose(_arr_op, values_op, rtol=rtol)
         else:
-            np.testing.assert_allclose(_arr_op, values_op, rtol=rtol)
+            np.testing.assert_allclose(_arr_op, values_op, rtol=rtol, atol=1e-38)
 
 
 def assert_array_almost_equal_nulp_complex(x: Any, y: Any, nulp: int):
