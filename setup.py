@@ -15,7 +15,7 @@ if version == "":
 
 assert "." in version
 
-_jax_packages = ["jax>=0.4.2", "jaxlib"]
+_jax_packages = ["jax>=0.4.30", "jaxlib"]
 _pyFFTW_packages = ["pyFFTW"]
 _helpers = ["z3-solver", "xarray"]
 _dashboards = ["ipython", "bokeh"]
