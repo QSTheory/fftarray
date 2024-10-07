@@ -34,7 +34,7 @@ setuptools.setup(
     package_data={"fftarray": ["py.typed"]},
     zip_safe=False,
     classifiers=[],
-    python_requires=">=3.9",
+    python_requires=">=3.10",
     install_requires=[
         "numpy>=1.25",
     ],
