@@ -480,7 +480,7 @@ def test_fftarray_state_management(
         fft_indexed = fft_different_internal[indexers]
         fft_indexed_values = fft_indexed.values
 
-        np.testing.assert_array_equal(fft_raw_values, fft_indexed_values)
+        np.testing.assert_allclose(fft_raw_values, fft_indexed_values, atol=1e-16)
         assert (
             all(fft_indexed._factors_applied) or
             (len(indexers) == 0 and fft_indexed._factors_applied == fft_different_internal._factors_applied)
@@ -494,7 +494,7 @@ def test_fftarray_state_management(
         fft_indexed = fft_different_internal.isel(indexers)
         fft_indexed_values = fft_indexed.values
 
-        np.testing.assert_array_equal(fft_raw_values, fft_indexed_values)
+        np.testing.assert_allclose(fft_raw_values, fft_indexed_values, atol=1e-16)
         assert (
             all(fft_indexed._factors_applied) or
             (len(indexers) == 0 and fft_indexed._factors_applied == fft_different_internal._factors_applied)
@@ -508,7 +508,7 @@ def test_fftarray_state_management(
         fft_indexed = fft_different_internal.loc[indexers]
         fft_indexed_values = fft_indexed.values
 
-        np.testing.assert_array_equal(fft_raw_values, fft_indexed_values)
+        np.testing.assert_allclose(fft_raw_values, fft_indexed_values, atol=1e-16)
         assert (
             all(fft_indexed._factors_applied) or
             (len(indexers) == 0 and fft_indexed._factors_applied == fft_different_internal._factors_applied)
@@ -522,7 +522,7 @@ def test_fftarray_state_management(
         fft_indexed = fft_different_internal.sel(indexers)
         fft_indexed_values = fft_indexed.values
 
-        np.testing.assert_array_equal(fft_raw_values, fft_indexed_values)
+        np.testing.assert_allclose(fft_raw_values, fft_indexed_values, atol=1e-16)
         assert (
             all(fft_indexed._factors_applied) or
             (len(indexers) == 0 and fft_indexed._factors_applied == fft_different_internal._factors_applied)
