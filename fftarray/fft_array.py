@@ -741,6 +741,16 @@ class FFTArray(metaclass=ABCMeta):
             self._backend.array([fft_dim.d_pos for fft_dim in self._dims])
         )
 
+    def np_array(self: FFTArray, space: Space):
+        """..
+
+        Returns
+        -------
+        NDArray
+            The values of this FFTArray in the specified space as a bare numpy array.
+        """
+        return np.array(self.into(backend=NumpyBackend(self.backend.precision), space=space))
+
     def _check_consistency(self) -> None:
         """
             Check some invariants of FFTArray.

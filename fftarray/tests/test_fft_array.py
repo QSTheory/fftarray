@@ -586,6 +586,30 @@ def test_fft_ifft_invariance(backend, space: Space):
     rtol = 1e-5 if arr.backend.precision == "fp32" else 1e-6
     np.testing.assert_allclose(arr.values, arr_fft_ifft.values, rtol=rtol, atol=1e-38)
 
+
+@pytest.mark.parametrize("backend", backends)
+@pytest.mark.parametrize("spaces", [("pos", "freq"), ("freq", "pos")])
+@pytest.mark.parametrize("precision", ("fp32", "fp64"))
+def test_np_array(backend, spaces: Tuple[Space, Space], precision: PrecisionSpec):
+    """Tests if `FFTArray.np_array` returns the values as a NumPy array and if it has the correct precision.
+    """
+    xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
+    arr = xdim.fft_array(backend=backend(precision=precision), space=spaces[0])
+
+    np_arr_same = arr.np_array(space=spaces[0])
+    assert isinstance(np_arr_same, np.ndarray)
+    if precision == "fp32":
+        assert np_arr_same.dtype == np.float32
+    elif precision == "fp64":
+        assert np_arr_same.dtype == np.float64
+
+    np_arr_other = arr.np_array(space=spaces[1])
+    assert isinstance(np_arr_other, np.ndarray)
+    if precision == "fp32":
+        assert np_arr_other.dtype == np.complex64
+    elif precision == "fp64":
+        assert np_arr_other.dtype == np.complex128
+
 @pytest.mark.parametrize("space", spaces)
 @pytest.mark.parametrize("dtc", [True, False])
 @pytest.mark.parametrize("sel_method", ["nearest", "pad", "ffill", "backfill", "bfill"])
