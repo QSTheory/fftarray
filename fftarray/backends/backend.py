@@ -1,7 +1,7 @@
 from __future__ import annotations
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
-from typing import Callable, Literal, Iterable, List, Optional, Sequence, Tuple, TYPE_CHECKING
+from typing import Callable, Literal, Iterable, List, Optional, Sequence, Tuple, TYPE_CHECKING, get_args
 from types import ModuleType
 
 import numpy as np
@@ -13,10 +13,17 @@ if TYPE_CHECKING:
 
 PrecisionSpec = Literal["default", "fp32", "fp64"]
 
-@dataclass
+class InvalidPrecisionError(ValueError):
+    pass
+
 class Backend(metaclass=ABCMeta):
 
     precision: PrecisionSpec
+
+    def __init__(self, precision: PrecisionSpec):
+        if not precision in get_args(PrecisionSpec):
+            raise InvalidPrecisionError(f"Passed invalid PrecisionSpec '{precision}'. Supported values are {list(get_args(PrecisionSpec))}")
+        self.precision = precision
 
     @abstractmethod
     def fftn(self, values: ArrayLike, axes: Sequence[int]) -> ArrayLike:
