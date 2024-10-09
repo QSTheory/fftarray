@@ -103,8 +103,10 @@ class FFTArray(metaclass=ABCMeta):
     # Support numpy array protocol.
     # Many libraries use this to coerce special types to plain numpy array e.g.
     # via np.array(fftarray)
-    def __array__(self):
-        return np.array(self.values)
+    def __array__(self, dtype=None, copy=None):
+        if copy is False:
+            raise ValueError("FFTArray is by design immutable and therefore does not allow direct access to the underlying array.")
+        return np.array(self.values, dtype=dtype, copy=copy)
 
     # Implement binary operations between FFTArray and also e.g. 1+wf and wf+1
     # This does intentionally not list all possible operators.
