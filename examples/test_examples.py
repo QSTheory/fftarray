@@ -2,6 +2,7 @@
 # from https://jupyter-notebook.readthedocs.io/en/5.7.6/examples/Notebook/Importing%20Notebooks.html
 
 import io, os, sys, types
+from importlib.machinery import ModuleSpec
 
 from IPython import get_ipython
 from nbformat import read
@@ -77,7 +78,7 @@ class NotebookFinder(object):
     def __init__(self):
         self.loaders = {}
 
-    def find_module(self, fullname, path=None):
+    def find_spec(self, fullname, path, target=None):
         nb_path = find_notebook(fullname, path)
         if not nb_path:
             return
@@ -88,7 +89,10 @@ class NotebookFinder(object):
             key = os.path.sep.join(path)
 
         if key not in self.loaders:
-            self.loaders[key] = NotebookLoader(path)
+            self.loaders[key] = ModuleSpec(
+                name=fullname,
+                loader=NotebookLoader(path),
+            )
         return self.loaders[key]
 
 sys.meta_path.append(NotebookFinder()) # type: ignore
