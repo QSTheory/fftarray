@@ -254,6 +254,11 @@ def check_defaults(dim, backend: Backend, eager: bool) -> None:
     assert arr.eager == (eager,)
     assert arr.backend == backend
 
+def test_bool() -> None:
+    xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
+    arr = xdim.fft_array(backend=NumpyBackend(), space="pos")
+    with pytest.raises(ValueError):
+        bool(arr)
 
 def draw_hypothesis_fft_array_values(draw, st_type, shape):
     """Creates multi-dimensional array with shape `shape` whose values are drawn
