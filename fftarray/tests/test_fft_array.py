@@ -10,7 +10,7 @@ from fftarray.fft_array import FFTArray, FFTDimension, Space
 from fftarray.backends.jax import JaxBackend
 from fftarray.backends.numpy import NumpyBackend
 from fftarray.backends.pyfftw import PyFFTWBackend
-from fftarray.backends.backend import Backend, PrecisionSpec
+from fftarray.backends.backend import Backend, PrecisionSpec, InvalidPrecisionError
 
 jax.config.update("jax_enable_x64", True)
 
@@ -152,6 +152,10 @@ def test_dtype(backend, precision, override, eager: bool) -> None:
     )
     assert bool_arr.values.dtype == bool_arr.into(backend=backend_override).values.dtype
 
+@pytest.mark.parametrize("backend", backends)
+def test_invalid_dtype(backend) -> None:
+    with pytest.raises(InvalidPrecisionError):
+        backend(precision="invalid_precision")
 
 @pytest.mark.parametrize("backend", backends)
 @pytest.mark.parametrize("override", backends)
