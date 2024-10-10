@@ -430,9 +430,9 @@ class FFTArray(metaclass=ABCMeta):
     def into(
             self,
             space: Optional[Union[Space, Iterable[Space]]] = None,
+            backend: Optional[Backend] = None,
             eager: Optional[Union[bool, Iterable[bool]]] = None,
             factors_applied: Optional[Union[bool, Iterable[bool]]] = None,
-            backend: Optional[Backend] = None,
         ) -> FFTArray:
 
         values = self._values
@@ -1452,8 +1452,8 @@ class FFTDimension:
 
     def fft_array(
             self: FFTDimension,
-            backend: Backend,
             space: Space,
+            backend: Backend,
             eager: bool = False,
         ) -> FFTArray:
         """..
