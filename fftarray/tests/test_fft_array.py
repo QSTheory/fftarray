@@ -74,7 +74,7 @@ def test_comparison(backend_class, space) -> None:
         pos_min=0.5,
         freq_min=0.,
     )
-    x = x_dim.fft_array(backend_class(), space=space)
+    x = x_dim.fft_array(backend=backend_class(), space=space)
     x_sq = x**2
 
     # Eplicitly test the operators to check that the forwarding to array_ufunc is correct
@@ -106,27 +106,27 @@ def test_dtype(backend, precision, override, eager: bool) -> None:
     )
 
     if backend_override is None:
-        assert x_dim.fft_array(backend_init, space="pos").values.dtype == backend_init.real_type
+        assert x_dim.fft_array(backend=backend_init, space="pos").values.dtype == backend_init.real_type
     else:
-        assert x_dim.fft_array(backend_override, space="pos", eager=eager).values.dtype == backend_override.real_type
-        assert x_dim.fft_array(backend_init, space="pos", eager=eager).into(backend=backend_override).values.dtype == backend_override.real_type
+        assert x_dim.fft_array(backend=backend_override, space="pos", eager=eager).values.dtype == backend_override.real_type
+        assert x_dim.fft_array(backend=backend_init, space="pos", eager=eager).into(backend=backend_override).values.dtype == backend_override.real_type
 
 
     if backend_override is None:
-        assert x_dim.fft_array(backend_init, space="freq", eager=eager).values.dtype == backend_init.real_type
+        assert x_dim.fft_array(backend=backend_init, space="freq", eager=eager).values.dtype == backend_init.real_type
     else:
-        assert x_dim.fft_array(backend_override, space="freq", eager=eager).values.dtype == backend_override.real_type
-        assert x_dim.fft_array(backend_init, space="freq", eager=eager).into(backend=backend_override).values.dtype == backend_override.real_type
+        assert x_dim.fft_array(backend=backend_override, space="freq", eager=eager).values.dtype == backend_override.real_type
+        assert x_dim.fft_array(backend=backend_init, space="freq", eager=eager).into(backend=backend_override).values.dtype == backend_override.real_type
 
-    assert x_dim.fft_array(backend_init, space="pos", eager=eager).into(space="freq").values.dtype == backend_init.complex_type
-    assert x_dim.fft_array(backend_init, space="freq", eager=eager).into(space="pos").values.dtype == backend_init.complex_type
+    assert x_dim.fft_array(backend=backend_init, space="pos", eager=eager).into(space="freq").values.dtype == backend_init.complex_type
+    assert x_dim.fft_array(backend=backend_init, space="freq", eager=eager).into(space="pos").values.dtype == backend_init.complex_type
 
-    assert np.abs(x_dim.fft_array(backend_init, space="pos", eager=eager).into(space="freq")).values.dtype == backend_init.real_type # type: ignore
-    assert np.abs(x_dim.fft_array(backend_init, space="freq", eager=eager).into(space="pos")).values.dtype == backend_init.real_type # type: ignore
+    assert np.abs(x_dim.fft_array(backend=backend_init, space="pos", eager=eager).into(space="freq")).values.dtype == backend_init.real_type # type: ignore
+    assert np.abs(x_dim.fft_array(backend=backend_init, space="freq", eager=eager).into(space="pos")).values.dtype == backend_init.real_type # type: ignore
 
     if backend_override is not None:
-        assert x_dim.fft_array(backend_init, space="pos", eager=eager).into(space="freq", backend=backend_override).values.dtype == backend_override.complex_type
-        assert x_dim.fft_array(backend_init, space="freq", eager=eager).into(space="pos", backend=backend_override).values.dtype == backend_override.complex_type
+        assert x_dim.fft_array(backend=backend_init, space="pos", eager=eager).into(space="freq", backend=backend_override).values.dtype == backend_override.complex_type
+        assert x_dim.fft_array(backend=backend_init, space="freq", eager=eager).into(space="pos", backend=backend_override).values.dtype == backend_override.complex_type
 
     # For non-float and non-complex dtypes, we do not force the backend precision types
     # onto the values. Therefore, the FFTArray.values dtype should not be affected by the
@@ -167,13 +167,13 @@ def test_backend_override(backend, override) -> None:
         freq_min=0.,
     )
 
-    assert type(x_dim.fft_array(backend(), space="pos").into(backend=override()).values) == type(x_dim.fft_array(override(), space="pos").values)
-    assert type(x_dim.fft_array(backend(), space="freq").into(backend=override()).values) == type(x_dim.fft_array(override(), space="freq").values)
-    assert type(x_dim.fft_array(backend(), space="pos").into(backend=override()).into(space="freq").values) == type(x_dim.fft_array(override(), space="freq").values)
-    assert type(x_dim.fft_array(backend(), space="freq").into(backend=override()).into(space="pos").values) == type(x_dim.fft_array(override(), space="pos").values)
+    assert type(x_dim.fft_array(backend=backend(), space="pos").into(backend=override()).values) == type(x_dim.fft_array(backend=override(), space="pos").values)
+    assert type(x_dim.fft_array(backend=backend(), space="freq").into(backend=override()).values) == type(x_dim.fft_array(backend=override(), space="freq").values)
+    assert type(x_dim.fft_array(backend=backend(), space="pos").into(backend=override()).into(space="freq").values) == type(x_dim.fft_array(backend=override(), space="freq").values)
+    assert type(x_dim.fft_array(backend=backend(), space="freq").into(backend=override()).into(space="pos").values) == type(x_dim.fft_array(backend=override(), space="pos").values)
 
-    assert type(x_dim.fft_array(backend(), space="pos").into(space="freq", backend=override()).values) == type(x_dim.fft_array(override(), space="freq").values)
-    assert type(x_dim.fft_array(backend(), space="freq").into(space="pos", backend=override()).values) == type(x_dim.fft_array(override(), space="freq").values)
+    assert type(x_dim.fft_array(backend=backend(), space="pos").into(space="freq", backend=override()).values) == type(x_dim.fft_array(backend=override(), space="freq").values)
+    assert type(x_dim.fft_array(backend=backend(), space="freq").into(space="pos", backend=override()).values) == type(x_dim.fft_array(backend=override(), space="freq").values)
 
 
 def test_broadcasting(nulp: int = 1) -> None:
@@ -286,7 +286,7 @@ def test_fftarray_lazyness_reduced(backend, precision, space, eager, factors_app
     xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
     ydim = FFTDimension("y", n=8, d_pos=0.03, pos_min=-0.5, freq_min=-4.7)
     backend = backend(precision=precision)
-    fftarr = xdim.fft_array(backend, space, eager) + ydim.fft_array(backend, space, eager)
+    fftarr = xdim.fft_array(backend=backend, space=space, eager=eager) + ydim.fft_array(backend=backend, space=space, eager=eager)
     fftarr._factors_applied = (factors_applied, factors_applied)
     assert_basic_lazy_logic(fftarr, print)
     assert_single_operand_fun_equivalence(fftarr, all(fftarr._factors_applied), print)
