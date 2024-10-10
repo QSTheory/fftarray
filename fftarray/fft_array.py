@@ -73,14 +73,58 @@ class FFTArray(metaclass=ABCMeta):
             values,
             dims: Iterable[FFTDimension],
             space: Union[Space, Iterable[Space]],
-            eager: Union[bool, Iterable[bool]],
-            factors_applied: Union[bool, Iterable[bool]],
-            backend: Backend,
+            backend: Optional[Backend] = None,
+            eager: Optional[Union[bool, Iterable[bool]]] = None,
+            factors_applied: Union[bool, Iterable[bool]] = True,
         ):
         """
-            This constructor is not meant for normal usage.
-            Construct new values via the `fft_array()` function of FFTDimension.
+            Construct a new instance of FFTArray from raw values.
+            For normal usage it is recommended to construct
+            new instances via the `fft_array()` function of FFTDimension
+            since this ensures that the dimension parameters and the
+            values match.
+
+            TODO: Check that this does not copy?
+
+            Parameters
+            ----------
+            values :
+                The values to initialize the `FFTArray` with.
+                For performance reasons they are assumed to not be aliased (or immutable)
+                and therefore do not get copied under any circumstances.
+                The type must fit with the specified backend.
+            dims : Iterable[FFTDimension]
+                The FFTDimensions for each dimension of the passed in values.
+            space: Union[Space, Iterable[Space]]
+                Specify the space of the coordinates and in which space the returned FFTArray is intialized.
+            backend: Optional[Backend]
+                The backend to use for the returned FFTArray.  `None` uses default `NumpyBackend("default")` which can be globally changed.
+                The values are transformed into the appropiate type defined by the backend.
+            eager: Union[bool, Iterable[bool]]
+                The eager-mode to use for the returned FFTArray.  `None` uses default `False` which can be globally changed.
+            factors_applied: Union[bool, Iterable[bool]]
+                Whether the fft-factors are applied are already applied for the various dimensions.
+                For external values this is usually `True` since `False` assumes the internal (and unstable)
+                factors-format.
+
+            Returns
+            -------
+            FFTArray
+                The grid coordinates of the chosen space packed into an FFTArray with self as only dimension.
+
+            See Also
+            --------
+            set_default_backend, get_default_backend
+            set_default_eager, get_default_eager
+            fft_array
         """
+
+        if backend is None:
+            backend = _DEFAULT_BACKEND
+
+        if eager is None:
+            eager = _DEFAULT_EAGER
+
         self._dims = tuple(dims)
         n_dims = len(self._dims)
         self._values = values

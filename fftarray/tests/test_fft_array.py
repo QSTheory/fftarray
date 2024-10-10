@@ -215,19 +215,37 @@ def test_defaults() -> None:
     assert fftarray.get_default_eager() is False
     assert fftarray.get_default_backend() == NumpyBackend("default")
 
-    xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
+    xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=0., freq_min=0.)
     arr = xdim.fft_array(space="pos")
+    manual_arr = FFTArray(
+        values=0.1*np.arange(4),
+        dims=[xdim],
+        space="pos",
+    )
+    assert (manual_arr==arr).values.all()
     assert arr.eager == (False,)
     assert arr.backend == NumpyBackend(precision="default")
 
     fftarray.set_default_backend(JaxBackend(precision="fp32"))
     arr = xdim.fft_array(space="pos")
+    manual_arr = FFTArray(
+        values=0.1*jnp.arange(4, dtype=jnp.float32),
+        dims=[xdim],
+        space="pos",
+    )
+    assert (manual_arr==arr).values.all()
     assert fftarray.get_default_backend() == JaxBackend(precision="fp32")
     assert arr.eager == (False,)
     assert arr.backend == JaxBackend(precision="fp32")
 
     fftarray.set_default_eager(True)
     arr = xdim.fft_array(space="pos")
+    manual_arr = FFTArray(
+        values=0.1*jnp.arange(4, dtype=jnp.float32),
+        dims=[xdim],
+        space="pos",
+    )
+    assert (manual_arr==arr).values.all()
     assert fftarray.get_default_backend() == JaxBackend(precision="fp32")
     assert arr.eager == (True,)
     assert arr.backend == JaxBackend(precision="fp32")
