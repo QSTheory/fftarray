@@ -181,6 +181,9 @@ class FFTArray(metaclass=ABCMeta):
         str_out += f"\nvalues:\n{self.values}"
         return str_out
 
+    def __bool__(self: FFTArray):
+        raise ValueError("The truth value of an array is ambiguous.")
+
     #--------------------
     # Numpy Interfaces
     #--------------------
