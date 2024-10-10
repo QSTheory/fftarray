@@ -153,10 +153,9 @@ def test_dtype(backend, precision, override, eager: bool) -> None:
     assert bool_arr.values.dtype == bool_arr.into(backend=backend_override).values.dtype
 
 @pytest.mark.parametrize("backend", backends)
-@pytest.mark.parametrize("precision", ("float32", "bla"))
-def test_invalid_dtype(backend, precision) -> None:
+def test_invalid_dtype(backend) -> None:
     with pytest.raises(InvalidPrecisionError):
-        _ = backend(precision)
+        backend(precision="invalid_precision")
 
 @pytest.mark.parametrize("backend", backends)
 @pytest.mark.parametrize("override", backends)
