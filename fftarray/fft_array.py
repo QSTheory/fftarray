@@ -11,6 +11,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
+
 from .named_array import align_named_arrays, get_axes_transpose
 from .backends.backend import Backend
 from .backends.numpy import NumpyBackend
