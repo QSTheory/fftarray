@@ -66,6 +66,6 @@ def shift_position(wf: FFTArray, offsets: Dict[Hashable, float]) -> FFTArray:
     dim_names = [dim.name for dim in wf.dims]
     for dim_name, offset in offsets.items():
         dim_idx = dim_names.index(dim_name)
-        phase_shift *= np.exp(-1.j * offset * 2*np.pi * wf.dims_dict[dim_name].fft_array(wf.backend, space="freq", eager=wf.eager[dim_idx]))
+        phase_shift *= np.exp(-1.j * offset * 2*np.pi * wf.dims_dict[dim_name].fft_array(backend=wf.backend, space="freq", eager=wf.eager[dim_idx]))
     return wf.into(space="freq") * phase_shift
 
