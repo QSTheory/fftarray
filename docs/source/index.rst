@@ -16,7 +16,7 @@ GPU-accelerated fast fourier transform using named arrays and easy syntax.
    :maxdepth: 2
 
    examples/index
-
+   Indexing <indexing>
 
 .. toctree::
    :maxdepth: 3
