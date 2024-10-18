@@ -4,15 +4,15 @@ from types import ModuleType
 from numpy.typing import NDArray, ArrayLike
 import pyfftw
 
-from .tensor_lib import TensorLib, PrecisionSpec
+from .backend import Backend, PrecisionSpec
 
 pyfftw.interfaces.cache.enable()
 
 
-class PyFFTWTensorLib(TensorLib):
+class PyFFTWBackend(Backend):
 
     def __init__(self, precision: PrecisionSpec = "default"):
-        TensorLib.__init__(self, precision=precision)
+        Backend.__init__(self, precision=precision)
         # TODO Use the direct pyfftw interface?
         # Might need info about shape which would introduce a further internal API
 

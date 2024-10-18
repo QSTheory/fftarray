@@ -1,7 +1,8 @@
 from __future__ import annotations
+from collections import abc
 from typing import (
-    Optional, Union, List, Any, Tuple, Dict, Hashable,
-    Literal, TypeVar, Iterable, Set, Generic, get_args
+    Mapping, Optional, Union, List, Any, Tuple, Dict, Hashable,
+    Literal, TypeVar, Iterable, Set, get_args
 )
 from abc import ABCMeta
 from copy import copy
@@ -9,64 +10,24 @@ from numbers import Number
 from dataclasses import dataclass
 
 import numpy as np
-import numpy.lib.mixins
 
 from .named_array import align_named_arrays, get_axes_transpose
-from .backends.tensor_lib import TensorLib
-from .backends.np_backend import NumpyTensorLib
-from .helpers import reduce_equal, UniformValue
+from .backends.backend import Backend
+from .backends.numpy import NumpyBackend
 
-T = TypeVar("T")
+from ._utils._ufuncs import binary_ufuncs, unary_ufunc
+from ._utils._formatting import (
+    fft_dim_table, fft_array_props_table, format_bytes, format_n
+)
+from ._utils._unpacking import UniformValue, norm_param
+from ._utils._indexing import (
+    LocFFTArrayIndexer, check_substepping, check_missing_dim_names,
+    tuple_indexers_from_dict_or_tuple, tuple_indexers_from_mapping,
+    remap_index_check_int
+)
 
+EllipsisType = TypeVar('EllipsisType')
 Space = Literal["pos", "freq"]
-
-#-------------
-# Helper functions to support type inference on binary and unary functions in FFTArray
-#-------------
-def _binary_ufuncs(op):
-    def fun(self: FFTArray, other) -> FFTArray:
-        return op(self, other)
-    def fun_ref(self: FFTArray, other) -> FFTArray:
-        return op(other, self)
-    return fun, fun_ref
-
-def _unary_ufunc(op):
-    def fun(self: FFTArray) -> FFTArray:
-        return op(self)
-    return fun
-
-class LocFFTArrayIndexer(Generic[T]):
-    """
-        `wf.loc` allows indexing by dim index but by coordinate position.
-        In order to support the indexing operator on a property
-        we need this indexable helper class to be returned by the property `loc`.
-    """
-    _arr: FFTArray
-
-    def __init__(self, arr: FFTArray) -> None:
-        self._arr = arr
-
-    def __getitem__(self, item) -> FFTArray:
-        if isinstance(item, slice):
-            assert item == slice(None, None, None)
-            return self._arr.values
-        slices = []
-        for dim, dim_item, space in zip(self._arr.dims, item, self._arr._spaces):
-            if isinstance(dim_item, slice):
-                slices.append(dim_item)
-            else:
-                slices.append(dim._index_from_coord(dim_item, method=None, space=space, tlib=self._arr.tlib))
-        return self._arr.__getitem__(tuple(slices))
-
-def _norm_param(val: Union[T, Iterable[T]], n: int, types) -> Tuple[T, ...]:
-    """
-       `val` has to be immutable.
-    """
-    if isinstance(val, types):
-        return (val,)*n
-
-    # TODO: Can we make this type check work?
-    return tuple(val) # type: ignore
 
 
 class FFTArray(metaclass=ABCMeta):
@@ -77,7 +38,7 @@ class FFTArray(metaclass=ABCMeta):
     # _dims are stored as a sequence and not by name because their oder needs
     # to match the order of dimensions in _values.
     _dims: Tuple[FFTDimension, ...]
-    # Contains an array instance of _tlib with _lazy_state not yet applied.
+    # Contains an array instance of _backend with _lazy_state not yet applied.
     _values: Any
     # Marks each dimension whether it is in position or frequency space
     _spaces: Tuple[Space, ...]
@@ -87,7 +48,7 @@ class FFTArray(metaclass=ABCMeta):
     _factors_applied: Tuple[bool, ...]
     # TODO: implement device [#18](https://github.com/QSTheory/fftarray/issues/18)
     # Contains the array backend, precision and device to be used for operations.
-    _tlib: TensorLib
+    _backend: Backend
 
     def __init__(
             self,
@@ -96,7 +57,7 @@ class FFTArray(metaclass=ABCMeta):
             space: Union[Space, Iterable[Space]],
             eager: Union[bool, Iterable[bool]],
             factors_applied: Union[bool, Iterable[bool]],
-            tlib: TensorLib,
+            backend: Backend,
         ):
         """
             This constructor is not meant for normal usage.
@@ -105,11 +66,31 @@ class FFTArray(metaclass=ABCMeta):
         self._dims = tuple(dims)
         n_dims = len(self._dims)
         self._values = values
-        self._spaces = _norm_param(space, n_dims, str)
-        self._eager = _norm_param(eager, n_dims, bool)
-        self._factors_applied = _norm_param(factors_applied, n_dims, bool)
-        self._tlib = tlib
+        self._spaces = norm_param(space, n_dims, str)
+        self._eager = norm_param(eager, n_dims, bool)
+        self._factors_applied = norm_param(factors_applied, n_dims, bool)
+        self._backend = backend
         self._check_consistency()
+
+    def __repr__(self: FFTArray) -> str:
+        arg_str = ", ".join(
+            [f"{name[1:] if name != '_spaces' else 'space'}={repr(value)}"
+                for name, value in self.__dict__.items()]
+        )
+        return f"FFTArray({arg_str})"
+
+    def __str__(self: FFTArray) -> str:
+        bytes_str = format_bytes(self._values.nbytes)
+        str_out = f"<fftarray.FFTArray ({bytes_str})>\n"
+        str_out += f"Backend: {self.backend}\n"
+        str_out += "Dimensions:\n"
+        for i, dim in enumerate(self.dims):
+            str_out += f" # {i}: {repr(dim.name)}\n"
+        str_out += "\n" + fft_array_props_table(self) + "\n\n"
+        for i, dim in enumerate(self.dims):
+            str_out += fft_dim_table(dim, i==0, True, i) + "\n"
+        str_out += f"\nvalues:\n{self.values}"
+        return str_out
 
     #--------------------
     # Numpy Interfaces
@@ -126,46 +107,125 @@ class FFTArray(metaclass=ABCMeta):
         return np.array(self.values)
 
     # Implement binary operations between FFTArray and also e.g. 1+wf and wf+1
-    # This does intentionally not list all posiible operators.
-    __add__, __radd__ = _binary_ufuncs(np.add)
-    __sub__, __rsub__ = _binary_ufuncs(np.subtract)
-    __mul__, __rmul__ = _binary_ufuncs(np.multiply)
-    __truediv__, __rtruediv__ = _binary_ufuncs(np.true_divide)
-    __floordiv__, __rfloordiv__ = _binary_ufuncs(np.floor_divide)
-    __pow__, __rpow__ = _binary_ufuncs(np.power)
+    # This does intentionally not list all possible operators.
+    __add__, __radd__ = binary_ufuncs(np.add)
+    __sub__, __rsub__ = binary_ufuncs(np.subtract)
+    __mul__, __rmul__ = binary_ufuncs(np.multiply)
+    __truediv__, __rtruediv__ = binary_ufuncs(np.true_divide)
+    __floordiv__, __rfloordiv__ = binary_ufuncs(np.floor_divide)
+    __pow__, __rpow__ = binary_ufuncs(np.power)
+
+    # Implement comparison operators
+    __gt__, _ = binary_ufuncs(np.greater)
+    __ge__, _ = binary_ufuncs(np.greater_equal)
+    __lt__, _ = binary_ufuncs(np.less)
+    __le__, _ = binary_ufuncs(np.less_equal)
+    __ne__, _ = binary_ufuncs(np.not_equal)
+    __eq__, _ = binary_ufuncs(np.equal)
+
 
     # Implement unary operations
-    __neg__ = _unary_ufunc(np.negative)
-    __pos__ = _unary_ufunc(np.positive)
-    __abs__ = _unary_ufunc(np.absolute)
-    __invert__ = _unary_ufunc(np.invert)
+    __neg__ = unary_ufunc(np.negative)
+    __pos__ = unary_ufunc(np.positive)
+    __abs__ = unary_ufunc(np.absolute)
+    __invert__ = unary_ufunc(np.invert)
 
     #--------------------
     # Selection
     #--------------------
 
-    def __getitem__(self, item) -> FFTArray:
+    def __getitem__(
+            self,
+            item: Union[
+                int, slice, EllipsisType,
+                Tuple[Union[int, slice, EllipsisType],...],
+                Mapping[Hashable, Union[int, slice]],
+            ]
+        ) -> FFTArray:
+        """This method is called when indexing an FFTArray instance by integer index,
+            i.e., by using the index value via FFTArray[].
+            It supports dimensional lookup via position and name.
+            The indexing behaviour is mainly defined to match the one of
+            xarray.DataArray with the major difference that we always keep
+            all dimensions.
+            The indexing is performed in the current state of the FFTArray,
+            i.e., each dimension is indexed in its respective state (pos or freq).
+            When the returned FFTArray object is effectively indexed,
+            its internal state will always have all fft factors applied.
+
+            Example usage:
+            arr_2d = (
+                x_dim.fft_array(space="pos", backend=some_backend)
+                + y_dim.fft_array(space="pos", backend=some_backend)
+            )
+            Four ways of retrieving an FFTArray object
+            with index 3 along x and first 5 values along y:
+
+            arr_2d[{"x": 3, "y": slice(0, 5)}]
+            arr_2d[3,:5]
+            arr_2d[3][:,:5] # do not use, just for explaining functionality
+            arr_2d[:,:5][3] # do not use, just for explaining functionality
+
+        Parameters
+        ----------
+        item : Union[ int, slice, EllipsisType, Tuple[Union[int, slice, EllipsisType],...], Mapping[Hashable, Union[int, slice]], ]
+            An indexer object with either dimension lookup method either
+            via position or name. When using positional lookup, the order
+            of the dimensions in the FFTArray object is applied (FFTArray.dims).
+            Per dimension, each indexer can be supplied as an integer or a slice.
+            Array-like indexers are not supported as in the general case,
+            the resulting coordinates can not be supported with a valid FFTDimension.
+        FFTArray
+            A new FFTArray with the same dimensionality as this FFTArray,
+            except each dimension and the FFTArray values are indexed.
+            The resulting FFTArray still fully supports FFTs.
+        """
+
+        # Catch special case where effectively no indexing happens,
+        # i.e., just return FFTArray object as is (without changing internal state)
+        if item is Ellipsis:
+            return self
+        if isinstance(item, abc.Mapping) and len(item) == 0:
+            return self
+
+        # Handle two cases of supplying indexing information, either
+        # via keyword args (Mapping) or via tuple using order of dims
+        # Return full tuple of indexers as slice or int object
+        tuple_indexers: Tuple[Union[int, slice], ...] = tuple_indexers_from_dict_or_tuple(
+            indexers=item, # type: ignore
+            dim_names=tuple(dim.name for dim in self.dims) # type: ignore
+        )
+
         new_dims = []
-
-        if isinstance(item, slice):
-            item = [item]
-        for index, dimension, space in zip(item, self._dims, self._spaces):
-            if not isinstance(index, slice):
-                new_dim = dimension._dim_from_start_and_n(
-                    start=index,
-                    n=1,
-                    space=space,
-                )
-                index = slice(index, index+1, None)
-            elif index == slice(None, None, None):
+        for index, orig_dim, space in zip(tuple_indexers, self._dims, self.space):
+            if index == slice(None, None, None):
                 # No selection, just keep the old dim.
-                new_dim = dimension
-            else:
-                new_dim = dimension._dim_from_slice(index, space)
+                new_dims.append(orig_dim)
+                continue
+            if not isinstance(index, slice):
+                index = slice(index, index+1, None)
+            try:
+                # We perform all index sanity checks in _dim_from_slice
+                new_dims.append(orig_dim._dim_from_slice(index, space))
+            # Do not specifically catch jax.errors.ConcretizationTypeError in order to not have to import jax here.
+            except Exception as e:
+                # This condition is fullfilled when the index is a traced object
+                if "Trace" in str(index):
+                    raise NotImplementedError(
+                        f"FFTArray indexing does not support "
+                        + "jitted indexers. Here, your index for "
+                        + f"dimension {orig_dim.name} is a traced object"
+                    ) from e
+                else:
+                    additional_msg = (
+                        "An error occurred when evaluating the index "
+                        + f"dimension {orig_dim.name}: "
+                    )
+                    orig_msg = str(e)
+                    raise type(e)(additional_msg + orig_msg)
 
-            new_dims.append(new_dim)
 
-        selected_values = self.values.__getitem__(item)
+        selected_values = self.values.__getitem__(tuple_indexers)
         # Dimensions with the length 1 are dropped in numpy indexing.
         # We decided against this and keeping even dimensions of length 1.
         # So we have to reintroduce those dropped dimensions via reshape.
@@ -176,45 +236,152 @@ class FFTArray(metaclass=ABCMeta):
             dims=new_dims,
             space=self._spaces,
             eager=self._eager,
-            factors_applied=self._factors_applied,
-            tlib=self.tlib,
+            factors_applied=[True]*len(new_dims),
+            backend=self.backend,
         )
 
     @property
     def loc(self):
         return LocFFTArrayIndexer(self)
 
-    def isel(self, **kwargs):
-        slices = []
-        for dim in self.dims:
-            if dim.name in kwargs:
-                slices.append(kwargs[dim.name])
-            else:
-                slices.append(slice(None, None, None))
-        return self.__getitem__(tuple(slices))
+    def isel(
+            self,
+            indexers: Optional[Dict[str, Union[int, slice]]] = None,
+            missing_dims: Literal["raise", "warn", "ignore"] = 'raise',
+            **indexers_kwargs: Union[int, slice],
+        ) -> FFTArray:
+        """
+        Inspired by xarray.DataArray.isel
+        """
 
-    def sel(self, method: Optional[Literal["nearest"]] = None, **kwargs):
+        # Check for correct use of indexers (either via positional
+        # indexers arg or via indexers_kwargs)
+        if indexers is not None and indexers_kwargs:
+            raise ValueError(
+                "cannot specify both keyword arguments and "
+                + "positional arguments to FFTArray.isel"
+            )
+
+        # Handle two ways of supplying indexers, either via positional
+        # argument "indexers" or via keyword arguments for each dimension
+        final_indexers: Dict[str, Union[int, slice]]
+        if indexers is None:
+            final_indexers = indexers_kwargs
+        else:
+            final_indexers = indexers
+
+        if not isinstance(final_indexers, dict):
+            raise ValueError(
+                "indexers must be a dictionary or keyword arguments"
+            )
+
+        # handle case of empty indexers via supplying indexers={} or nothing at all
+        if len(final_indexers) == 0:
+            return self
+
+        # Check for indexer names that are not present in FFTArray and
+        # according to user choice, raise Error, throw warning or ignore
+        check_missing_dim_names(
+            indexer_names=final_indexers.keys(),
+            dim_names=tuple(self.dims_dict.keys()),
+            missing_dims=missing_dims
+        )
+
+        # Map indexers into full tuple of valid indexers, one entry per dimension
+        tuple_indexers: Tuple[Union[int, slice], ...] = tuple_indexers_from_mapping(
+            final_indexers, # type: ignore
+            dim_names=[dim.name for dim in self.dims], # type: ignore
+        )
+
+        return self.__getitem__(tuple_indexers)
+
+    def sel(
+            self,
+            indexers: Optional[Dict[str, Union[float, slice]]] = None,
+            missing_dims: Literal["raise", "warn", "ignore"] = 'raise',
+            method: Optional[Literal["nearest", "pad", "ffill", "backfill", "bfill"]] = None,
+            **indexers_kwargs: Union[float, slice],
+        ) -> FFTArray:
         """
-            Supports in addition to its xarray-counterpart tuples for ranges.
+            Inspired by xarray.DataArray.sel
+            In comparison to itx xarray implementation, there is an add-on:
+                - Implements missing_dims arg and accordingly raises errors
         """
-        slices = []
-        for dim, space in zip(self.dims, self._spaces):
-            if dim.name in kwargs:
-                slices.append(
-                    # mypy error: kwargs is of type "Dict[str, Any]" but
-                    # dim.name is of type "Hashable". However, the if condition
-                    # already makes sure that dim.name is a key of kwargs (so
-                    # also of type "str")
-                    dim._index_from_coord(
-                        kwargs[dim.name], # type: ignore
-                        method=method,
-                        space=space,
-                        tlib=self.tlib,
+
+        # Check for correct use of indexers (either via positional
+        # indexers arg or via indexers_kwargs)
+        if indexers is not None and indexers_kwargs:
+            raise ValueError(
+                "cannot specify both keyword arguments and "
+                + "positional arguments to FFTArray.sel"
+            )
+
+        # Handle two ways of supplying indexers, either via positional
+        # argument "indexers" or via keyword arguments for each dimension
+        final_indexers: Dict[str, Union[float, slice]]
+        if indexers is None:
+            final_indexers = indexers_kwargs
+        else:
+            final_indexers = indexers
+
+        if not isinstance(final_indexers, dict):
+            raise ValueError(
+                "indexers must be a dictionary or keyword arguments"
+            )
+
+        # handle case of empty indexers via supplying indexers={} or nothing at all
+        if len(final_indexers) == 0:
+            return self
+
+        # Check for indexer names that are not present in FFTArray and
+        # according to user choice, raise Error, throw warning or ignore
+        check_missing_dim_names(
+            indexer_names=final_indexers.keys(),
+            dim_names=tuple(self.dims_dict.keys()),
+            missing_dims=missing_dims
+        )
+
+        # As opposed to FFTArray.isel, here we have to find the appropriate
+        # indices for the coordinate indexers by checking the respective
+        # FFTDimension
+        tuple_indexers_as_integer = []
+        for dim, space in zip(self.dims, self.space):
+            if dim.name in final_indexers:
+                index = final_indexers[dim.name] # type: ignore
+                try:
+                    tuple_indexers_as_integer.append(
+                        dim._index_from_coord(
+                            coord=index,
+                            space=space,
+                            backend=self.backend,
+                            method=method,
+                        )
                     )
-                )
+                except Exception as e:
+                    # Here, we check for traced indexer values or
+                    # traced FFTDimension and throw a helpful error message
+                    # in addition to the original error raised when trying
+                    # to map the coord to an index
+                    if "Trace" in str(index):
+                        raise NotImplementedError(
+                            f"FFTArray indexing does not support "
+                            + "jitted indexers. Here, your index for "
+                            + f"dimension {dim.name} is a traced object"
+                        ) from e
+                    elif dim._dynamically_traced_coords and "Trace" in str(e):
+                        raise NotImplementedError(
+                            "dynamically_traced_coords of dimension "
+                            + f"{dim.name} must be False to index "
+                            + "by label/coordinate."
+                        ) from e
+                    else:
+                        raise e
             else:
-                slices.append(slice(None, None, None))
-        return self.__getitem__(tuple(slices))
+                tuple_indexers_as_integer.append(slice(None, None))
+
+        # The rest can be handled by the integer indexing method as we
+        # mapped the coordinates to the index representation above
+        return self.__getitem__(tuple(tuple_indexers_as_integer))
 
     @property
     def dims_dict(self) -> Dict[Hashable, FFTDimension]:
@@ -250,7 +417,7 @@ class FFTArray(metaclass=ABCMeta):
             Use `evaluate_lazy_state` if you want to evaluate it once and reuse it multiple times.
         """
         # TODO Ensure defensive copy here for the Numpy Backend?
-        return self._tlib.get_values_with_lazy_factors(
+        return self._backend.get_values_with_lazy_factors(
             values=self._values,
             dims=self._dims,
             input_factors_applied=self._factors_applied,
@@ -263,7 +430,7 @@ class FFTArray(metaclass=ABCMeta):
             space: Optional[Union[Space, Iterable[Space]]] = None,
             eager: Optional[Union[bool, Iterable[bool]]] = None,
             factors_applied: Optional[Union[bool, Iterable[bool]]] = None,
-            tlib: Optional[TensorLib] = None,
+            backend: Optional[Backend] = None,
         ) -> FFTArray:
 
         values = self._values
@@ -273,25 +440,25 @@ class FFTArray(metaclass=ABCMeta):
         if space is None:
             space_norm = self._spaces
         else:
-            space_norm = _norm_param(space, n_dims, str)
+            space_norm = norm_param(space, n_dims, str)
 
         if eager is None:
             eager_norm = self._eager
         else:
-            eager_norm = _norm_param(eager, n_dims, bool)
+            eager_norm = norm_param(eager, n_dims, bool)
 
 
 
-        if tlib is None:
-            tlib_norm = self._tlib
+        if backend is None:
+            backend_norm = self._backend
         else:
-            tlib_norm = tlib
-            if tlib_norm.numpy_ufuncs.iscomplexobj(values):
-                values = tlib_norm.array(values, dtype=tlib_norm.complex_type)
-            elif tlib_norm.numpy_ufuncs.issubdtype(values.dtype, tlib_norm.numpy_ufuncs.floating):
-                values = tlib_norm.array(values, dtype=tlib_norm.real_type)
+            backend_norm = backend
+            if backend_norm.numpy_ufuncs.iscomplexobj(values):
+                values = backend_norm.array(values, dtype=backend_norm.complex_type)
+            elif backend_norm.numpy_ufuncs.issubdtype(values.dtype, backend_norm.numpy_ufuncs.floating):
+                values = backend_norm.array(values, dtype=backend_norm.real_type)
             else:
-                values = tlib_norm.array(values)
+                values = backend_norm.array(values)
 
 
         needs_fft = [old != new for old, new in zip(self._spaces, space_norm)]
@@ -301,7 +468,7 @@ class FFTArray(metaclass=ABCMeta):
                 False if fft_needed else old_lazy
                 for fft_needed, old_lazy in zip(needs_fft, self._factors_applied)
             ]
-            values = tlib_norm.get_values_with_lazy_factors(
+            values = backend_norm.get_values_with_lazy_factors(
                 values=values,
                 dims=dims,
                 input_factors_applied=self._factors_applied,
@@ -319,10 +486,10 @@ class FFTArray(metaclass=ABCMeta):
                     current_factors_applied[dim_idx] = False
 
             if len(fft_axes) > 0:
-                values = tlib_norm.fftn(values, axes=fft_axes)
+                values = backend_norm.fftn(values, axes=fft_axes)
 
             if len(ifft_axes) > 0:
-                values = tlib_norm.ifftn(values, axes=ifft_axes)
+                values = backend_norm.ifftn(values, axes=ifft_axes)
 
 
         if factors_applied is None:
@@ -335,10 +502,10 @@ class FFTArray(metaclass=ABCMeta):
                     factors_norm_list.append(is_applied)
             factors_norm = tuple(factors_norm_list)
         else:
-            factors_norm = _norm_param(factors_applied, n_dims, bool)
+            factors_norm = norm_param(factors_applied, n_dims, bool)
 
         # Bring values into the target form respective lazy state
-        values = tlib_norm.get_values_with_lazy_factors(
+        values = backend_norm.get_values_with_lazy_factors(
             values=values,
             dims=dims,
             input_factors_applied=current_factors_applied,
@@ -352,12 +519,12 @@ class FFTArray(metaclass=ABCMeta):
             space=space_norm,
             eager=eager_norm,
             factors_applied=factors_norm,
-            tlib=tlib_norm,
+            backend=backend_norm,
         )
 
     @property
-    def tlib(self) -> TensorLib:
-        return self._tlib
+    def backend(self) -> Backend:
+        return self._backend
 
     # @property
     # def is_eager(self) -> bool:
@@ -385,7 +552,7 @@ class FFTArray(metaclass=ABCMeta):
             assert len(new_dim_names) == len(self._dims)
 
         axes_transpose = get_axes_transpose(old_dim_names, new_dim_names)
-        transposed_values = self._tlib.numpy_ufuncs.transpose(self._values, tuple(axes_transpose))
+        transposed_values = self._backend.numpy_ufuncs.transpose(self._values, tuple(axes_transpose))
 
         transposed_arr = FFTArray(
             values=transposed_values,
@@ -393,29 +560,29 @@ class FFTArray(metaclass=ABCMeta):
             space=[self._spaces[idx] for idx in axes_transpose],
             eager=[self._eager[idx] for idx in axes_transpose],
             factors_applied=[self._factors_applied[idx] for idx in axes_transpose],
-            tlib=self.tlib,
+            backend=self.backend,
         )
         return transposed_arr
 
-    # def _set_tlib(self: TFFTArray, tlib: Optional[TensorLib] = None) -> TFFTArray:
+    # def _set_backend(self: TFFTArray, backend: Optional[Backend] = None) -> TFFTArray:
     #     """
-    #         Set tlib if it is not None.
+    #         Set backend if it is not None.
     #         Collects just a bit of code from all `pos_array` and `freq_array` implementations.
     #     """
     #     res = self
-    #     if tlib:
-    #         res = res.with_tlib(tlib)
+    #     if backend:
+    #         res = res.with_backend(backend)
     #     return res
 
     #--------------------
     # Interface to implement
     #--------------------
     # @abstractmethod
-    # def pos_array(self, tlib: Optional[TensorLib] = None) -> PosArray:
+    # def pos_array(self, backend: Optional[Backend] = None) -> PosArray:
     #     ...
 
     # @abstractmethod
-    # def freq_array(self, tlib: Optional[TensorLib] = None) -> FreqArray:
+    # def freq_array(self, backend: Optional[Backend] = None) -> FreqArray:
     #     ...
 
     @property
@@ -465,8 +632,8 @@ class FFTArray(metaclass=ABCMeta):
         float
             The product of the `d_freq` of all active dimensions.
         """
-        return self._tlib.reduce_multiply(
-            self._tlib.array([fft_dim.d_freq for fft_dim in self._dims])
+        return self._backend.reduce_multiply(
+            self._backend.array([fft_dim.d_freq for fft_dim in self._dims])
         )
 
     @property
@@ -478,19 +645,19 @@ class FFTArray(metaclass=ABCMeta):
         float
             The product of the `d_pos` of all active dimensions.
         """
-        return self._tlib.reduce_multiply(
-            self._tlib.array([fft_dim.d_pos for fft_dim in self._dims])
+        return self._backend.reduce_multiply(
+            self._backend.array([fft_dim.d_pos for fft_dim in self._dims])
         )
 
     def _check_consistency(self) -> None:
         """
             Check some invariants of FFTArray.
         """
-        if not isinstance(self._values, self._tlib.array_type):
+        if not isinstance(self._values, self._backend.array_type):
             raise ValueError(
                 f"Passed in values of type '{type(self._values)}' "
-                + f"which is not the array type '{self._tlib.array_type}'"
-                + f" of the tensor-lib '{self._tlib}'."
+                + f"which is not the array type '{self._backend.array_type}'"
+                + f" of the backend '{self._backend}'."
             )
         assert len(self._dims) == len(self._values.shape)
         assert len(self._spaces) == len(self._values.shape)
@@ -540,7 +707,7 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
 
     # Look up the actual ufunc
     try:
-        tensor_lib_ufunc = getattr(unp_inp.tlib.numpy_ufuncs, ufunc.__name__)
+        backend_ufunc = getattr(unp_inp.backend.numpy_ufuncs, ufunc.__name__)
     except:
         return NotImplemented
 
@@ -591,7 +758,7 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
         # both operators because there is no special case applicable
         for op_idx in [0,1]:
             if isinstance(inputs[op_idx], FFTArray):
-                res = unp_inp.tlib.get_transform_signs(
+                res = unp_inp.backend.get_transform_signs(
                     input_factors_applied=[unp_inp.factors_applied[dim_idx][op_idx] for dim_idx in range(len(unp_inp.dims))],
                     target_factors_applied=[True]*len(unp_inp.dims),
                 )
@@ -603,41 +770,41 @@ def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
     # Apply above defined scale and phase factors depending on the specific case
     for op_idx, signs_op in zip([0,1], factor_transforms):
         if isinstance(inputs[op_idx], FFTArray):
-            unp_inp.values[op_idx] = unp_inp.tlib.apply_scale_phases(
+            unp_inp.values[op_idx] = unp_inp.backend.apply_scale_phases(
                 values=unp_inp.values[op_idx],
                 dims=unp_inp.dims,
                 signs=signs_op,
                 spaces=unp_inp.space,
             )
 
-    values = tensor_lib_ufunc(*unp_inp.values, **kwargs)
+    values = backend_ufunc(*unp_inp.values, **kwargs)
     return FFTArray(
         values=values,
         space=unp_inp.space,
         dims=unp_inp.dims,
         eager=unp_inp.eager,
         factors_applied=final_factors_applied,
-        tlib=unp_inp.tlib,
+        backend=unp_inp.backend,
     )
 
 def _single_element_ufunc(ufunc, inp: FFTArray, kwargs):
     try:
-        tensor_lib_ufunc = getattr(inp.tlib.numpy_ufuncs, ufunc.__name__)
+        backend_ufunc = getattr(inp.backend.numpy_ufuncs, ufunc.__name__)
     except:
         return NotImplemented
 
     if ufunc == np.abs:
         # For abs the final result does not change if we apply the phases
         # to the values so we can simply ignore the phases.
-        values = tensor_lib_ufunc(inp._values, **kwargs)
+        values = backend_ufunc(inp._values, **kwargs)
         # The scale can be applied after abs which is more efficient in the case of a complex input
-        signs: List[Literal[-1, 1, None]] | None = inp.tlib.get_transform_signs(
+        signs: List[Literal[-1, 1, None]] | None = inp.backend.get_transform_signs(
             # Can use input because with a single value no broadcasting happened.
             input_factors_applied=inp._factors_applied,
             target_factors_applied=[True]*len(inp._factors_applied),
         )
         if signs is not None:
-            values = inp.tlib.apply_scale(
+            values = inp.backend.apply_scale(
                 values=values,
                 dims=inp.dims,
                 signs=signs,
@@ -650,18 +817,18 @@ def _single_element_ufunc(ufunc, inp: FFTArray, kwargs):
             dims=inp.dims,
             eager=inp.eager,
             factors_applied=True,
-            tlib=inp.tlib,
+            backend=inp.backend,
         )
 
     # Fallback if no special case applies
-    values = tensor_lib_ufunc(inp.values, **kwargs)
+    values = backend_ufunc(inp.values, **kwargs)
     return FFTArray(
         values=values,
         space=inp.space,
         dims=inp.dims,
         eager=inp.eager,
         factors_applied=True,
-        tlib=inp.tlib,
+        backend=inp.backend,
     )
 
 @dataclass
@@ -670,8 +837,8 @@ class UnpackedValues:
     dims: Tuple[FFTDimension, ...]
     # Values without any dimensions, etc.
     values: List[Union[Number, Any]]
-    # Shared tensor-lib between all values.
-    tlib: TensorLib
+    # Shared backend between all values.
+    backend: Backend
     # outer list: dim_idx, inner_list: op_idx, None: dim does not appear in operand
     factors_applied: List[List[bool]]
     # Space per dimension, must be homogeneous over all values
@@ -708,7 +875,7 @@ def _unpack_fft_arrays(
     arrays_to_align: List[Tuple[List[Hashable], Any]] = []
     array_indices = []
     unpacked_values: List[Optional[Union[Number, Any]]] = [None]*len(values)
-    tlib: UniformValue[TensorLib] = UniformValue()
+    backend: UniformValue[Backend] = UniformValue()
 
     for op_idx, x in enumerate(values):
         if isinstance(x, Number):
@@ -724,7 +891,7 @@ def _unpack_fft_arrays(
             array_indices.append(op_idx)
             assert isinstance(x, FFTArray)
 
-            tlib.set(x.tlib)
+            backend.set(x.backend)
             # input_factors_applied = x._factors_applied
             # target_factors_applied = list(x._factors_applied)
 
@@ -771,7 +938,7 @@ def _unpack_fft_arrays(
 
 
     # Broadcasting
-    dim_names, aligned_arrs = align_named_arrays(arrays_to_align, tlib=tlib.get())
+    dim_names, aligned_arrs = align_named_arrays(arrays_to_align, backend=backend.get())
     for op_idx, arr in zip(array_indices, aligned_arrs):
         unpacked_values[op_idx] = arr
 
@@ -780,7 +947,7 @@ def _unpack_fft_arrays(
     eager_list = [dims[dim_name].eager.get() for dim_name in dim_names]
     factors_applied = [dims[dim_name].factors_applied for dim_name in dim_names]
     # TODO: Why is this necessary?
-    # unpacked_values = [tlib.get().as_array(x) for x in unpacked_values]
+    # unpacked_values = [backend.get().as_array(x) for x in unpacked_values]
 
     for value in unpacked_values:
         assert value is not None
@@ -791,7 +958,7 @@ def _unpack_fft_arrays(
         space = space_list,
         factors_applied=factors_applied,
         eager=eager_list,
-        tlib = tlib.get(),
+        backend = backend.get(),
     )
 
 
@@ -923,6 +1090,7 @@ class FFTDimension:
     _d_pos: float
     _n: int
     _name: Hashable
+    _dynamically_traced_coords: bool
 
     def __init__(
             self,
@@ -931,29 +1099,28 @@ class FFTDimension:
             d_pos: float,
             pos_min: float,
             freq_min: float,
+            dynamically_traced_coords: bool = True,
         ):
         self._name = name
         self._n = n
         self._d_pos = d_pos
         self._pos_min = pos_min
         self._freq_min = freq_min
+        self._dynamically_traced_coords = dynamically_traced_coords
 
     def __repr__(self: FFTDimension) -> str:
-        arg_str = ", ".join([f"{name[1:]}={repr(value)}" for name, value in self.__dict__.items()])
+        arg_str = ", ".join(
+            [f"{name[1:]}={repr(value)}"
+                for name, value in self.__dict__.items()]
+        )
         return f"FFTDimension({arg_str})"
 
     def __str__(self: FFTDimension) -> str:
-        properties = (
-            f"\t Number of grid points n: {self.n} \n\t " +
-            f"Position space: min={self.pos_min}, middle={self.pos_middle}, " +
-            f"max={self.pos_max}, extent={self.pos_extent}, d_pos={self.d_pos} \n\t " +
-            f"Frequency space: min={self.freq_min}, middle={self.freq_middle}, " +
-            f"max={self.freq_max}, extent={self.freq_extent}, d_freq={self.d_freq}"
-        )
-        return (
-            f"FFTDimension with name '{self.name}' and the " +
-            f"following properties:\n{properties}"
-        )
+        n_str = format_n(self.n)
+        str_out = f"<fftarray.FFTDimension (name={repr(self.name)})>\n"
+        str_out += f"n={n_str}\n"
+        str_out += fft_dim_table(self)
+        return str_out
 
     @property
     def n(self: FFTDimension) -> int:
@@ -1036,23 +1203,36 @@ class FFTDimension:
         """
         return (self.n - 1) * self.d_pos
 
-    def _dim_from_slice(self, range: slice, space: Space) -> FFTDimension:
+    def _dim_from_slice(
+            self,
+            range: slice,
+            space: Space,
+        ) -> FFTDimension:
         """
             Get a new FFTDimension for a interval selection in a given space.
             Does not support steps!=1.
+
+            Indexing behaviour is the same as for a numpy array with the
+            difference that we raise an IndexError if the resulting size
+            is not at least 1. We require n>=1 to create a valid FFTDimension.
         """
-        if not(range.step is None or range.step == 1):
-            raise ValueError(
-                "Substepping is not supported because it is not well defined " +
-                "how to cut frequency space with an arbitrary offset."
+
+        # Catch invalid slice objects with range.step != 1
+        check_substepping(range)
+
+        start = remap_index_check_int(range.start, self.n, index_kind="start")
+        end = remap_index_check_int(range.stop, self.n, index_kind="stop")
+
+        n = end - start
+        # Check validity of slice object which has to
+        # yield at least one dimension value
+        if n < 1:
+            raise IndexError(
+                f"Your indexing {range} is not valid. To create a valid "
+                + "FFTDimension, the stop index must be bigger than the start "
+                + "index in order to keep at least one sample (n>=1)."
             )
-        start = range.start
-        if range.stop is None:
-            stop = start+1
-        else:
-            stop = range.stop
-        n = stop - start
-        assert n >= 1
+
         return self._dim_from_start_and_n(start=start, n=n, space=space)
 
     def _dim_from_start_and_n(
@@ -1061,74 +1241,131 @@ class FFTDimension:
             n: int,
             space: Space,
         ) -> FFTDimension:
-        new = self.__class__.__new__(self.__class__)
-        new._name = self.name
-        new._n = n
+        """Returns new FFTDimension instance starting at a specific value
+        in either pos or freq space and setting variable dimension length.
+        """
 
-        # d_freq * d_pos * n == 1,
         if space == "pos":
-            new._pos_min = self.pos_min + start*self.d_pos
-            new._freq_min = self.freq_min
-            new._d_pos = self.d_pos
+            pos_min = self.pos_min + start*self.d_pos
+            freq_min = self.freq_min
+            d_pos = self.d_pos
         elif space == "freq":
-            new._pos_min = self.pos_min
-            new._freq_min = self.freq_min + start*self.d_freq
-            new._d_pos = 1./(self.d_freq*n)
+            pos_min = self.pos_min
+            freq_min = self.freq_min + start*self.d_freq
+            d_pos = 1./(self.d_freq*n)
         else:
             assert False, "Unreachable"
-        return new
 
+        return FFTDimension(
+            name=self.name, # type: ignore
+            n=n,
+            pos_min=pos_min,
+            freq_min=freq_min,
+            d_pos=d_pos,
+        )
 
     def _index_from_coord(
             self,
-            x,
-            method: Optional[Literal["nearest", "min", "max"]],
+            coord: Union[float, slice],
             space: Space,
-            tlib: TensorLib,
-        ):
+            backend: Backend,
+            method: Optional[Literal["nearest", "pad", "ffill", "backfill", "bfill"]] = None,
+        ) -> Union[int, slice]:
+        """Compute index from given coordinate which can be float or slice.
+        In case of slice input, find the dimension indices which are
+        including the selected coordinates, and return appropriate slice object.
+
+        Short explanation what "pad", "ffill", "backfill", "bfill" do:
+            bfill, backfill: maps 2.5 to next valid index 3
+            pad, ffill: maps 2.5 to previous valid index 2
         """
-            Compute index from given coordinate `x`.
-        """
-        if isinstance(x, tuple):
-            sel_min, sel_max = x
-            idx_min = self._index_from_coord(sel_min, method="min", space=space, tlib=tlib)
-            idx_max = self._index_from_coord(sel_max, method="max", space=space, tlib=tlib)
-            # The max is an open intervel, therefore add one.
-            return slice(idx_min, idx_max+1)
-
-        if space == "pos":
-            raw_idx = (x - self.pos_min) / self.d_pos
-        else:
-            raw_idx = (x - self.freq_min) / self.d_freq
-
-
-        if method is None:
-            # TODO This is not jittable.
-            # Either fix it or document it.
-            # Would probably need a tlib if...
-            if tlib.numpy_ufuncs.round(raw_idx) != raw_idx:
-                raise KeyError(
-                    f"No exact index found for {x} in {space}-space of dim " +
-                    f'"{self.name}". Try the keyword argument ' +
-                    'method="nearest".'
+        # The first part handles coords supplied as slice object whereas
+        # it prepares those and distributes the actual work to the second
+        # part of this function which handles scalar objects
+        if isinstance(coord, slice):
+            check_substepping(coord)
+            if method is not None:
+                # This catches slices supplied to FFTArray.sel or isel with
+                # a method != None (e.g. nearest) which is not supported
+                raise NotImplementedError(
+                    f"cannot use method: `{method}` if the coord argument "
+                    + f"is not scalar, here: {coord}."
                 )
-            idx = raw_idx
-        elif method in ["nearest", "min", "max"]:
-            # Clamp index into valid range
-            raw_idx = tlib.numpy_ufuncs.max(tlib.array([0, raw_idx]))
-            raw_idx = tlib.numpy_ufuncs.min(tlib.array([self.n, raw_idx]))
-            if  method == "nearest":
+            # Handle slice objects with start or end being None whereas
+            # we substitute those with the FFTDimension bounds
+            if coord.start is None:
+                coord_start = getattr(self, f"{space}_min")
+            else:
+                coord_start = coord.start
+            if coord.stop is None:
+                coord_stop = getattr(self, f"{space}_max")
+            else:
+                coord_stop = coord.stop
+
+            # Use the scalar part of this function with the methods bfill and ffill
+            # to yield indices to include the respective coordinates
+            idx_min: int = self._index_from_coord(coord_start, method="bfill", space=space, backend=backend) # type: ignore
+            idx_max: int = self._index_from_coord(coord_stop, method="ffill", space=space, backend=backend) # type: ignore
+            return slice(
+                idx_min,
+                idx_max + 1 # as slice.stop is non-inclusive, add 1
+            )
+        else:
+            # Calculate the float index regarding the FFTDimension as
+            # an infinite grid
+            if space == "pos":
+                raw_idx = (coord - self.pos_min) / self.d_pos
+            else:
+                raw_idx = (coord - self.freq_min) / self.d_freq
+
+            # Clamp float index to the valid range of 0 to n-1
+            clamped_index = min(
+                max(0, raw_idx),
+                self.n - 1
+            )
+
+            # Handle different methods case by case here
+            if method is None:
+                # We round the raw float indices here and check whether they
+                # match their rounded int-like value, if not we throw a KeyError
+                if (round(raw_idx) != raw_idx or clamped_index != raw_idx):
+                    raise KeyError(
+                        f"No exact index found for {coord} in {space}-space of dim " +
+                        f'"{self.name}". Try the keyword argument ' +
+                        'method="nearest".'
+                    )
+                final_idx = raw_idx
+            elif  method == "nearest":
                 # The combination of floor and +0.5 prevents the "ties to even" rounding of floating point numbers.
                 # We only need one branch since our indices are always positive.
-                idx = tlib.numpy_ufuncs.floor(raw_idx + 0.5)
-            elif method == "min":
-                idx = tlib.numpy_ufuncs.ceil(raw_idx)
-            elif method == "max":
-                idx = tlib.numpy_ufuncs.floor(raw_idx)
-        else:
-            raise ValueError("Specified unsupported look-up method.")
+                final_idx = np.floor(clamped_index + 0.5)
+            elif method in ["bfill", "backfill"]:
+                # We propagate towards the next highest index and then check
+                # its validity by checking if it's smaller or equal than
+                # the dimension length n
+                final_idx = np.ceil(clamped_index)
+                if raw_idx > self.n - 1:
+                    raise KeyError(
+                        f"Coord {coord} not found with method '{method}', "
+                        + "you could try one of the following instead: "
+                        + "'ffill', 'pad' or 'nearest'."
+                    )
+            elif method in ["ffill", "pad"]:
+                # We propagate back to the next smalles index and then check
+                # its validity by checking if it's at least 0
+                final_idx = np.floor(clamped_index)
+                if raw_idx < 0:
+                    raise KeyError(
+                        f"Coord {coord} not found with method '{method}', "
+                        + "you could try one of the following instead: "
+                        + "'bfill', 'backfill' or 'nearest'."
+                    )
+            else:
+                raise ValueError(f"Specified unsupported look-up method `{method}`.")
 
-        return tlib.array(idx, dtype=int)
+            # Transform index to integer here. We can do this because we
+            # ensured validity in the cases above, especially for method = None
+            return int(final_idx)
 
     # ---------------------------- Frequency Space --------------------------- #
 
@@ -1192,14 +1429,14 @@ class FFTDimension:
 
     def _raw_coord_array(
                 self: FFTDimension,
-                tlib: TensorLib,
+                backend: Backend,
                 space: Space,
             ):
 
-        indices = tlib.numpy_ufuncs.arange(
+        indices = backend.numpy_ufuncs.arange(
             0,
             self.n,
-            dtype = tlib.real_type,
+            dtype = backend.real_type,
         )
 
         if space == "pos":
@@ -1211,7 +1448,7 @@ class FFTDimension:
 
     def fft_array(
             self: FFTDimension,
-            tlib: TensorLib,
+            backend: Backend,
             space: Space,
             eager: bool = False,
         ) -> FFTArray:
@@ -1224,7 +1461,7 @@ class FFTDimension:
         """
 
         values = self._raw_coord_array(
-            tlib=tlib,
+            backend=backend,
             space=space,
         )
 
@@ -1234,8 +1471,8 @@ class FFTDimension:
             eager=eager,
             factors_applied=True,
             space=space,
-            tlib=tlib,
+            backend=backend,
         )
 
     def np_array(self: FFTDimension, space: Space):
-        return self._raw_coord_array(tlib=NumpyTensorLib(), space=space)
+        return self._raw_coord_array(backend=NumpyBackend(), space=space)

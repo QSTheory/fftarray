@@ -7,8 +7,8 @@ from hypothesis import given, strategies as st, settings, note
 import jax.numpy as jnp
 from jax import config
 
-from fftarray.fft_constraint_solver import _z3_constraint_solver
-from fftarray.fft_constraint_solver import ConstraintSolverError, NoSolutionFoundError, NoUniqueSolutionError, ConstraintValueError
+from fftarray.constraint_solver import _z3_constraint_solver
+from fftarray.constraint_solver import ConstraintSolverError, NoSolutionFoundError, NoUniqueSolutionError, ConstraintValueError
 
 config.update("jax_enable_x64", True)
 
