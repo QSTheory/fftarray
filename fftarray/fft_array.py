@@ -31,8 +31,8 @@ Space = Literal["pos", "freq"]
 
 
 class FFTArray(metaclass=ABCMeta):
-    """
-        The base class of `PosArray` and `FreqArray` that implements all shared behavior.
+    """The base class of `PosArray` and `FreqArray` that implements all shared
+    behavior.
     """
 
     # _dims are stored as a sequence and not by name because their oder needs
@@ -59,9 +59,8 @@ class FFTArray(metaclass=ABCMeta):
             factors_applied: Union[bool, Iterable[bool]],
             backend: Backend,
         ):
-        """
-            This constructor is not meant for normal usage.
-            Construct new values via the `fft_array()` function of FFTDimension.
+        """This constructor is not meant for normal usage.
+        Construct new values via the `fft_array()` function of FFTDimension.
         """
         self._dims = tuple(dims)
         n_dims = len(self._dims)
@@ -302,10 +301,9 @@ class FFTArray(metaclass=ABCMeta):
             method: Optional[Literal["nearest", "pad", "ffill", "backfill", "bfill"]] = None,
             **indexers_kwargs: Union[float, slice],
         ) -> FFTArray:
-        """
-            Inspired by xarray.DataArray.sel
-            In comparison to itx xarray implementation, there is an add-on:
-                - Implements missing_dims arg and accordingly raises errors
+        """Inspired by xarray.DataArray.sel
+        In comparison to itx xarray implementation, there is an add-on:
+        - Implements missing_dims arg and accordingly raises errors
         """
 
         # Check for correct use of indexers (either via positional
