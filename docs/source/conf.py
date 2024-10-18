@@ -76,7 +76,7 @@ html_theme = 'sphinx_book_theme'
 
 html_theme_options = {
     'show_toc_level': 2,
-    'repository_url': 'https://gitlab.projekt.uni-hannover.de/iqo-tsquad-github/fftarray',
+    'repository_url': 'https://github.com/QSTheory/fftarray',
     'use_repository_button': True,
     'navigation_with_keys': False,
 }
