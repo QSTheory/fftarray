@@ -8,6 +8,7 @@ Provided by :py:mod:`fftarray.fft_array`:
 .. autosummary::
    :nosignatures:
 
+   FFTArray
    FFTDimension
 
 Provided by :py:mod:`fftarray.tools`:
@@ -24,7 +25,7 @@ Example:
 
 .. code-block:: python
 
-   >>> from fftarray import FFTDimension
+   >>> from fftarray import FFTArray, FFTDimension
 
 """
 from .fft_array import FFTDimension, FFTArray, Space
