@@ -45,7 +45,7 @@ jobs:
           python -m pip install -e ".[dev]"
 
       - name: Pandoc install
-        uses: docker://pandoc/core:2.9
+        run: sudo apt-get install -y --no-install-recommends pandoc
 
       - name: Sphinx build
         run: |
