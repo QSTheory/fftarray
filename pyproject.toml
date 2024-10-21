@@ -58,6 +58,7 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
     "sphinx-autodoc-typehints",
     "sphinx-book-theme>=1.0.1",
     "sphinx-design",
+    "lxml_html_clean",
     "nbsphinx",
     "nbsphinx-link",
     "myst-nb",
