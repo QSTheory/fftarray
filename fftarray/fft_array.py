@@ -416,13 +416,13 @@ class FFTArray(metaclass=ABCMeta):
             Therefore each call evaluates its lazy state again.
             Use `evaluate_lazy_state` if you want to evaluate it once and reuse it multiple times.
         """
-        # TODO Ensure defensive copy here for the Numpy Backend?
         return self._backend.get_values_with_lazy_factors(
             values=self._values,
             dims=self._dims,
             input_factors_applied=self._factors_applied,
             target_factors_applied=[True]*len(self._dims),
             spaces=self._spaces,
+            ensure_copy=True,
         )
 
     def into(
@@ -474,6 +474,7 @@ class FFTArray(metaclass=ABCMeta):
                 input_factors_applied=self._factors_applied,
                 target_factors_applied=pre_fft_applied,
                 spaces=self._spaces,
+                ensure_copy=False,
             )
             fft_axes = []
             ifft_axes = []
@@ -511,6 +512,7 @@ class FFTArray(metaclass=ABCMeta):
             input_factors_applied=current_factors_applied,
             target_factors_applied=factors_norm,
             spaces=space_norm,
+            ensure_copy=False,
         )
 
         return FFTArray(

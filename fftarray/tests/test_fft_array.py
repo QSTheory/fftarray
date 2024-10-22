@@ -293,6 +293,28 @@ def test_fftarray_lazyness_reduced(backend, precision, space, eager, factors_app
     assert_dual_operand_fun_equivalence(fftarr, all(fftarr._factors_applied), print)
     assert_fftarray_eager_factors_applied(fftarr, print)
 
+@pytest.mark.parametrize("backend", backends)
+def test_immutability(backend) -> None:
+    xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
+    arr = xdim.fft_array(backend=backend("fp64"), space="pos")
+    values = arr.values
+    assert arr.values[0] == -0.2
+    try:
+        # For backends with immutable arrays (e.g. jax), we assume this fails.
+        # In these cases, we skip testing immutability ourself.
+        values[0] = 10
+    except:
+        pass
+
+    assert arr.values[0] == -0.2
+    arr_2 = arr.into("freq").into("pos")
+    values_2 = arr_2.values
+    try:
+        values_2[0] = 10
+    except:
+        pass
+    assert arr_2.values[0] == -0.2
+    
 def assert_basic_lazy_logic(arr, log):
     """Tests whether FFTArray.values is equal to the internal _values for the
     special cases where factors_applied=True, space="pos" and comparing the
