@@ -83,6 +83,9 @@ mypy = { cmd = ["mypy", "fftarray"]}
 check = { depends-on = ["mypy", "test"]}
 cov_html = { cmd = ["python", "-m", "pytest", "--cov=./fftarray", "--cov=./examples", "--cov-report=html"]}
 cov_xml = { cmd = ["python", "-m", "pytest", "--cov=./fftarray", "--cov=./examples", "--cov-report=xml"]}
+doc = { cmd = ["./build_docs.sh"], "cwd" = "docs" }
+# TODO: Currently only tested on macOS. Would be nice to make it an --open option like in cargo.
+doc_open = { cmd = ["open", "docs/build/html/development/index.html"], depends-on = ["doc"] }
 
 [tool.pixi.project]
 channels = ["conda-forge"]
@@ -105,3 +108,6 @@ system-requirements = {cuda = "12"}
 # Recursive optional dependencies are currently ignored by pixi environments: https://github.com/prefix-dev/pixi/issues/2024
 devcuda = ["dev", "jaxcuda", "pyFFTW", "helpers", "dashboards"]
 dev = ["dev", "jax", "pyFFTW", "helpers", "dashboards"]
+
+[tool.pixi.feature.dev.dependencies]
+pandoc = ">=3.5,<4"
