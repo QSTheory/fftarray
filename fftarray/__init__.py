@@ -28,5 +28,5 @@ Example:
    >>> from fftarray import FFTArray, FFTDimension
 
 """
-from .fft_array import FFTDimension, FFTArray, Space
+from .fft_array import FFTDimension, FFTArray, Space, set_default_backend, get_default_backend, set_default_eager, get_default_eager
 from .tools import shift_frequency, shift_position

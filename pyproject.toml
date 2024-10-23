@@ -47,7 +47,8 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
 "dashboards" = [
     "fftarray[helpers]",
     "ipython",
-    "bokeh"
+    "bokeh",
+    "ipykernel",
 ]
 "dev" = [
     "fftarray[jax, pyFFTW, helpers, dashboards]",

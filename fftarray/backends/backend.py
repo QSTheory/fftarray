@@ -86,6 +86,7 @@ class Backend(metaclass=ABCMeta):
             input_factors_applied: Iterable[bool],
             target_factors_applied: Iterable[bool],
             spaces: Iterable[Space],
+            ensure_copy: bool,
         ):
         """
             This function takes all dims so that it has more freedom to optimize the application over all dimensions.
@@ -107,6 +108,9 @@ class Backend(metaclass=ABCMeta):
                 signs=signs,
                 spaces=spaces,
             )
+        else:
+            if ensure_copy:
+                values = self.array(values)
 
         return values
 

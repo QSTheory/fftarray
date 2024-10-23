@@ -29,6 +29,24 @@ from ._utils._indexing import (
 EllipsisType = TypeVar('EllipsisType')
 Space = Literal["pos", "freq"]
 
+_DEFAULT_BACKEND: Backend = NumpyBackend("default")
+
+def set_default_backend(backend: Backend) -> None:
+    global _DEFAULT_BACKEND
+    _DEFAULT_BACKEND= backend
+
+def get_default_backend() -> Backend:
+    return _DEFAULT_BACKEND
+
+_DEFAULT_EAGER: bool = False
+
+def set_default_eager(eager: bool) -> None:
+    global _DEFAULT_EAGER
+    _DEFAULT_EAGER= eager
+
+def get_default_eager() -> bool:
+    return _DEFAULT_EAGER
+
 
 class FFTArray(metaclass=ABCMeta):
     """The base class of `PosArray` and `FreqArray` that implements all shared
@@ -55,13 +73,58 @@ class FFTArray(metaclass=ABCMeta):
             values,
             dims: Iterable[FFTDimension],
             space: Union[Space, Iterable[Space]],
-            eager: Union[bool, Iterable[bool]],
-            factors_applied: Union[bool, Iterable[bool]],
-            backend: Backend,
+            backend: Optional[Backend] = None,
+            eager: Optional[Union[bool, Iterable[bool]]] = None,
+            factors_applied: Union[bool, Iterable[bool]] = True,
         ):
-        """This constructor is not meant for normal usage.
-        Construct new values via the `fft_array()` function of FFTDimension.
         """
+        Construct a new instance of FFTArray from raw values.
+        For normal usage it is recommended to construct
+        new instances via the `fft_array()` function of FFTDimension
+        since this ensures that the dimension parameters and the
+        values match.
+
+        TODO: Check that this does not copy?
+
+        Parameters
+        ----------
+        values :
+            The values to initialize the `FFTArray` with.
+            For performance reasons they are assumed to not be aliased (or immutable)
+            and therefore do not get copied under any circumstances.
+            The type must fit with the specified backend.
+        dims : Iterable[FFTDimension]
+            The FFTDimensions for each dimension of the passed in values.
+        space: Union[Space, Iterable[Space]]
+            Specify the space of the coordinates and in which space the returned FFTArray is intialized.
+        backend: Optional[Backend]
+            The backend to use for the returned FFTArray.  `None` uses default `NumpyBackend("default")` which can be globally changed.
+            The values are transformed into the appropiate type defined by the backend.
+        eager: Union[bool, Iterable[bool]]
+            The eager-mode to use for the returned FFTArray.  `None` uses default `False` which can be globally changed.
+        factors_applied: Union[bool, Iterable[bool]]
+            Whether the fft-factors are applied are already applied for the various dimensions.
+            For external values this is usually `True` since `False` assumes the internal (and unstable)
+            factors-format.
+
+        Returns
+        -------
+        FFTArray
+            The grid coordinates of the chosen space packed into an FFTArray with self as only dimension.
+
+        See Also
+        --------
+        set_default_backend, get_default_backend
+        set_default_eager, get_default_eager
+        fft_array
+        """
+
+        if backend is None:
+            backend = _DEFAULT_BACKEND
+
+        if eager is None:
+            eager = _DEFAULT_EAGER
+
         self._dims = tuple(dims)
         n_dims = len(self._dims)
         self._values = values
@@ -102,8 +165,10 @@ class FFTArray(metaclass=ABCMeta):
     # Support numpy array protocol.
     # Many libraries use this to coerce special types to plain numpy array e.g.
     # via np.array(fftarray)
-    def __array__(self):
-        return np.array(self.values)
+    def __array__(self, dtype=None, copy=None):
+        if copy is False:
+            raise ValueError("FFTArray is by design immutable and therefore does not allow direct access to the underlying array.")
+        return np.array(self.values, dtype=dtype, copy=copy)
 
     # Implement binary operations between FFTArray and also e.g. 1+wf and wf+1
     # This does intentionally not list all possible operators.
@@ -414,21 +479,21 @@ class FFTArray(metaclass=ABCMeta):
             Therefore each call evaluates its lazy state again.
             Use `evaluate_lazy_state` if you want to evaluate it once and reuse it multiple times.
         """
-        # TODO Ensure defensive copy here for the Numpy Backend?
         return self._backend.get_values_with_lazy_factors(
             values=self._values,
             dims=self._dims,
             input_factors_applied=self._factors_applied,
             target_factors_applied=[True]*len(self._dims),
             spaces=self._spaces,
+            ensure_copy=True,
         )
 
     def into(
             self,
             space: Optional[Union[Space, Iterable[Space]]] = None,
+            backend: Optional[Backend] = None,
             eager: Optional[Union[bool, Iterable[bool]]] = None,
             factors_applied: Optional[Union[bool, Iterable[bool]]] = None,
-            backend: Optional[Backend] = None,
         ) -> FFTArray:
 
         values = self._values
@@ -472,6 +537,7 @@ class FFTArray(metaclass=ABCMeta):
                 input_factors_applied=self._factors_applied,
                 target_factors_applied=pre_fft_applied,
                 spaces=self._spaces,
+                ensure_copy=False,
             )
             fft_axes = []
             ifft_axes = []
@@ -509,6 +575,7 @@ class FFTArray(metaclass=ABCMeta):
             input_factors_applied=current_factors_applied,
             target_factors_applied=factors_norm,
             spaces=space_norm,
+            ensure_copy=False,
         )
 
         return FFTArray(
@@ -1446,17 +1513,37 @@ class FFTDimension:
 
     def fft_array(
             self: FFTDimension,
-            backend: Backend,
             space: Space,
-            eager: bool = False,
+            backend: Optional[Backend] = None,
+            eager: Optional[bool] = None,
         ) -> FFTArray:
         """..
+
+        Parameters
+        ----------
+        space : Space
+            Specify the space of the coordinates and in which space the returned FFTArray is intialized.
+        backend : Optional[Backend]
+            The backend to use for the returned FFTArray.  `None` uses default `NumpyBackend("default")` which can be globally changed.
+        eager :  Optional[bool]
+            The eager-mode to use for the returned FFTArray.  `None` uses default `False` which can be globally changed.
 
         Returns
         -------
         FFTArray
             The grid coordinates of the chosen space packed into an FFTArray with self as only dimension.
+
+        See Also
+        --------
+            set_default_backend, get_default_backend
+            set_default_eager, get_default_eager
         """
+
+        if backend is None:
+            backend = _DEFAULT_BACKEND
+
+        if eager is None:
+            eager = _DEFAULT_EAGER
 
         values = self._raw_coord_array(
             backend=backend,

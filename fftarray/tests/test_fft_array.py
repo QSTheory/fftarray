@@ -6,6 +6,7 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 
+import fftarray
 from fftarray.fft_array import FFTArray, FFTDimension, Space
 from fftarray.backends.jax import JaxBackend
 from fftarray.backends.numpy import NumpyBackend
@@ -210,6 +211,48 @@ def test_sel_order(backend, space):
     arr_sely_selx = arr_sely.sel(**{"x": getattr(xdim, f"{space}_middle")})
     np.testing.assert_allclose(arr_selx_sely.values, arr_sely_selx.values)
 
+def test_defaults() -> None:
+    assert fftarray.get_default_eager() is False
+    assert fftarray.get_default_backend() == NumpyBackend("default")
+
+    xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=0., freq_min=0.)
+    arr = xdim.fft_array(space="pos")
+    manual_arr = FFTArray(
+        values=0.1*np.arange(4),
+        dims=[xdim],
+        space="pos",
+    )
+    assert (manual_arr==arr).values.all()
+    assert arr.eager == (False,)
+    assert arr.backend == NumpyBackend(precision="default")
+
+    fftarray.set_default_backend(JaxBackend(precision="fp32"))
+    arr = xdim.fft_array(space="pos")
+    manual_arr = FFTArray(
+        values=0.1*jnp.arange(4, dtype=jnp.float32),
+        dims=[xdim],
+        space="pos",
+    )
+    assert (manual_arr==arr).values.all()
+    assert fftarray.get_default_backend() == JaxBackend(precision="fp32")
+    assert arr.eager == (False,)
+    assert arr.backend == JaxBackend(precision="fp32")
+
+    fftarray.set_default_eager(True)
+    arr = xdim.fft_array(space="pos")
+    manual_arr = FFTArray(
+        values=0.1*jnp.arange(4, dtype=jnp.float32),
+        dims=[xdim],
+        space="pos",
+    )
+    assert (manual_arr==arr).values.all()
+    assert fftarray.get_default_backend() == JaxBackend(precision="fp32")
+    assert arr.eager == (True,)
+    assert arr.backend == JaxBackend(precision="fp32")
+
+    # Reset global state for other tests
+    fftarray.set_default_eager(False)
+    fftarray.set_default_backend(NumpyBackend(precision="default"))
 
 def draw_hypothesis_fft_array_values(draw, st_type, shape):
     """Creates multi-dimensional array with shape `shape` whose values are drawn
@@ -292,6 +335,28 @@ def test_fftarray_lazyness_reduced(backend, precision, space, eager, factors_app
     assert_single_operand_fun_equivalence(fftarr, all(fftarr._factors_applied), print)
     assert_dual_operand_fun_equivalence(fftarr, all(fftarr._factors_applied), print)
     assert_fftarray_eager_factors_applied(fftarr, print)
+
+@pytest.mark.parametrize("backend", backends)
+def test_immutability(backend) -> None:
+    xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
+    arr = xdim.fft_array(backend=backend("fp64"), space="pos")
+    values = arr.values
+    assert arr.values[0] == -0.2
+    try:
+        # For backends with immutable arrays (e.g. jax), we assume this fails.
+        # In these cases, we skip testing immutability ourself.
+        values[0] = 10
+    except:
+        pass
+
+    assert arr.values[0] == -0.2
+    arr_2 = arr.into("freq").into("pos")
+    values_2 = arr_2.values
+    try:
+        values_2[0] = 10
+    except:
+        pass
+    assert arr_2.values[0] == -0.2
 
 def assert_basic_lazy_logic(arr, log):
     """Tests whether FFTArray.values is equal to the internal _values for the
