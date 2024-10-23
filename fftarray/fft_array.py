@@ -29,6 +29,24 @@ from ._utils._indexing import (
 EllipsisType = TypeVar('EllipsisType')
 Space = Literal["pos", "freq"]
 
+_DEFAULT_BACKEND: Backend = NumpyBackend("default")
+
+def set_default_backend(backend: Backend) -> None:
+    global _DEFAULT_BACKEND
+    _DEFAULT_BACKEND= backend
+
+def get_default_backend() -> Backend:
+    return _DEFAULT_BACKEND
+
+_DEFAULT_EAGER: bool = False
+
+def set_default_eager(eager: bool) -> None:
+    global _DEFAULT_EAGER
+    _DEFAULT_EAGER= eager
+
+def get_default_eager() -> bool:
+    return _DEFAULT_EAGER
+
 
 class FFTArray(metaclass=ABCMeta):
     """
@@ -1453,16 +1471,36 @@ class FFTDimension:
     def fft_array(
             self: FFTDimension,
             space: Space,
-            backend: Backend,
-            eager: bool = False,
+            backend: Optional[Backend] = None,
+            eager: Optional[bool] = None,
         ) -> FFTArray:
         """..
+
+        Parameters
+        ----------
+        space : Space
+            Specify the space of the coordinates and in which space the returned FFTArray is intialized.
+        backend : Optional[Backend]
+            The backend to use for the returned FFTArray.  `None` uses default `NumpyBackend("default")` which can be globally changed.
+        eager :  Optional[bool]
+            The eager-mode to use for the returned FFTArray.  `None` uses default `False` which can be globally changed.
 
         Returns
         -------
         FFTArray
             The grid coordinates of the chosen space packed into an FFTArray with self as only dimension.
+
+        See Also
+        --------
+            set_default_backend, get_default_backend
+            set_default_eager, get_default_eager
         """
+
+        if backend is None:
+            backend = _DEFAULT_BACKEND
+
+        if eager is None:
+            eager = _DEFAULT_EAGER
 
         values = self._raw_coord_array(
             backend=backend,
