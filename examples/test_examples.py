@@ -87,6 +87,7 @@ class NotebookFinder(object):
         if path:
             # lists aren't hashable
             key = os.path.sep.join(path)
+        key += fullname
 
         if key not in self.loaders:
             self.loaders[key] = ModuleSpec(
@@ -97,6 +98,10 @@ class NotebookFinder(object):
 
 sys.meta_path.append(NotebookFinder()) # type: ignore
 
-def test_notebooks():
+def test_gaussians():
     # The import statements automatically evaluate all cells.
-    from examples import Gaussians, multi_dimensional
+    from examples import Gaussians
+
+def test_multi_dimensional():
+    # The import statements automatically evaluate all cells.
+    from examples import multi_dimensional
