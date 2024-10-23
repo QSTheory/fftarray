@@ -371,15 +371,15 @@ def _get_constraints(
     for n is defined, choose even constraints.
 
     Features for rounding to next valid n (n widening):
-        1) If loose params are supplied, use the respective constraint values as
-           bounds.
-        2) During n-widening, a previous_model can be supplied which overwrites
-           the user_constraints.
-        3) Additionally, during the n widening process, a different widening_n
-           as well as
-        extra add_constraints can be supplied. The add_constraint are used to
-        ensure symmetric widening to interdependent parameters, e.g., pos_min
-        and pos_max.
+
+    1. If loose params are supplied, use the respective constraint values as
+    bounds.
+    2. During n-widening, a previous_model can be supplied which overwrites
+    the user_constraints.
+    3. Additionally, during the n widening process, a different widening_n
+    as well as extra add_constraints can be supplied. The add_constraint are
+    used to ensure symmetric widening to interdependent parameters, e.g.,
+    pos_min and pos_max.
     """
 
     z3_vars: Dict[str, Real] = {var_name: Real(var_name) for var_name in VARS_WITH_PROPS}
@@ -690,11 +690,10 @@ def _make_constraint_for_loose_param_group(
         loose_param_group: List[str],
         user_constraints: Dict[str, Union[float, int, str]]
     ) -> Optional[BoolRef]:
-    """
-    Within the loose param groups ["*_min", "*_max", "*_extent"] with *=pos/freq
-    we want to widen "*_min" and "*_max" symmetrically if both are named as
-    loose params. Therefore we create an additional constraint ensuring that
-    here.
+    """Within the loose param groups ["\*_min", "\*_max", "\*_extent"] with
+    \*=pos/freq we want to widen "\*_min" and "\*_max" symmetrically if both are
+    named as loose params. Therefore we create an additional constraint ensuring
+    that here.
     """
 
     space = "freq" if any(["freq" in param for param in loose_param_group]) else "pos"

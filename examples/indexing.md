@@ -1,3 +1,5 @@
+# Indexing an FFTArray
+
 The indexing behaviour and syntax as well as the following docmentation are inspired by xarray, see [xarray: Indexing and selecting data](https://docs.xarray.dev/en/stable/user-guide/indexing.html).
 
 ## Quick Overview
