@@ -80,7 +80,7 @@ version-file = "_version.py"
 test = { cmd = ["python", "-m", "pytest"]}
 test_all = { cmd = ["python", "-m", "pytest", "--include-slow"]}
 mypy = { cmd = ["mypy", "fftarray"]}
-check = { cmd = [], depends-on = ["mypy", "test"]}
+check = { depends-on = ["mypy", "test"]}
 cov_html = { cmd = ["python", "-m", "pytest", "--cov=./fftarray", "--cov=./examples", "--cov-report=html"]}
 cov_xml = { cmd = ["python", "-m", "pytest", "--cov=./fftarray", "--cov=./examples", "--cov-report=xml"]}
 
