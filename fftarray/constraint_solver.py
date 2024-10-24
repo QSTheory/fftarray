@@ -16,7 +16,7 @@ from z3 import (
 )
 import numpy as np
 
-from .fft_array import FFTDimension
+from .fft_dimension import FFTDimension
 from .constraint_solver_exceptions import *
 
 # This dict contains all possible user constraints

@@ -1,7 +1,8 @@
 from typing import Callable, Tuple, Any, List, Sequence
 from types import ModuleType
 
-from ..fft_array import FFTDimension, FFTArray, Space
+from ..fft_array import FFTArray, Space
+from ..fft_dimension import FFTDimension
 from .backend import Backend, PrecisionSpec
 
 import jax

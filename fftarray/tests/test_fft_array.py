@@ -7,7 +7,8 @@ import jax
 import jax.numpy as jnp
 
 import fftarray
-from fftarray.fft_array import FFTArray, FFTDimension, Space
+from fftarray.fft_array import FFTArray, Space
+from fftarray.fft_dimension import FFTDimension
 from fftarray.backends.jax import JaxBackend
 from fftarray.backends.numpy import NumpyBackend
 from fftarray.backends.pyfftw import PyFFTWBackend

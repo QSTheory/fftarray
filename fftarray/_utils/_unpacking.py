@@ -9,7 +9,8 @@ from ..backends.backend import Backend
 from ..named_array import align_named_arrays
 
 if TYPE_CHECKING:
-    from ..fft_array import FFTDimension, FFTArray, Space
+    from ..fft_dimension import FFTDimension
+    from ..fft_array import FFTArray, Space
 
 
 

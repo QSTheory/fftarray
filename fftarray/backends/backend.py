@@ -1,6 +1,5 @@
 from __future__ import annotations
 from abc import ABCMeta, abstractmethod
-from dataclasses import dataclass
 from typing import Callable, Literal, Iterable, List, Optional, Sequence, Tuple, TYPE_CHECKING, get_args
 from types import ModuleType
 
@@ -8,7 +7,8 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 if TYPE_CHECKING:
-    from ..fft_array import FFTDimension, Space
+    from ..fft_dimension import FFTDimension
+    from ..fft_array import Space
 
 
 PrecisionSpec = Literal["default", "fp32", "fp64"]
