@@ -1,0 +1,549 @@
+from __future__ import annotations
+from typing import Optional, Union, Hashable, Literal
+from dataclasses import dataclass
+
+import numpy as np
+
+from .backends.backend import Backend
+from .backends.numpy import NumpyBackend
+
+from ._utils._formatting import fft_dim_table, format_n
+from ._utils._indexing import check_substepping, remap_index_check_int
+
+from .fft_array import Space, FFTArray, get_default_backend, get_default_eager
+
+@dataclass
+class FFTDimension:
+    """Properties of an FFTWave grid for one dimension.
+
+    This class encapsulates all the properties of the position and frequency
+    coordinate grids for one dimension.
+
+    Note that properties associated with the position grid are denoted by `pos`,
+    whereas the frequency grid properties are denoted with `freq`.
+
+    It takes care that the spacing lines up according to the mathematics of the
+    FFT. The mathematics of the Discrete Fourier Transform automatically
+    determine the third component of ``freq_extent``, ``pos_extent`` and
+    resolution if the other two are set. The fact that resolution has to be a
+    positive integer therefore also quantizes the ratio of the extent and
+    sample spacing in both position and frequency space.
+
+    **Parameters**::
+
+        loose_params: Union[str, List[str]] = [] # List of loose grid parameters (parameters that can be improved by the constraint solver).
+
+        n:           Union[int, Literal["power_of_two", "even"]] = "power_of_two" # The number of position and frequency grid points.
+                                                                                  # Instead of supplying an integer, one of the rounding modes "even" or "power_of_two" can be chosen.
+        d_pos:       Optional[float] = None # The distance between two neighboring position grid points.
+        d_freq:      Optional[float] = None # The distance between two neighboring frequency grid points.
+        pos_min:     Optional[float] = None # The smallest position grid point.
+        pos_max:     Optional[float] = None # The largest position grid point.
+        pos_middle:  Optional[float] = None # The middle of the position grid.
+        pos_extent:  Optional[float] = None # The length of the position grid.
+        freq_min:    Optional[float] = None # The smallest frequency grid point.
+        freq_max:    Optional[float] = None # The largest frequency grid point.
+        freq_extent: Optional[float] = None # The length of the frequency grid.
+        freq_middle: Optional[float] = None # The offset of the frequency grid.
+
+    **Implementation details**
+
+    The grid in both spaces (position and frequency) goes from min to max
+    including both points. Therefore ``d_pos = (pos_max-pos_min)/(n-1)``. The
+    grid always consists of an even number of points. Therefore, the number of
+    samples n has to be an even integer. The frequencies in frequency space can
+    be acquired via ``numpy.fft.fftfreq(n, d_pos)``. These frequencies are
+    spatial frequencies in the unit cycles/m. The wavelength lambda is the space
+    equivalent of T for time signals. => ``lambda = 1/numpy.fft.fftfreq(n,
+    d_pos)`` According to DeBroglie we have ``lambda = h/p`` => ``p = h *
+    numpy.fft.fftfreq(n, d_pos)``
+
+    The pos_middle is the sample on the right hand side of the exact center of
+    the grid.
+
+    **Examples**::
+
+        n = 4
+                        pos_middle
+             pos_min           pos_max
+                |-----|-----|-----|
+        index:  0     1     2     3
+                 d_pos d_pos d_pos
+
+        n = 5
+                        pos_middle
+             pos_min                 pos_max
+                |-----|-----|-----|-----|
+        index:  0     1     2     3     4
+                 d_pos d_pos d_pos d_pos
+
+    The freq_middle is the sample on the right hand side of the exact center of
+    the grid.
+
+    **Examples**::
+
+        n = 4
+                          freq_middle
+             freq_min             freq_max
+                |------|------|------|
+        index:  0      1      2      3
+                 d_freq d_freq d_freq
+
+        n = 6
+
+             freq_min           freq_middle     freq_max
+                |------|------|------|------|------|
+        index:  0      1      2      3      4      5
+                 d_freq d_freq d_freq d_freq d_freq
+
+    .. highlight:: none
+
+    These are the symbolic definitions of all the different names (for even ``n``)::
+
+        pos_extent = pos_max - pos_min
+        pos_middle = 0.5 * (pos_min + pos_max + d_pos)
+        d_pos = pos_extent/(n-1)
+
+        freq_extent = freq_max - freq_min
+        freq_middle = 0.5 * (freq_max + freq_min + d_freq)
+        d_freq = freq_extent/(n-1)
+
+        d_freq * d_pos * n = 2*pi
+
+    For odd ``n`` the definitions for ``pos_middle`` and ``freq_middle`` change to ensure that
+    they and the minimum and maximum position and frequency are actually sampled and not in between two samples.::
+
+        pos_middle = 0.5 * (pos_min + pos_max)
+        freq_middle = 0.5 * (freq_max + freq_min)
+
+    For performance reasons it is recommended to have ``n`` be a power of two.
+
+    Individual array coordinates::
+
+        pos = np.arange(0, n) * d_pos + pos_min
+        freq = np.fft.fftfreq(n = n, d = d_pos) + freq_middle
+
+    .. highlight:: none
+
+    These arrays fulfill the following properties::
+
+        np.max(pos) = pos_max
+        np.min(pos) = pos_min
+        np.max(freq) = freq_max
+        np.min(freq) = freq_min
+
+        pos[1]-pos[0] = d_pos (if n >= 2)
+    """
+
+    _pos_min: float
+    _freq_min: float
+    _d_pos: float
+    _n: int
+    _name: Hashable
+    _dynamically_traced_coords: bool
+
+    def __init__(
+            self,
+            name: str,
+            n: int,
+            d_pos: float,
+            pos_min: float,
+            freq_min: float,
+            dynamically_traced_coords: bool = True,
+        ):
+        self._name = name
+        self._n = n
+        self._d_pos = d_pos
+        self._pos_min = pos_min
+        self._freq_min = freq_min
+        self._dynamically_traced_coords = dynamically_traced_coords
+
+    def __repr__(self: FFTDimension) -> str:
+        arg_str = ", ".join(
+            [f"{name[1:]}={repr(value)}"
+                for name, value in self.__dict__.items()]
+        )
+        return f"FFTDimension({arg_str})"
+
+    def __str__(self: FFTDimension) -> str:
+        n_str = format_n(self.n)
+        str_out = f"<fftarray.FFTDimension (name={repr(self.name)})>\n"
+        str_out += f"n={n_str}\n"
+        str_out += fft_dim_table(self)
+        return str_out
+
+    @property
+    def n(self: FFTDimension) -> int:
+        """..
+
+        Returns
+        -------
+        float
+            The number of grid points.
+        """
+        return self._n
+
+    @property
+    def name(self: FFTDimension) -> Hashable:
+        """..
+
+        Returns
+        -------
+        float
+            The name of his FFTDimension.
+        """
+        return self._name
+
+    # ---------------------------- Position Space ---------------------------- #
+
+    @property
+    def d_pos(self: FFTDimension) -> float:
+        """..
+
+        Returns
+        -------
+        float
+            The distance between two neighboring position grid points.
+        """
+        return self._d_pos
+
+    @property
+    def pos_min(self: FFTDimension) -> float:
+        """..
+
+        Returns
+        -------
+        float
+            The smallest position grid point.
+        """
+        return self._pos_min
+
+    @property
+    def pos_max(self: FFTDimension) -> float:
+        """..
+
+        Returns
+        -------
+        float
+            The largest position grid point.
+        """
+        return (self.n - 1) * self.d_pos + self.pos_min
+
+    @property
+    def pos_middle(self: FFTDimension) -> float:
+        """..
+
+        Returns
+        -------
+        float
+            The middle of the position grid.
+            If n is even, it is defined as the (n/2+1)'th position grid point.
+        """
+        return self.pos_min + self.n//2 * self.d_pos
+
+    @property
+    def pos_extent(self: FFTDimension) -> float:
+        """..
+
+        Returns
+        -------
+        float
+            The length of the position grid.
+            It is defined as `pos_max - pos_min`.
+        """
+        return (self.n - 1) * self.d_pos
+
+    def _dim_from_slice(
+            self,
+            range: slice,
+            space: Space,
+        ) -> FFTDimension:
+        """
+            Get a new FFTDimension for a interval selection in a given space.
+            Does not support steps!=1.
+
+            Indexing behaviour is the same as for a numpy array with the
+            difference that we raise an IndexError if the resulting size
+            is not at least 1. We require n>=1 to create a valid FFTDimension.
+        """
+
+        # Catch invalid slice objects with range.step != 1
+        check_substepping(range)
+
+        start = remap_index_check_int(range.start, self.n, index_kind="start")
+        end = remap_index_check_int(range.stop, self.n, index_kind="stop")
+
+        n = end - start
+        # Check validity of slice object which has to
+        # yield at least one dimension value
+        if n < 1:
+            raise IndexError(
+                f"Your indexing {range} is not valid. To create a valid "
+                + "FFTDimension, the stop index must be bigger than the start "
+                + "index in order to keep at least one sample (n>=1)."
+            )
+
+        return self._dim_from_start_and_n(start=start, n=n, space=space)
+
+    def _dim_from_start_and_n(
+            self,
+            start: int,
+            n: int,
+            space: Space,
+        ) -> FFTDimension:
+        """Returns new FFTDimension instance starting at a specific value
+        in either pos or freq space and setting variable dimension length.
+        """
+
+        if space == "pos":
+            pos_min = self.pos_min + start*self.d_pos
+            freq_min = self.freq_min
+            d_pos = self.d_pos
+        elif space == "freq":
+            pos_min = self.pos_min
+            freq_min = self.freq_min + start*self.d_freq
+            d_pos = 1./(self.d_freq*n)
+        else:
+            assert False, "Unreachable"
+
+        return FFTDimension(
+            name=self.name, # type: ignore
+            n=n,
+            pos_min=pos_min,
+            freq_min=freq_min,
+            d_pos=d_pos,
+        )
+
+    def _index_from_coord(
+            self,
+            coord: Union[float, slice],
+            space: Space,
+            backend: Backend,
+            method: Optional[Literal["nearest", "pad", "ffill", "backfill", "bfill"]] = None,
+        ) -> Union[int, slice]:
+        """Compute index from given coordinate which can be float or slice.
+        In case of slice input, find the dimension indices which are
+        including the selected coordinates, and return appropriate slice object.
+
+        Short explanation what "pad", "ffill", "backfill", "bfill" do:
+            bfill, backfill: maps 2.5 to next valid index 3
+            pad, ffill: maps 2.5 to previous valid index 2
+        """
+        # The first part handles coords supplied as slice object whereas
+        # it prepares those and distributes the actual work to the second
+        # part of this function which handles scalar objects
+        if isinstance(coord, slice):
+            check_substepping(coord)
+            if method is not None:
+                # This catches slices supplied to FFTArray.sel or isel with
+                # a method != None (e.g. nearest) which is not supported
+                raise NotImplementedError(
+                    f"cannot use method: `{method}` if the coord argument "
+                    + f"is not scalar, here: {coord}."
+                )
+            # Handle slice objects with start or end being None whereas
+            # we substitute those with the FFTDimension bounds
+            if coord.start is None:
+                coord_start = getattr(self, f"{space}_min")
+            else:
+                coord_start = coord.start
+            if coord.stop is None:
+                coord_stop = getattr(self, f"{space}_max")
+            else:
+                coord_stop = coord.stop
+
+            # Use the scalar part of this function with the methods bfill and ffill
+            # to yield indices to include the respective coordinates
+            idx_min: int = self._index_from_coord(coord_start, method="bfill", space=space, backend=backend) # type: ignore
+            idx_max: int = self._index_from_coord(coord_stop, method="ffill", space=space, backend=backend) # type: ignore
+            return slice(
+                idx_min,
+                idx_max + 1 # as slice.stop is non-inclusive, add 1
+            )
+        else:
+            # Calculate the float index regarding the FFTDimension as
+            # an infinite grid
+            if space == "pos":
+                raw_idx = (coord - self.pos_min) / self.d_pos
+            else:
+                raw_idx = (coord - self.freq_min) / self.d_freq
+
+            # Clamp float index to the valid range of 0 to n-1
+            clamped_index = min(
+                max(0, raw_idx),
+                self.n - 1
+            )
+
+            # Handle different methods case by case here
+            if method is None:
+                # We round the raw float indices here and check whether they
+                # match their rounded int-like value, if not we throw a KeyError
+                if (round(raw_idx) != raw_idx or clamped_index != raw_idx):
+                    raise KeyError(
+                        f"No exact index found for {coord} in {space}-space of dim " +
+                        f'"{self.name}". Try the keyword argument ' +
+                        'method="nearest".'
+                    )
+                final_idx = raw_idx
+            elif  method == "nearest":
+                # The combination of floor and +0.5 prevents the "ties to even" rounding of floating point numbers.
+                # We only need one branch since our indices are always positive.
+                final_idx = np.floor(clamped_index + 0.5)
+            elif method in ["bfill", "backfill"]:
+                # We propagate towards the next highest index and then check
+                # its validity by checking if it's smaller or equal than
+                # the dimension length n
+                final_idx = np.ceil(clamped_index)
+                if raw_idx > self.n - 1:
+                    raise KeyError(
+                        f"Coord {coord} not found with method '{method}', "
+                        + "you could try one of the following instead: "
+                        + "'ffill', 'pad' or 'nearest'."
+                    )
+            elif method in ["ffill", "pad"]:
+                # We propagate back to the next smalles index and then check
+                # its validity by checking if it's at least 0
+                final_idx = np.floor(clamped_index)
+                if raw_idx < 0:
+                    raise KeyError(
+                        f"Coord {coord} not found with method '{method}', "
+                        + "you could try one of the following instead: "
+                        + "'bfill', 'backfill' or 'nearest'."
+                    )
+            else:
+                raise ValueError(f"Specified unsupported look-up method `{method}`.")
+
+            # Transform index to integer here. We can do this because we
+            # ensured validity in the cases above, especially for method = None
+            return int(final_idx)
+
+    # ---------------------------- Frequency Space --------------------------- #
+
+    @property
+    def d_freq(self: FFTDimension) -> float:
+        """..
+
+        Returns
+        -------
+        float
+            The distance between frequency grid points.
+        """
+        return 1./(self.n*self.d_pos)
+
+    @property
+    def freq_min(self: FFTDimension) -> float:
+        """..
+
+        Returns
+        -------
+        float
+            The smallest frequency grid point.
+
+        """
+        return self._freq_min
+
+    @property
+    def freq_middle(self: FFTDimension) -> float:
+        """..
+
+        Returns
+        -------
+        float
+            The middle of the frequency grid.
+            If n is even, it is defined as the (n/2+1)'th frequency grid point.
+        """
+        return self.freq_min + self.n//2 * self.d_freq
+
+    @property
+    def freq_max(self: FFTDimension) -> float:
+        """..
+
+        Returns
+        -------
+        float
+            The largest frequency grid point.
+        """
+        return (self.n - 1) * self.d_freq + self.freq_min
+
+    @property
+    def freq_extent(self: FFTDimension) -> float:
+        """..
+
+        Returns
+        -------
+        float
+            The length of the frequency grid.
+            It is defined as `freq_max - freq_min`.
+        """
+        return (self.n - 1) * self.d_freq
+
+    def _raw_coord_array(
+                self: FFTDimension,
+                backend: Backend,
+                space: Space,
+            ):
+
+        indices = backend.numpy_ufuncs.arange(
+            0,
+            self.n,
+            dtype = backend.real_type,
+        )
+
+        if space == "pos":
+            return indices * self.d_pos + self.pos_min
+        elif space == "freq":
+            return indices * self.d_freq + self.freq_min
+        else:
+            raise ValueError(f"space has to be either 'pos' or 'freq', not {space}.")
+
+    def fft_array(
+            self: FFTDimension,
+            space: Space,
+            backend: Optional[Backend] = None,
+            eager: Optional[bool] = None,
+        ) -> FFTArray:
+        """..
+
+        Parameters
+        ----------
+        space : Space
+            Specify the space of the coordinates and in which space the returned FFTArray is intialized.
+        backend : Optional[Backend]
+            The backend to use for the returned FFTArray.  `None` uses default `NumpyBackend("default")` which can be globally changed.
+        eager :  Optional[bool]
+            The eager-mode to use for the returned FFTArray.  `None` uses default `False` which can be globally changed.
+
+        Returns
+        -------
+        FFTArray
+            The grid coordinates of the chosen space packed into an FFTArray with self as only dimension.
+
+        See Also
+        --------
+            set_default_backend, get_default_backend
+            set_default_eager, get_default_eager
+        """
+
+        if backend is None:
+            backend = get_default_backend()
+
+        if eager is None:
+            eager = get_default_eager()
+
+        values = self._raw_coord_array(
+            backend=backend,
+            space=space,
+        )
+
+        return FFTArray(
+            values=values,
+            dims=[self],
+            eager=eager,
+            factors_applied=True,
+            space=space,
+            backend=backend,
+        )
+
+    def np_array(self: FFTDimension, space: Space):
+        return self._raw_coord_array(backend=NumpyBackend(), space=space)
+    

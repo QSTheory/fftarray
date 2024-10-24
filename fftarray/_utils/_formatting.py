@@ -2,7 +2,8 @@ from typing import Optional, TYPE_CHECKING
 import numpy as np
 
 if TYPE_CHECKING:
-    from ..fft_array import FFTArray, FFTDimension
+    from ..fft_dimension import FFTDimension
+    from ..fft_array import FFTArray
 
 def format_bytes(bytes) -> str:
     """Converts bytes to KiB, MiB, GiB and TiB."""
