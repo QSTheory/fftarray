@@ -108,27 +108,27 @@ def test_dtype(backend, precision, override, eager: bool) -> None:
     )
 
     if backend_override is None:
-        assert x_dim.fft_array(backend=backend_init, space="pos").values.dtype == backend_init.real_type
+        assert x_dim.fft_array(backend=backend_init, space="pos").values(space="pos").dtype == backend_init.real_type
     else:
-        assert x_dim.fft_array(backend=backend_override, space="pos", eager=eager).values.dtype == backend_override.real_type
-        assert x_dim.fft_array(backend=backend_init, space="pos", eager=eager).into(backend=backend_override).values.dtype == backend_override.real_type
+        assert x_dim.fft_array(backend=backend_override, space="pos", eager=eager).values(space="pos").dtype == backend_override.real_type
+        assert x_dim.fft_array(backend=backend_init, space="pos", eager=eager).into(backend=backend_override).values(space="pos").dtype == backend_override.real_type
 
 
     if backend_override is None:
-        assert x_dim.fft_array(backend=backend_init, space="freq", eager=eager).values.dtype == backend_init.real_type
+        assert x_dim.fft_array(backend=backend_init, space="freq", eager=eager).values(space="freq").dtype == backend_init.real_type
     else:
-        assert x_dim.fft_array(backend=backend_override, space="freq", eager=eager).values.dtype == backend_override.real_type
-        assert x_dim.fft_array(backend=backend_init, space="freq", eager=eager).into(backend=backend_override).values.dtype == backend_override.real_type
+        assert x_dim.fft_array(backend=backend_override, space="freq", eager=eager).values(space="freq").dtype == backend_override.real_type
+        assert x_dim.fft_array(backend=backend_init, space="freq", eager=eager).into(backend=backend_override).values(space="freq").dtype == backend_override.real_type
 
-    assert x_dim.fft_array(backend=backend_init, space="pos", eager=eager).into(space="freq").values.dtype == backend_init.complex_type
-    assert x_dim.fft_array(backend=backend_init, space="freq", eager=eager).into(space="pos").values.dtype == backend_init.complex_type
+    assert x_dim.fft_array(backend=backend_init, space="pos", eager=eager).into(space="freq").values(space="freq").dtype == backend_init.complex_type
+    assert x_dim.fft_array(backend=backend_init, space="freq", eager=eager).into(space="pos").values(space="pos").dtype == backend_init.complex_type
 
-    assert np.abs(x_dim.fft_array(backend=backend_init, space="pos", eager=eager).into(space="freq")).values.dtype == backend_init.real_type # type: ignore
-    assert np.abs(x_dim.fft_array(backend=backend_init, space="freq", eager=eager).into(space="pos")).values.dtype == backend_init.real_type # type: ignore
+    assert np.abs(x_dim.fft_array(backend=backend_init, space="pos", eager=eager).into(space="freq")).values(space="freq").dtype == backend_init.real_type # type: ignore
+    assert np.abs(x_dim.fft_array(backend=backend_init, space="freq", eager=eager).into(space="pos")).values(space="pos").dtype == backend_init.real_type # type: ignore
 
     if backend_override is not None:
-        assert x_dim.fft_array(backend=backend_init, space="pos", eager=eager).into(space="freq", backend=backend_override).values.dtype == backend_override.complex_type
-        assert x_dim.fft_array(backend=backend_init, space="freq", eager=eager).into(space="pos", backend=backend_override).values.dtype == backend_override.complex_type
+        assert x_dim.fft_array(backend=backend_init, space="pos", eager=eager).into(space="freq", backend=backend_override).values(space="freq").dtype == backend_override.complex_type
+        assert x_dim.fft_array(backend=backend_init, space="freq", eager=eager).into(space="pos", backend=backend_override).values(space="pos").dtype == backend_override.complex_type
 
     # For non-float and non-complex dtypes, we do not force the backend precision types
     # onto the values. Therefore, the FFTArray.values dtype should not be affected by the
@@ -142,7 +142,7 @@ def test_dtype(backend, precision, override, eager: bool) -> None:
         backend=backend_init,
         factors_applied=True,
     )
-    assert int_arr.values.dtype == int_arr.into(backend=backend_override).values.dtype
+    assert int_arr.values(space="pos").dtype == int_arr.into(backend=backend_override).values(space="pos").dtype
 
     bool_arr = FFTArray(
         values=backend_init.array([False, True, False, False]),
@@ -152,7 +152,7 @@ def test_dtype(backend, precision, override, eager: bool) -> None:
         backend=backend_init,
         factors_applied=True,
     )
-    assert bool_arr.values.dtype == bool_arr.into(backend=backend_override).values.dtype
+    assert bool_arr.values(space="pos").dtype == bool_arr.into(backend=backend_override).values(space="pos").dtype
 
 @pytest.mark.parametrize("backend", backends)
 def test_invalid_dtype(backend) -> None:
@@ -169,13 +169,13 @@ def test_backend_override(backend, override) -> None:
         freq_min=0.,
     )
 
-    assert type(x_dim.fft_array(backend=backend(), space="pos").into(backend=override()).values) == type(x_dim.fft_array(backend=override(), space="pos").values)
-    assert type(x_dim.fft_array(backend=backend(), space="freq").into(backend=override()).values) == type(x_dim.fft_array(backend=override(), space="freq").values)
-    assert type(x_dim.fft_array(backend=backend(), space="pos").into(backend=override()).into(space="freq").values) == type(x_dim.fft_array(backend=override(), space="freq").values)
-    assert type(x_dim.fft_array(backend=backend(), space="freq").into(backend=override()).into(space="pos").values) == type(x_dim.fft_array(backend=override(), space="pos").values)
+    assert type(x_dim.fft_array(backend=backend(), space="pos").into(backend=override()).values(space="pos")) == type(x_dim.fft_array(backend=override(), space="pos").values(space="pos"))
+    assert type(x_dim.fft_array(backend=backend(), space="freq").into(backend=override()).values(space="freq")) == type(x_dim.fft_array(backend=override(), space="freq").values(space="freq"))
+    assert type(x_dim.fft_array(backend=backend(), space="pos").into(backend=override()).into(space="freq").values(space="freq")) == type(x_dim.fft_array(backend=override(), space="freq").values(space="freq"))
+    assert type(x_dim.fft_array(backend=backend(), space="freq").into(backend=override()).into(space="pos").values(space="pos")) == type(x_dim.fft_array(backend=override(), space="pos").values(space="pos"))
 
-    assert type(x_dim.fft_array(backend=backend(), space="pos").into(space="freq", backend=override()).values) == type(x_dim.fft_array(backend=override(), space="freq").values)
-    assert type(x_dim.fft_array(backend=backend(), space="freq").into(space="pos", backend=override()).values) == type(x_dim.fft_array(backend=override(), space="freq").values)
+    assert type(x_dim.fft_array(backend=backend(), space="pos").into(space="freq", backend=override()).values(space="freq")) == type(x_dim.fft_array(backend=override(), space="freq").values(space="freq"))
+    assert type(x_dim.fft_array(backend=backend(), space="freq").into(space="pos", backend=override()).values(space="pos")) == type(x_dim.fft_array(backend=override(), space="freq").values(space="freq"))
 
 
 def test_broadcasting(nulp: int = 1) -> None:
@@ -189,8 +189,8 @@ def test_broadcasting(nulp: int = 1) -> None:
 
     x_ref_broadcast = x_ref.reshape(1,-1)
     y_ref_broadcast = y_ref.reshape(-1,1)
-    np.testing.assert_array_almost_equal_nulp((x_dim.fft_array(backend=NumpyBackend(), space="pos") + y_dim.fft_array(backend=NumpyBackend(), space="pos")).transpose("x", "y").values, (x_ref_broadcast+y_ref_broadcast).transpose(), nulp = 0)
-    np.testing.assert_array_almost_equal_nulp((x_dim.fft_array(backend=NumpyBackend(), space="pos") + y_dim.fft_array(backend=NumpyBackend(), space="pos")).transpose("y", "x").values, x_ref_broadcast+y_ref_broadcast, nulp = 0)
+    np.testing.assert_array_almost_equal_nulp((x_dim.fft_array(backend=NumpyBackend(), space="pos") + y_dim.fft_array(backend=NumpyBackend(), space="pos")).transpose("x", "y").values(space="pos"), (x_ref_broadcast+y_ref_broadcast).transpose(), nulp = 0)
+    np.testing.assert_array_almost_equal_nulp((x_dim.fft_array(backend=NumpyBackend(), space="pos") + y_dim.fft_array(backend=NumpyBackend(), space="pos")).transpose("y", "x").values(space="pos"), x_ref_broadcast+y_ref_broadcast, nulp = 0)
 
 
 @pytest.mark.parametrize("backend", backends)
@@ -210,7 +210,7 @@ def test_sel_order(backend, space):
     arr_sely = arr.sel(**{"y": getattr(ydim, f"{space}_middle")})
     arr_selx_sely = arr_selx.sel(**{"y": getattr(ydim, f"{space}_middle")})
     arr_sely_selx = arr_sely.sel(**{"x": getattr(xdim, f"{space}_middle")})
-    np.testing.assert_allclose(arr_selx_sely.values, arr_sely_selx.values)
+    np.testing.assert_allclose(arr_selx_sely.values(space=space), arr_sely_selx.values(space=space))
 
 def test_defaults() -> None:
     assert fftarray.get_default_eager() is False
@@ -250,7 +250,7 @@ def check_defaults(dim, backend: Backend, eager: bool) -> None:
         dims=[dim],
         space="pos",
     )
-    assert (manual_arr==arr).values.all()
+    assert (manual_arr==arr).values(space="pos").all()
     assert fftarray.get_default_backend() == backend
     assert arr.eager == (eager,)
     assert arr.backend == backend
@@ -347,8 +347,8 @@ def test_fftarray_lazyness_reduced(backend, precision, space, eager, factors_app
 def test_immutability(backend) -> None:
     xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
     arr = xdim.fft_array(backend=backend("fp64"), space="pos")
-    values = arr.values
-    assert arr.values[0] == -0.2
+    values = arr.values(space="pos")
+    assert arr.values(space="pos")[0] == -0.2
     try:
         # For backends with immutable arrays (e.g. jax), we assume this fails.
         # In these cases, we skip testing immutability ourself.
@@ -356,14 +356,14 @@ def test_immutability(backend) -> None:
     except:
         pass
 
-    assert arr.values[0] == -0.2
+    assert arr.values(space="pos")[0] == -0.2
     arr_2 = arr.into("freq").into("pos")
-    values_2 = arr_2.values
+    values_2 = arr_2.values(space="pos")
     try:
         values_2[0] = 10
     except:
         pass
-    assert arr_2.values[0] == -0.2
+    assert arr_2.values(space="pos")[0] == -0.2
 
 def assert_basic_lazy_logic(arr, log):
     """Tests whether FFTArray.values is equal to the internal _values for the
@@ -374,24 +374,24 @@ def assert_basic_lazy_logic(arr, log):
     if all(arr._factors_applied):
         # fftarray must be handled the same way as applying the operations to the values numpy array
         log("factors_applied=True -> x.values == x._values")
-        np.testing.assert_array_equal(arr.values, arr._values, strict=True)
+        np.testing.assert_array_equal(arr.values(space=arr.space), arr._values, strict=True)
 
-    log("space='pos' -> abs(x.values) == abs(x._values)")
-    log("space='freq' -> abs(x.values) == abs(x._values)/(n*d_freq)")
+    log("space='pos' -> abs(x.values(space='pos')) == abs(x._values)")
+    log("space='freq' -> abs(x.values(space='freq')) == abs(x._values)/(n*d_freq)")
     scale = 1
     for dim, space, fa in zip(arr.dims, arr.space, arr._factors_applied):
         if space == "freq" and not fa:
             scale *= 1/(dim.n*dim.d_freq)
     rtol = 1e-6 if arr.backend.precision == "fp32" else 1e-12
-    np.testing.assert_allclose(np.abs(arr.values), np.abs(arr._values)*scale, rtol=rtol)
+    np.testing.assert_allclose(np.abs(arr.values(space=arr.space)), np.abs(arr._values)*scale, rtol=rtol)
 
 def is_inf_or_nan(x):
     """Check if (real or imag of) x is inf or nan"""
     return (np.isinf(x.real).any() or np.isinf(x.imag).any() or np.isnan(x.real).any() or np.isnan(x.imag).any())
 
 def internal_and_public_values_should_differ(arr: FFTArray):
-    """Returns boolean, whether `fftarray.values` should differ from
-    `fftarray._values`.
+    """Returns boolean, whether `arr.values(arr.space)` should differ from
+    `arr._values`.
     This is the case if `factors_applied=False` and the values are non-zero
     (along at least one dimension).
     Note that the position space needs to be treated separately as the phase
@@ -432,7 +432,7 @@ def assert_equal_op(
     if the factors have not been applied after operation and if the values are
     non-zero). If it is True, it is tested if they are equal.
     """
-    arr_op = op(arr).values
+    arr_op = op(arr).values(space=arr.space)
     values_op = op(values)
 
     if arr_op.dtype != values_op.dtype:
@@ -481,7 +481,7 @@ def assert_single_operand_fun_equivalence(arr: FFTArray, precise: bool, log):
         operand(FFTArray).values == operand(FFTArray.values)
 
     """
-    values = arr.values
+    values = arr.values(space=arr.space)
     log("f(x) = x")
     assert_equal_op(arr, values, lambda x: x, precise, False, log)
     log("f(x) = pi*x")
@@ -505,7 +505,7 @@ def assert_dual_operand_fun_equivalence(arr: FFTArray, precise: bool, log):
         operand(FFTArray, FFTArray).values = operand(FFTArray.values, FFTArray.values)
 
     """
-    values = arr.values
+    values = arr.values(space=arr.space)
     log("f(x,y) = x+y")
     assert_equal_op(arr, values, lambda x: x+x, precise, False, log)
     log("f(x,y) = x-2*y")
@@ -586,11 +586,11 @@ def test_fft_ifft_invariance(backend, space: Space):
     other_space = get_other_space(space)
     arr_fft = arr.into(space=other_space)
     arr_fft_ifft = arr_fft.into(space=space)
-    if is_inf_or_nan(arr_fft_ifft.values):
+    if is_inf_or_nan(arr_fft_ifft.values(space=arr_fft_ifft.space)):
         # edge cases (very large numbers) result in inf after fft
         return
     rtol = 1e-5 if arr.backend.precision == "fp32" else 1e-6
-    np.testing.assert_allclose(arr.values, arr_fft_ifft.values, rtol=rtol, atol=1e-38)
+    np.testing.assert_allclose(arr.values(space=arr.space), arr_fft_ifft.values(space=arr_fft_ifft.space), rtol=rtol, atol=1e-38)
 
 
 @pytest.mark.parametrize("backend", backends)

@@ -180,7 +180,7 @@ class FFTArray(metaclass=ABCMeta):
         str_out += "\n" + fft_array_props_table(self) + "\n\n"
         for i, dim in enumerate(self.dims):
             str_out += fft_dim_table(dim, i==0, True, i) + "\n"
-        str_out += f"\nvalues:\n{self.values}"
+        str_out += f"\nvalues:\n{self.values(space=self._spaces)}"
         return str_out
 
     def __bool__(self: FFTArray):
@@ -200,7 +200,7 @@ class FFTArray(metaclass=ABCMeta):
     def __array__(self, dtype=None, copy=None):
         if copy is False:
             raise ValueError("FFTArray is by design immutable and therefore does not allow direct access to the underlying array.")
-        return np.array(self.values, dtype=dtype, copy=copy)
+        return np.array(self.values(space=self._spaces), dtype=dtype, copy=copy)
 
     # Implement binary operations between FFTArray and also e.g. 1+wf and wf+1
     # This does intentionally not list all possible operators.
@@ -321,7 +321,7 @@ class FFTArray(metaclass=ABCMeta):
                     raise type(e)(additional_msg + orig_msg)
 
 
-        selected_values = self.values.__getitem__(tuple_indexers)
+        selected_values = self.values(self._spaces).__getitem__(tuple_indexers)
         # Dimensions with the length 1 are dropped in numpy indexing.
         # We decided against this and keeping even dimensions of length 1.
         # So we have to reintroduce those dropped dimensions via reshape.
@@ -503,20 +503,20 @@ class FFTArray(metaclass=ABCMeta):
         """
         return self._values.shape
 
-    @property
-    def values(self) -> Any:
+    def values(self, space: Union[Space, Iterable[Space]]) -> Any:
         """
             Return the values with all lazy state applied.
             Does not mutate self.
             Therefore each call evaluates its lazy state again.
-            Use `evaluate_lazy_state` if you want to evaluate it once and reuse it multiple times.
+            Use `.into(factors_applied=True)` if you want to evaluate it once and reuse it multiple times.
         """
-        return self._backend.get_values_with_lazy_factors(
-            values=self._values,
-            dims=self._dims,
-            input_factors_applied=self._factors_applied,
-            target_factors_applied=[True]*len(self._dims),
-            spaces=self._spaces,
+        fft_arr = self.into(space=space)
+        return fft_arr._backend.get_values_with_lazy_factors(
+            values=fft_arr._values,
+            dims=fft_arr._dims,
+            input_factors_applied=fft_arr._factors_applied,
+            target_factors_applied=[True]*len(fft_arr._dims),
+            spaces=fft_arr._spaces,
             ensure_copy=True,
         )
 
@@ -928,7 +928,7 @@ def _single_element_ufunc(ufunc, inp: FFTArray, kwargs):
         )
 
     # Fallback if no special case applies
-    values = backend_ufunc(inp.values, **kwargs)
+    values = backend_ufunc(inp.values(inp.space), **kwargs)
     return FFTArray(
         values=values,
         space=inp.space,
