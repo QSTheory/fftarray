@@ -216,43 +216,44 @@ def test_defaults() -> None:
     assert fftarray.get_default_backend() == NumpyBackend("default")
 
     xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=0., freq_min=0.)
-    arr = xdim.fft_array(space="pos")
-    manual_arr = FFTArray(
-        values=0.1*np.arange(4),
-        dims=[xdim],
-        space="pos",
-    )
-    assert (manual_arr==arr).values.all()
-    assert arr.eager == (False,)
-    assert arr.backend == NumpyBackend(precision="default")
+
+    check_defaults(xdim, backend=NumpyBackend(precision="default"), eager=False)
 
     fftarray.set_default_backend(JaxBackend(precision="fp32"))
-    arr = xdim.fft_array(space="pos")
-    manual_arr = FFTArray(
-        values=0.1*jnp.arange(4, dtype=jnp.float32),
-        dims=[xdim],
-        space="pos",
-    )
-    assert (manual_arr==arr).values.all()
-    assert fftarray.get_default_backend() == JaxBackend(precision="fp32")
-    assert arr.eager == (False,)
-    assert arr.backend == JaxBackend(precision="fp32")
+    check_defaults(xdim, backend=JaxBackend(precision="fp32"), eager=False)
 
     fftarray.set_default_eager(True)
-    arr = xdim.fft_array(space="pos")
-    manual_arr = FFTArray(
-        values=0.1*jnp.arange(4, dtype=jnp.float32),
-        dims=[xdim],
-        space="pos",
-    )
-    assert (manual_arr==arr).values.all()
-    assert fftarray.get_default_backend() == JaxBackend(precision="fp32")
-    assert arr.eager == (True,)
-    assert arr.backend == JaxBackend(precision="fp32")
+    check_defaults(xdim, backend=JaxBackend(precision="fp32"), eager=True)
 
     # Reset global state for other tests
     fftarray.set_default_eager(False)
     fftarray.set_default_backend(NumpyBackend(precision="default"))
+
+
+def test_defaults_context() -> None:
+    xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=0., freq_min=0.)
+
+    with fftarray.default_backend(backend=JaxBackend(precision="fp32")):
+       check_defaults(xdim, backend=JaxBackend(precision="fp32"), eager=False)
+    check_defaults(xdim, backend=NumpyBackend(precision="default"), eager=False)
+    with fftarray.default_backend(backend=JaxBackend(precision="fp32")):
+        with fftarray.default_eager(eager=True):
+            check_defaults(xdim, backend=JaxBackend(precision="fp32"), eager=True)
+        check_defaults(xdim, backend=JaxBackend(precision="fp32"), eager=False)
+
+
+def check_defaults(dim, backend: Backend, eager: bool) -> None:
+    arr = dim.fft_array(space="pos")
+    manual_arr = FFTArray(
+        values=0.1*backend.numpy_ufuncs.arange(4, dtype=backend.real_type),
+        dims=[dim],
+        space="pos",
+    )
+    assert (manual_arr==arr).values.all()
+    assert fftarray.get_default_backend() == backend
+    assert arr.eager == (eager,)
+    assert arr.backend == backend
+
 
 def draw_hypothesis_fft_array_values(draw, st_type, shape):
     """Creates multi-dimensional array with shape `shape` whose values are drawn
