@@ -200,7 +200,9 @@ class FFTArray(metaclass=ABCMeta):
     def __array__(self, dtype=None, copy=None):
         if copy is False:
             raise ValueError("FFTArray is by design immutable and therefore does not allow direct access to the underlying array.")
-        return np.array(self.values(space=self.space), dtype=dtype, copy=copy)
+        # numpy < 2.0 does not support copy=None.
+        # As we anyway only allow copies at the moment, we can map `None` to `True`.
+        return np.array(self.values(space=self.space), dtype=dtype, copy=True)
 
     # Implement binary operations between FFTArray and also e.g. 1+wf and wf+1
     # This does intentionally not list all possible operators.
