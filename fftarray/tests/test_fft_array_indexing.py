@@ -583,7 +583,7 @@ def generate_test_fftarray_xrdataset(
     xr_dataset = xr.Dataset(
         data_vars={
             'pos': ([f"{name}_pos" for name in dimension_names], np.array(fft_array.values(space="pos"))),
-            'freq': ([f"{name}_freq" for name in dimension_names], np.array(fft_array.into(space="freq").values(space="freq"))),
+            'freq': ([f"{name}_freq" for name in dimension_names], np.array(fft_array.values(space="freq"))),
         },
         coords=pos_coords | freq_coords
     )
