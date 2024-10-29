@@ -321,7 +321,7 @@ class FFTArray(metaclass=ABCMeta):
                     raise type(e)(additional_msg + orig_msg)
 
 
-        selected_values = self.values(self.space).__getitem__(tuple_indexers)
+        selected_values = self.values(space=self.space).__getitem__(tuple_indexers)
         # Dimensions with the length 1 are dropped in numpy indexing.
         # We decided against this and keeping even dimensions of length 1.
         # So we have to reintroduce those dropped dimensions via reshape.
@@ -928,7 +928,7 @@ def _single_element_ufunc(ufunc, inp: FFTArray, kwargs):
         )
 
     # Fallback if no special case applies
-    values = backend_ufunc(inp.values(inp.space), **kwargs)
+    values = backend_ufunc(inp.values(space=inp.space), **kwargs)
     return FFTArray(
         values=values,
         space=inp.space,
