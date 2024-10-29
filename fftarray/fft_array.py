@@ -180,7 +180,7 @@ class FFTArray(metaclass=ABCMeta):
         str_out += "\n" + fft_array_props_table(self) + "\n\n"
         for i, dim in enumerate(self.dims):
             str_out += fft_dim_table(dim, i==0, True, i) + "\n"
-        str_out += f"\nvalues:\n{self.values(space=self._spaces)}"
+        str_out += f"\nvalues:\n{self.values(space=self.space)}"
         return str_out
 
     def __bool__(self: FFTArray):
@@ -200,7 +200,7 @@ class FFTArray(metaclass=ABCMeta):
     def __array__(self, dtype=None, copy=None):
         if copy is False:
             raise ValueError("FFTArray is by design immutable and therefore does not allow direct access to the underlying array.")
-        return np.array(self.values(space=self._spaces), dtype=dtype, copy=copy)
+        return np.array(self.values(space=self.space), dtype=dtype, copy=copy)
 
     # Implement binary operations between FFTArray and also e.g. 1+wf and wf+1
     # This does intentionally not list all possible operators.
@@ -321,7 +321,7 @@ class FFTArray(metaclass=ABCMeta):
                     raise type(e)(additional_msg + orig_msg)
 
 
-        selected_values = self.values(self._spaces).__getitem__(tuple_indexers)
+        selected_values = self.values(self.space).__getitem__(tuple_indexers)
         # Dimensions with the length 1 are dropped in numpy indexing.
         # We decided against this and keeping even dimensions of length 1.
         # So we have to reintroduce those dropped dimensions via reshape.
@@ -330,8 +330,8 @@ class FFTArray(metaclass=ABCMeta):
         return FFTArray(
             values=selected_values,
             dims=new_dims,
-            space=self._spaces,
-            eager=self._eager,
+            space=self.space,
+            eager=self.eager,
             factors_applied=[True]*len(new_dims),
             backend=self.backend,
         )
