@@ -131,7 +131,7 @@ def test_dtype(backend, precision, override, eager: bool) -> None:
         assert x_dim.fft_array(backend=backend_init, space="freq", eager=eager).into(space="pos", backend=backend_override).values(space="pos").dtype == backend_override.complex_type
 
     # For non-float and non-complex dtypes, we do not force the backend precision types
-    # onto the values. Therefore, the FFTArray.values dtype should not be affected by the
+    # onto the values. Therefore, the FFTArray.values() dtype should not be affected by the
     # backend_override precision for both integer values and boolean values
 
     int_arr = FFTArray(
@@ -366,14 +366,14 @@ def test_immutability(backend) -> None:
     assert arr_2.values(space="pos")[0] == -0.2
 
 def assert_basic_lazy_logic(arr, log):
-    """Tests whether FFTArray.values is equal to the internal _values for the
+    """Tests whether FFTArray.values() is equal to the internal _values for the
     special cases where factors_applied=True, space="pos" and comparing the
     absolute values, and where space="freq" and comparing values to
     _values/(n*d_freq).
     """
     if all(arr._factors_applied):
         # fftarray must be handled the same way as applying the operations to the values numpy array
-        log("factors_applied=True -> x.values == x._values")
+        log("factors_applied=True -> x.values(space=x.space) == x._values(space=x.space)")
         np.testing.assert_array_equal(arr.values(space=arr.space), arr._values, strict=True)
 
     log("space='pos' -> abs(x.values(space='pos')) == abs(x._values)")
@@ -428,7 +428,7 @@ def assert_equal_op(
     unit in the last place for tolerance) or using the less stringent
     `numpy.testing.allclose`.
     If `op_forces_factors_applied` is False, it will be tested whether
-    op(FFTArray)._values deviates from op(FFTArray).values (which is the case
+    op(FFTArray)._values deviates from op(FFTArray).values() (which is the case
     if the factors have not been applied after operation and if the values are
     non-zero). If it is True, it is tested if they are equal.
     """
@@ -459,7 +459,7 @@ def assert_equal_op(
         # _values should have factors applied
         np.testing.assert_allclose(_arr_op, values_op, rtol=rtol, atol=1e-38)
     else:
-        # arr._values can differ from arr.values
+        # arr._values can differ from arr.values()
         if internal_and_public_values_should_differ(arr):
             with pytest.raises(AssertionError):
                 np.testing.assert_allclose(_arr_op, values_op, rtol=rtol)
@@ -478,7 +478,7 @@ def assert_single_operand_fun_equivalence(arr: FFTArray, precise: bool, log):
     """Test whether applying operands to the FFTArray (and then getting the
     values) is equivalent to applying the same operands to the values array:
 
-        operand(FFTArray).values == operand(FFTArray.values)
+        operand(FFTArray).values() == operand(FFTArray.values())
 
     """
     values = arr.values(space=arr.space)
@@ -502,7 +502,7 @@ def assert_dual_operand_fun_equivalence(arr: FFTArray, precise: bool, log):
     sum/multiplication of two, is equivalent to applying this operand to its
     values.
 
-        operand(FFTArray, FFTArray).values = operand(FFTArray.values, FFTArray.values)
+        operand(FFTArray, FFTArray).values() = operand(FFTArray.values(), FFTArray.values())
 
     """
     values = arr.values(space=arr.space)
