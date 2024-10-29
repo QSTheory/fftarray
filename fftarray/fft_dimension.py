@@ -546,4 +546,4 @@ class FFTDimension:
 
     def np_array(self: FFTDimension, space: Space):
         return self._raw_coord_array(backend=NumpyBackend(), space=space)
-    
+

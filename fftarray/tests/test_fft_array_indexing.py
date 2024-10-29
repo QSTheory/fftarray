@@ -260,11 +260,11 @@ def test_3d_fft_array_indexing_by_integer(
         return
 
     np.testing.assert_array_equal(
-        fft_array_result_isel.values,
+        fft_array_result_isel.values(space=space),
         xr_result
     )
     np.testing.assert_array_equal(
-        fft_array_result_square_brackets.values,
+        fft_array_result_square_brackets.values(space=space),
         xr_result
     )
 
@@ -302,7 +302,7 @@ def test_3d_fft_array_positional_indexing(
     xr_result_square_bracket = xr_dataset[space][indexers].data
 
     np.testing.assert_array_equal(
-        fft_array_result_square_brackets.values,
+        fft_array_result_square_brackets.values(space=space),
         xr_result_square_bracket
     )
 
@@ -310,7 +310,7 @@ def test_3d_fft_array_positional_indexing(
     xr_result_loc_square_bracket = xr_dataset[space].loc[indexers].data
 
     np.testing.assert_array_equal(
-        fft_array_result_loc_square_brackets.values,
+        fft_array_result_loc_square_brackets.values(space=space),
         xr_result_loc_square_bracket
     )
 
@@ -355,7 +355,7 @@ def test_3d_fft_array_label_indexing(
         return
 
     np.testing.assert_array_equal(
-        fft_array_result.values,
+        fft_array_result.values(space=space),
         xr_result
     )
 
@@ -421,13 +421,14 @@ def test_3d_fft_array_indexing(
         )
     else:
         np.testing.assert_array_equal(
-            fft_array_result_sel.values,
+            fft_array_result_sel.values(space=space),
             xr_result
         )
         np.testing.assert_array_equal(
-            fft_array_result_loc_square_brackets.values,
+            fft_array_result_loc_square_brackets.values(space=space),
             xr_result
         )
+
 
 valid_indexers = [
     {"x": slice(None, 5), "y": 4},
@@ -476,10 +477,10 @@ def test_fftarray_state_management(
 
     try:
         # Test FFTArray[]
-        fft_raw_values = fft_array_2d[indexers].values
+        fft_raw_values = fft_array_2d[indexers].values(space=fft_array_2d.space)
         fft_different_internal = fft_array_2d.into(space=diff_space_comb).into(space=space_comb_list)
         fft_indexed = fft_different_internal[indexers]
-        fft_indexed_values = fft_indexed.values
+        fft_indexed_values = fft_indexed.values(space=fft_indexed.space)
 
         np.testing.assert_allclose(fft_raw_values, fft_indexed_values, atol=1e-16)
         assert (
@@ -490,10 +491,10 @@ def test_fftarray_state_management(
         assert fft_different_internal.space == fft_indexed.space
 
         # Test FFTArray.isel()
-        fft_raw_values = fft_array_2d.isel(indexers).values
+        fft_raw_values = fft_array_2d.isel(indexers).values(space=fft_array_2d.space)
         fft_different_internal = fft_array_2d.into(space=diff_space_comb).into(space=space_comb_list)
         fft_indexed = fft_different_internal.isel(indexers)
-        fft_indexed_values = fft_indexed.values
+        fft_indexed_values = fft_indexed.values(space=fft_indexed.space)
 
         np.testing.assert_allclose(fft_raw_values, fft_indexed_values, atol=1e-16)
         assert (
@@ -504,10 +505,10 @@ def test_fftarray_state_management(
         assert fft_different_internal.space == fft_indexed.space
 
         # Test FFTArray.loc[]
-        fft_raw_values = fft_array_2d.loc[indexers].values
+        fft_raw_values = fft_array_2d.loc[indexers].values(space=fft_array_2d.space)
         fft_different_internal = fft_array_2d.into(space=diff_space_comb).into(space=space_comb_list)
         fft_indexed = fft_different_internal.loc[indexers]
-        fft_indexed_values = fft_indexed.values
+        fft_indexed_values = fft_indexed.values(space=fft_indexed.space)
 
         np.testing.assert_allclose(fft_raw_values, fft_indexed_values, atol=1e-16)
         assert (
@@ -518,10 +519,10 @@ def test_fftarray_state_management(
         assert fft_different_internal.space == fft_indexed.space
 
         # Test FFTArray.sel()
-        fft_raw_values = fft_array_2d.sel(indexers, method="nearest").values
+        fft_raw_values = fft_array_2d.sel(indexers, method="nearest").values(space=fft_array_2d.space)
         fft_different_internal = fft_array_2d.into(space=diff_space_comb).into(space=space_comb_list)
         fft_indexed = fft_different_internal.sel(indexers)
-        fft_indexed_values = fft_indexed.values
+        fft_indexed_values = fft_indexed.values(space=fft_indexed.space)
 
         np.testing.assert_allclose(fft_raw_values, fft_indexed_values, atol=1e-16)
         assert (
@@ -560,8 +561,8 @@ def generate_test_fftarray_xrdataset(
 
     xr_dataset = xr.Dataset(
         data_vars={
-            'pos': ([f"{name}_pos" for name in dimension_names], np.array(fft_array.values)),
-            'freq': ([f"{name}_freq" for name in dimension_names], np.array(fft_array.into(space="freq").values)),
+            'pos': ([f"{name}_pos" for name in dimension_names], np.array(fft_array.values(space="pos"))),
+            'freq': ([f"{name}_freq" for name in dimension_names], np.array(fft_array.values(space="freq"))),
         },
         coords=pos_coords | freq_coords
     )
@@ -617,12 +618,12 @@ def test_jit_static_indexing() -> None:
     xr_result_square_brackets = xr_dataset["pos"][slice(*sq_brackets_indexer)].data
 
     np.testing.assert_array_equal(
-        fft_array_result_isel.values,
+        fft_array_result_isel.values(space="pos"),
         xr_result_isel
     )
 
     np.testing.assert_array_equal(
-        fft_array_result_square_brackets.values,
+        fft_array_result_square_brackets.values(space="pos"),
         xr_result_square_brackets
     )
 
