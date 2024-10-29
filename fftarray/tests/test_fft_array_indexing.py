@@ -429,27 +429,6 @@ def test_3d_fft_array_indexing(
             xr_result
         )
 
-# def test_3d_fft_array_indexing(
-#     space: Space,
-# ) -> None:
-
-#     indexers = {"x": 3, "y": 1, "z": 4}
-#     backend = JaxBackend()
-#     fft_array, xr_dataset = generate_test_fftarray_xrdataset(
-#         ["x", "y", "z"],
-#         dimension_length=8,
-#         backend=backend
-#     )
-
-#     fft_array_result_sel = fft_array.into(space=space).isel(indexers)
-#     xr_indexer = make_xr_indexer(indexers, space)
-#     xr_result = xr_dataset[space].isel(xr_indexer).data
-
-#     np.testing.assert_array_equal(
-#         fft_array_result_sel.values(space=space),
-#         xr_result
-#     )
-
 
 valid_indexers = [
     {"x": slice(None, 5), "y": 4},
