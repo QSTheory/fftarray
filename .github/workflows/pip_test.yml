@@ -29,4 +29,4 @@ jobs:
         python -m pip install -e ".[check]"
     - name: Test with pytest
       run: |
-        python -m pytest --include-slow
+        python -m pytest
