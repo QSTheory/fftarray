@@ -500,8 +500,6 @@ class FFTArray(metaclass=ABCMeta):
         else:
             eager_norm = norm_param(eager, n_dims, bool)
 
-
-
         if backend is None:
             backend_norm = self._backend
         else:
@@ -581,19 +579,6 @@ class FFTArray(metaclass=ABCMeta):
     def backend(self) -> Backend:
         return self._backend
 
-    # @property
-    # def is_eager(self) -> bool:
-    #     return self._lazy_state is None
-
-    # def evaluate_lazy_state(self: TFFTArray) -> TFFTArray:
-    #     """
-    #         Return the same object from view of the public API.
-    #         But if the `values`-accessor is used multiple times this improives performance.
-    #     """
-    #     if self.is_eager:
-    #         return self
-    #     return self._set_lazy_state(LazyState())
-
     def transpose(self: FFTArray, *dims: Hashable) -> FFTArray:
         """
             Transpose with dimension names.
@@ -619,27 +604,6 @@ class FFTArray(metaclass=ABCMeta):
         )
         return transposed_arr
 
-    # def _set_backend(self: TFFTArray, backend: Optional[Backend] = None) -> TFFTArray:
-    #     """
-    #         Set backend if it is not None.
-    #         Collects just a bit of code from all `pos_array` and `freq_array` implementations.
-    #     """
-    #     res = self
-    #     if backend:
-    #         res = res.with_backend(backend)
-    #     return res
-
-    #--------------------
-    # Interface to implement
-    #--------------------
-    # @abstractmethod
-    # def pos_array(self, backend: Optional[Backend] = None) -> PosArray:
-    #     ...
-
-    # @abstractmethod
-    # def freq_array(self, backend: Optional[Backend] = None) -> FreqArray:
-    #     ...
-
     @property
     def space(self) -> Tuple[Space, ...]:
         """
@@ -654,26 +618,6 @@ class FFTArray(metaclass=ABCMeta):
             Otherwise they are always left as is and eager does not have any impact on the behavior of this class.
         """
         return self._eager
-
-
-    #--------------------
-    # Default implementations that may be overriden if there are performance benefits
-    #--------------------
-    # @property
-    # def pos_abs(self) -> PosArray:
-    #     return np.abs(self.pos_array) # type: ignore
-
-    # @property
-    # def pos_sq(self) -> PosArray:
-    #     return self.pos_abs**2
-
-    # @property
-    # def freq_abs(self) -> FreqArray:
-    #     return np.abs(self.freq_array) # type: ignore
-
-    # @property
-    # def freq_sq(self) -> FreqArray:
-    #     return self.freq_abs**2
 
     #--------------------
     # Helpers for the implementation
