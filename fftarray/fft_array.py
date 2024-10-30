@@ -25,57 +25,13 @@ from ._utils._indexing import (
     tuple_indexers_from_dict_or_tuple, tuple_indexers_from_mapping,
 )
 
+from ._utils._defaults import get_default_backend, get_default_eager
+
 if TYPE_CHECKING:
     from .fft_dimension import FFTDimension
 
 EllipsisType = TypeVar('EllipsisType')
 Space = Literal["pos", "freq"]
-
-_DEFAULT_BACKEND: Backend = NumpyBackend("default")
-
-def set_default_backend(backend: Backend) -> None:
-    global _DEFAULT_BACKEND
-    _DEFAULT_BACKEND= backend
-
-def get_default_backend() -> Backend:
-    return _DEFAULT_BACKEND
-
-def default_backend(backend: Backend):
-    return DefaultBackendContext(backend=backend)
-
-class DefaultBackendContext:
-    def __init__(self, backend: Backend):
-        self.override = backend
-
-    def __enter__(self):
-        self.previous = get_default_backend()
-        set_default_backend(self.override)
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        set_default_backend(self.previous)
-
-_DEFAULT_EAGER: bool = False
-
-def set_default_eager(eager: bool) -> None:
-    global _DEFAULT_EAGER
-    _DEFAULT_EAGER= eager
-
-def get_default_eager() -> bool:
-    return _DEFAULT_EAGER
-
-def default_eager(eager: bool):
-    return DefaultEagerContext(eager=eager)
-
-class DefaultEagerContext:
-    def __init__(self, eager: bool):
-        self.override = eager
-
-    def __enter__(self):
-        self.previous = get_default_eager()
-        set_default_eager(self.override)
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        set_default_eager(self.previous)
 
 class FFTArray(metaclass=ABCMeta):
     """The base class of `PosArray` and `FreqArray` that implements all shared
@@ -149,10 +105,10 @@ class FFTArray(metaclass=ABCMeta):
         """
 
         if backend is None:
-            backend = _DEFAULT_BACKEND
+            backend = get_default_backend()
 
         if eager is None:
-            eager = _DEFAULT_EAGER
+            eager = get_default_eager()
 
         self._dims = tuple(dims)
         n_dims = len(self._dims)
