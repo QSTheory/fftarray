@@ -1,0 +1,26 @@
+name: Run Pytest via pixi
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # 3.13 currently fails on installing pyfftw since the build of the wheel fails.
+        environment: [check310, check311, check312]
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - uses: prefix-dev/setup-pixi@v0.8.1
+      with:
+        pixi-version: v0.34.0
+        environments: ${{ matrix.environment }}
+        cache: true
+    - run: pixi run -e ${{ matrix.environment }} test_all
