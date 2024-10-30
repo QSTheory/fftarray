@@ -50,11 +50,25 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
     "bokeh",
     "ipykernel",
 ]
+
 "dev" = [
-    "fftarray[jax, pyFFTW, helpers, dashboards]",
+    "fftarray[jax, pyFFTW, helpers, dashboards, check, doc]",
+    "hatch",
+]
+
+"check" = [
+    "fftarray[jax, pyFFTW, helpers]",
     "mypy>=0.910",
     "pytest",
     "hypothesis",
+    "ipython",
+    "nbformat",
+    "bokeh",
+    "pytest-cov",
+]
+
+"doc" = [
+    "fftarray[jax, pyFFTW, helpers]",
     "sphinx>=4.2",
     "sphinx-autodoc-typehints",
     "sphinx-book-theme>=1.0.1",
@@ -65,8 +79,6 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
     "myst-nb",
     "m2r2",
     "matplotlib",
-    "pytest-cov",
-    "hatch",
 ]
 
 
@@ -106,8 +118,10 @@ system-requirements = {cuda = "12"}
 
 [tool.pixi.environments]
 # Recursive optional dependencies are currently ignored by pixi environments: https://github.com/prefix-dev/pixi/issues/2024
-devcuda = ["dev", "jaxcuda", "pyFFTW", "helpers", "dashboards"]
-dev = ["dev", "jax", "pyFFTW", "helpers", "dashboards"]
+devcuda = ["dev", "check", "doc", "jaxcuda", "pyFFTW", "helpers", "dashboards"]
+dev = ["dev", "check", "doc", "jax", "pyFFTW", "helpers", "dashboards"]
+doc = ["doc", "jax", "pyFFTW", "helpers"]
+check = ["check", "jax", "pyFFTW", "helpers"]
 
-[tool.pixi.feature.dev.dependencies]
+[tool.pixi.feature.doc.dependencies]
 pandoc = ">=3.5,<4"
