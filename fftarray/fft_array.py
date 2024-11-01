@@ -4,7 +4,6 @@ from typing import (
     Mapping, Optional, Union, List, Any, Tuple, Dict, Hashable,
     Literal, TypeVar, Iterable, Set, get_args, TYPE_CHECKING
 )
-from abc import ABCMeta
 from copy import copy
 from numbers import Number
 from dataclasses import dataclass
@@ -33,10 +32,8 @@ if TYPE_CHECKING:
 EllipsisType = TypeVar('EllipsisType')
 Space = Literal["pos", "freq"]
 
-class FFTArray(metaclass=ABCMeta):
-    """The base class of `PosArray` and `FreqArray` that implements all shared
-    behavior.
-    """
+class FFTArray:
+    """A single class implementing FFTs."""
 
     # _dims are stored as a sequence and not by name because their oder needs
     # to match the order of dimensions in _values.
