@@ -29,7 +29,7 @@ Example:
 
 """
 
-from .fft_dimension import FFTDimension
+from .fft_dimension import FFTDimension, dim
 from .fft_array import (
     FFTArray, Space, set_default_backend, get_default_backend,
     set_default_eager, get_default_eager, default_backend, default_eager
@@ -60,5 +60,7 @@ except ModuleNotFoundError:
          dynamically_traced_coords: bool = True,
     ) -> FFTDimension:
       raise ModuleNotFoundError("You need to install `fftarray[helpers]` to use the constraint solver.")
+
+
 
 

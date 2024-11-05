@@ -12,6 +12,27 @@ from ._utils.indexing import check_substepping, remap_index_check_int
 
 from .fft_array import Space, FFTArray, get_default_backend, get_default_eager
 
+
+def dim(
+        name: str,
+        n: int,
+        d_pos: float,
+        pos_min: float,
+        freq_min: float,
+        *,
+        dynamically_traced_coords: bool = True,
+    ) -> FFTDimension:
+    # TODO: How to duplicate the doc-string between function and FFTDimension
+
+    return FFTDimension(
+        name=name,
+        n=n,
+        d_pos=d_pos,
+        pos_min=pos_min,
+        freq_min=freq_min,
+        dynamically_traced_coords=dynamically_traced_coords,
+    )
+
 @dataclass
 class FFTDimension:
     """Properties of an FFTWave grid for one dimension.
