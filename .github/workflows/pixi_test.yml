@@ -14,6 +14,7 @@ jobs:
       matrix:
         # 3.13 currently fails on installing pyfftw since the build of the wheel fails.
         environment: [check310, check311, check312]
+        command: [test_all, mypy]
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -22,4 +23,4 @@ jobs:
         pixi-version: v0.34.0
         environments: ${{ matrix.environment }}
         cache: true
-    - run: pixi run -e ${{ matrix.environment }} test_all
+    - run: pixi run -e ${{ matrix.environment }} ${{ matrix.command }}
