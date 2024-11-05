@@ -45,6 +45,7 @@ from .creation_functions import (
    coords_array,
    full,
 )
+from .statistical_functions import sum
 
 from .tools import shift_frequency, shift_position
 
