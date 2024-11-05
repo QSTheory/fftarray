@@ -5918,7 +5918,7 @@ packages:
   - validictory ; extra == 'devel'
 - kind: pypi
   name: fftarray
-  version: 0.4a1.dev226+gcc0321c.d20241113
+  version: 0.4a1.dev228+g2fc9087.d20241114
   path: .
   sha256: eafc576ada6162d573d58ba93fa905d9deda8e4a64f6621204e720c98c6381c6
   requires_dist:
