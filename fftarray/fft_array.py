@@ -14,15 +14,14 @@ from .named_array import align_named_arrays, get_axes_transpose
 from .backends.backend import Backend
 from .backends.numpy import NumpyBackend
 
-from ._utils._ufuncs import binary_ufuncs, unary_ufunc
-from ._utils._formatting import fft_dim_table, format_bytes
-from ._utils._unpacking import UniformValue, norm_param
-from ._utils._indexing import (
+from ._utils.ufuncs import binary_ufuncs, unary_ufunc
+from ._utils.formatting import fft_dim_table, format_bytes
+from ._utils.unpacking import UniformValue, norm_param
+from ._utils.indexing import (
     LocFFTArrayIndexer, check_missing_dim_names,
     tuple_indexers_from_dict_or_tuple, tuple_indexers_from_mapping,
 )
-
-from ._utils._defaults import get_default_backend, get_default_eager
+from ._utils.defaults import get_default_backend, get_default_eager
 
 if TYPE_CHECKING:
     from .fft_dimension import FFTDimension
