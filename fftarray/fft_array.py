@@ -2,7 +2,7 @@ from __future__ import annotations
 from collections import abc
 from typing import (
     Mapping, Optional, Union, List, Any, Tuple, Dict, Hashable,
-    Literal, TypeVar, Iterable, Set, get_args, TYPE_CHECKING
+    Literal, TypeVar, Iterable, Set, get_args
 )
 from copy import copy
 from numbers import Number
@@ -10,6 +10,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from .space import Space
+from .fft_dimension import FFTDimension
 from .named_array import align_named_arrays, get_axes_transpose
 from .backends.backend import Backend
 from .backends.numpy import NumpyBackend
@@ -23,11 +25,7 @@ from ._utils.indexing import (
 )
 from ._utils.defaults import get_default_backend, get_default_eager
 
-if TYPE_CHECKING:
-    from .fft_dimension import FFTDimension
-
 EllipsisType = TypeVar('EllipsisType')
-Space = Literal["pos", "freq"]
 
 T = TypeVar("T")
 
