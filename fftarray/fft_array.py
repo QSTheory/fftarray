@@ -11,6 +11,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from .space import Space
+from .fft_dimension import FFTDimension
 from .named_array import align_named_arrays, get_axes_transpose
 from .backends.backend import Backend
 from .backends.numpy import NumpyBackend
@@ -25,11 +27,7 @@ from ._utils.indexing import (
     tuple_indexers_from_dict_or_tuple, tuple_indexers_from_mapping,
 )
 
-if TYPE_CHECKING:
-    from .fft_dimension import FFTDimension
-
 EllipsisType = TypeVar('EllipsisType')
-Space = Literal["pos", "freq"]
 
 T = TypeVar("T")
 
@@ -88,6 +86,8 @@ def norm_param(val: Union[T, Iterable[T]], n: int, types) -> Tuple[T, ...]:
 
     # TODO: Can we make this type check work?
     return tuple(val) # type: ignore
+
+
 
 class FFTArray(metaclass=ABCMeta):
     """The base class of `PosArray` and `FreqArray` that implements all shared

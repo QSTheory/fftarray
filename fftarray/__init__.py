@@ -29,11 +29,14 @@ Example:
 
 """
 
+from .space import Space
 from .fft_dimension import FFTDimension, dim
 from .fft_array import (
-    FFTArray, Space, set_default_backend, get_default_backend,
+    FFTArray, set_default_backend, get_default_backend,
     set_default_eager, get_default_eager, default_backend, default_eager
 )
+
+from .creation_functions import array_from_dim
 
 from .tools import shift_frequency, shift_position
 
