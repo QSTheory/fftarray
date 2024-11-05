@@ -37,6 +37,7 @@ from .fft_array import (
 )
 
 from .creation_functions import array_from_dim
+from .statistical_functions import sum
 
 from .tools import shift_frequency, shift_position
 
