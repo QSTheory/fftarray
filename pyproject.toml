@@ -65,6 +65,7 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
     "nbformat",
     "bokeh",
     "pytest-cov",
+    "pytest-split",
 ]
 
 "doc" = [
@@ -91,6 +92,11 @@ version-file = "_version.py"
 [tool.pixi.tasks]
 test = { cmd = ["python", "-m", "pytest"]}
 test_all = { cmd = ["python", "-m", "pytest", "--include-slow"]}
+test_all_group = { cmd = ["python", "-m", "pytest", "--include-slow", "--splitting-algorithm", "least_duration", "--splits", "$N_GROUPS", "--group", "$GROUP_ID"]}
+# These durations are used to estimate the best split of tests when parallelizing.
+# This only needs to be run when tests changed significantly.
+# If the timings are out of date it just makes the split a bit less optimal.
+store_test_durations = { cmd = ["python", "-m", "pytest", "--include-slow", "--store-durations"]}
 mypy = { cmd = ["mypy", "fftarray"]}
 check = { depends-on = ["mypy", "test"]}
 cov_html = { cmd = ["python", "-m", "pytest", "--cov=./fftarray", "--cov=./examples", "--cov-report=html"]}
