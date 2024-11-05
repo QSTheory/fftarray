@@ -1,7 +1,8 @@
 from __future__ import annotations
+from ast import Assert
 from collections import abc
 from typing import (
-    Mapping, Optional, Union, List, Any, Tuple, Dict, Hashable,
+    Callable, Mapping, Optional, Union, List, Any, Tuple, Dict, Hashable,
     Literal, TypeVar, Iterable, Set, get_args, TYPE_CHECKING
 )
 from abc import ABCMeta
@@ -13,15 +14,16 @@ import numpy as np
 
 from .space import Space
 from .fft_dimension import FFTDimension
-from .named_array import align_named_arrays, get_axes_transpose
+from .named_array import get_axes_transpose, align_named_arrays
 from .backends.backend import Backend
 from .backends.numpy import NumpyBackend
+from ._utils.uniform_value import UniformValue
 
 from ._utils.ufuncs import binary_ufuncs, unary_ufunc
 from ._utils.formatting import (
     fft_dim_table, fft_array_props_table, format_bytes,
 )
-from ._utils.uniform_value import UniformValue
+# from .unpacking import UnpackedValues, unpack_fft_arrays
 from ._utils.indexing import (
     LocFFTArrayIndexer, check_missing_dim_names,
     tuple_indexers_from_dict_or_tuple, tuple_indexers_from_mapping,
@@ -86,6 +88,248 @@ def norm_param(val: Union[T, Iterable[T]], n: int, types) -> Tuple[T, ...]:
 
     # TODO: Can we make this type check work?
     return tuple(val) # type: ignore
+
+
+
+def mul_transforms(unp_inp: UnpackedValues) -> Tuple[List[List[Literal[-1, 1, None]]], List[bool]]:
+    factor_transforms: List[List[Literal[-1, 1, None]]] = [[None]*len(unp_inp.dims) for _ in range(2)]
+    final_factors_applied: List[bool] = []
+    # Element-wise multiplication is commutative with the multiplication of the phase factors.
+    # So we can always directly multiply with the inner values and can delay up to one set of phase factors per dimension.
+
+    # We only handle two operands.
+    # If both have a phase factor we must remove it for one of the values.
+    # Otherwise we can just take the raw values
+    for dim_idx in range(len(unp_inp.dims)):
+        fac_applied: Tuple[bool, bool] = (unp_inp.factors_applied[dim_idx][0], unp_inp.factors_applied[dim_idx][1])
+
+        # If both are not applied we have to apply the factor once
+        if fac_applied == (False, False):
+            # We pick to always do it on the second one.
+            # Divide requires this, multiply could also choose the first.
+            factor_transforms[1][dim_idx] = -1
+
+        # If both operands are applied, the final will be too, otherwise it will not.
+        final_factors_applied.append(all(fac_applied))
+
+    return factor_transforms, final_factors_applied
+
+def add_transforms(unp_inp: UnpackedValues) -> Tuple[List[List[Literal[-1, 1, None]]], List[bool]]:
+    factor_transforms: List[List[Literal[-1, 1, None]]] = [[None]*len(unp_inp.dims) for _ in range(2)]
+    final_factors_applied: List[bool] = []
+
+    for dim_idx in range(len(unp_inp.dims)):
+        fac_applied = (unp_inp.factors_applied[dim_idx][0], unp_inp.factors_applied[dim_idx][1])
+        if fac_applied[0] == fac_applied[1]:
+            # Both factors still need to be applied => factor them out
+            final_factors_applied.append(fac_applied[0])
+        else:
+            final_factors_applied.append(unp_inp.eager[dim_idx])
+
+            # Same as the commented out code below.
+            # Not sure if it is readable enough.
+
+            # If the first operand is applied and eager, we convert the second one.
+            # Same if it is not applied and lazy.
+            # Otherwise we convert the first one.
+            transformed_op_idx = int(fac_applied[0] == unp_inp.eager[dim_idx])
+            # If we are eager we want to the applied state, so sign=-1
+            # else we want to the internal state so we apply 1.
+            factor_transforms[transformed_op_idx][dim_idx] = -1 if unp_inp.eager[dim_idx] else 1
+    return factor_transforms, final_factors_applied
+
+def default_transforms(unp_inp: UnpackedValues) -> Tuple[List[List[Literal[-1, 1, None]]], List[bool]]:
+    factor_transforms: List[List[Literal[-1, 1, None]]] = [[None]*len(unp_inp.dims) for _ in range(2)]
+    final_factors_applied: List[bool] = []
+
+    # Define factor_transforms such that factors are applied for
+    # both operators because there is no special case applicable
+    for op_idx in [0,1]:
+        if unp_inp.is_fftarray[op_idx]:
+            res = unp_inp.backend.get_transform_signs(
+                input_factors_applied=[unp_inp.factors_applied[dim_idx][op_idx] for dim_idx in range(len(unp_inp.dims))],
+                target_factors_applied=[True]*len(unp_inp.dims),
+            )
+            if res is not None:
+                factor_transforms[op_idx] = res
+
+    final_factors_applied = [True]*len(unp_inp.dims)
+    return factor_transforms, final_factors_applied
+
+
+# Implementing NEP 13 https://numpy.org/neps/nep-0013-ufunc-overrides.html
+# See also https://numpy.org/doc/stable/user/basics.dispatch.html
+def two_inputs_func(x1, x2, unp_inp, op, get_transforms=default_transforms, kwargs={}):
+    inputs = [x1, x2]
+    factor_transforms, final_factors_applied = get_transforms(unp_inp)
+
+    # Apply above defined scale and phase factors depending on the specific case
+    for op_idx, signs_op in zip([0,1], factor_transforms):
+        if isinstance(inputs[op_idx], FFTArray):
+            unp_inp.values[op_idx] = unp_inp.backend.apply_scale_phases(
+                values=unp_inp.values[op_idx],
+                dims=unp_inp.dims,
+                signs=signs_op,
+                spaces=unp_inp.space,
+            )
+
+    values = op(*unp_inp.values, **kwargs)
+    return FFTArray(
+        values=values,
+        space=unp_inp.space,
+        dims=unp_inp.dims,
+        eager=unp_inp.eager,
+        factors_applied=final_factors_applied,
+        backend=unp_inp.backend,
+    )
+
+def elementwise_two_operands(name: str, get_transforms=default_transforms) -> Callable[[Any, Any], FFTArray]:
+    def fun(x1, x2) -> FFTArray:
+        unp_inp: UnpackedValues = unpack_fft_arrays([x1, x2])
+        return two_inputs_func(
+            x1=x1,
+            x2=x2,
+            unp_inp=unp_inp,
+            op=getattr(unp_inp.backend.numpy_ufuncs, name),
+            get_transforms=get_transforms,
+        )
+    return fun
+
+def elementwise_one_operand(name: str) -> Callable[[FFTArray], FFTArray]:
+    def single_element_ufunc(inp: FFTArray) -> FFTArray:
+        assert isinstance(inp, FFTArray)
+        op = getattr(inp.backend.numpy_ufuncs, name)
+        values = op(inp.values(space=inp.space))
+        return FFTArray(
+            values=values,
+            space=inp.space,
+            dims=inp.dims,
+            eager=inp.eager,
+            factors_applied=True,
+            backend=inp.backend,
+        )
+    return single_element_ufunc
+
+
+#------------------
+# Special Implementations
+#------------------
+
+# This one is the only one with kwargs, so just done by hand.
+def clip(x, *, min=None, max=None) -> FFTArray:
+    assert isinstance(x, FFTArray)
+    op = getattr(x.backend.numpy_ufuncs, "clip")
+    values = op(x.values(space=x.space), min=min, max=max)
+    return FFTArray(
+        values=values,
+        space=x.space,
+        dims=x.dims,
+        eager=x.eager,
+        factors_applied=True,
+        backend=x.backend,
+    )
+
+# These use special shortcuts in the phase application.
+add = elementwise_two_operands("add", add_transforms)
+subtract = elementwise_two_operands("subtract", add_transforms)
+multiply = elementwise_two_operands("multiply", mul_transforms)
+divide = elementwise_two_operands("divide", mul_transforms)
+
+
+def abs(x):
+    assert isinstance(x, FFTArray)
+    # For abs the final result does not change if we apply the phases
+    # to the values so we can simply ignore the phases.
+    values = x.backend.numpy_ufuncs.abs(x._values)
+    # The scale can be applied after abs which is more efficient in the case of a complex input
+    signs: List[Literal[-1, 1, None]] | None = x.backend.get_transform_signs(
+        # Can use input because with a single value no broadcasting happened.
+        input_factors_applied=x._factors_applied,
+        target_factors_applied=[True]*len(x._factors_applied),
+    )
+    if signs is not None:
+        values = x.backend.apply_scale(
+            values=values,
+            dims=x.dims,
+            signs=signs,
+            spaces=x.space,
+        )
+
+    return FFTArray(
+        values=values,
+        space=x.space,
+        dims=x.dims,
+        eager=x.eager,
+        factors_applied=True,
+        backend=x.backend,
+    )
+
+#------------------
+# Single operand element-wise functions
+#------------------
+acos = elementwise_one_operand("acos")
+acosh = elementwise_one_operand("acosh")
+asin = elementwise_one_operand("asin")
+asinh = elementwise_one_operand("asinh")
+atan = elementwise_one_operand("atan")
+atanh = elementwise_one_operand("atanh")
+bitwise_invert = elementwise_one_operand("bitwise_invert")
+ceil = elementwise_one_operand("ceil")
+conj = elementwise_one_operand("conj")
+cos = elementwise_one_operand("cos")
+cosh = elementwise_one_operand("cosh")
+exp = elementwise_one_operand("exp")
+expm1 = elementwise_one_operand("expm1")
+floor = elementwise_one_operand("floor")
+imag = elementwise_one_operand("imag")
+isfinite = elementwise_one_operand("isfinite")
+isinf = elementwise_one_operand("isinf")
+isnan = elementwise_one_operand("isnan")
+log = elementwise_one_operand("log")
+log1p = elementwise_one_operand("log1p")
+log2 = elementwise_one_operand("log2")
+log10 = elementwise_one_operand("log10")
+logical_not = elementwise_one_operand("logical_not")
+negative = elementwise_one_operand("negative")
+positive = elementwise_one_operand("positive")
+real = elementwise_one_operand("real")
+round = elementwise_one_operand("round")
+sign = elementwise_one_operand("sign")
+signbit = elementwise_one_operand("signbit")
+sin = elementwise_one_operand("sin")
+sinh = elementwise_one_operand("sinh")
+square = elementwise_one_operand("square")
+sqrt = elementwise_one_operand("sqrt")
+tan = elementwise_one_operand("tan")
+tanh = elementwise_one_operand("tanh")
+trunc = elementwise_one_operand("trunc")
+
+#------------------
+# Two operand element-wise functions
+#------------------
+atan2 = elementwise_two_operands("atan2")
+bitwise_and = elementwise_two_operands("bitwise_and")
+bitwise_left_shift = elementwise_two_operands("bitwise_left_shift")
+bitwise_or = elementwise_two_operands("bitwise_or")
+bitwise_right_shift = elementwise_two_operands("bitwise_right_shift")
+bitwise_xor = elementwise_two_operands("bitwise_xor")
+copysign = elementwise_two_operands("copysign")
+equal = elementwise_two_operands("equal")
+floor_divide = elementwise_two_operands("floor_divide")
+greater = elementwise_two_operands("greater")
+greater_equal = elementwise_two_operands("greater_equal")
+hypot = elementwise_two_operands("hypot")
+less = elementwise_two_operands("less")
+less_equal = elementwise_two_operands("less_equal")
+logaddexp = elementwise_two_operands("logaddexp")
+logical_and = elementwise_two_operands("logical_and")
+logical_or = elementwise_two_operands("logical_or")
+logical_xor = elementwise_two_operands("logical_xor")
+maximum = elementwise_two_operands("maximum")
+minimum = elementwise_two_operands("minimum")
+not_equal = elementwise_two_operands("not_equal")
+pow = elementwise_two_operands("pow")
+remainder = elementwise_two_operands("remainder")
 
 
 
@@ -199,36 +443,31 @@ class FFTArray(metaclass=ABCMeta):
         raise ValueError("The truth value of an array is ambiguous.")
 
     #--------------------
-    # Numpy Interfaces
+    # Operator Implementations
     #--------------------
-
-    # Support numpy ufuncs like np.sin, np.cos, etc.
-    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-        return _array_ufunc(self, ufunc, method, inputs, kwargs)
-
     # Implement binary operations between FFTArray and also e.g. 1+wf and wf+1
     # This does intentionally not list all possible operators.
-    __add__, __radd__ = binary_ufuncs(np.add)
-    __sub__, __rsub__ = binary_ufuncs(np.subtract)
-    __mul__, __rmul__ = binary_ufuncs(np.multiply)
-    __truediv__, __rtruediv__ = binary_ufuncs(np.true_divide)
-    __floordiv__, __rfloordiv__ = binary_ufuncs(np.floor_divide)
-    __pow__, __rpow__ = binary_ufuncs(np.power)
+    __add__, __radd__ = binary_ufuncs(add)
+    __sub__, __rsub__ = binary_ufuncs(subtract)
+    __mul__, __rmul__ = binary_ufuncs(multiply)
+    __truediv__, __rtruediv__ = binary_ufuncs(divide)
+    __floordiv__, __rfloordiv__ = binary_ufuncs(floor_divide)
+    __pow__, __rpow__ = binary_ufuncs(pow)
 
     # Implement comparison operators
-    __gt__, _ = binary_ufuncs(np.greater)
-    __ge__, _ = binary_ufuncs(np.greater_equal)
-    __lt__, _ = binary_ufuncs(np.less)
-    __le__, _ = binary_ufuncs(np.less_equal)
-    __ne__, _ = binary_ufuncs(np.not_equal)
-    __eq__, _ = binary_ufuncs(np.equal)
+    __gt__, _ = binary_ufuncs(greater)
+    __ge__, _ = binary_ufuncs(greater_equal)
+    __lt__, _ = binary_ufuncs(less)
+    __le__, _ = binary_ufuncs(less_equal)
+    __ne__, _ = binary_ufuncs(not_equal)
+    __eq__, _ = binary_ufuncs(equal)
 
 
     # Implement unary operations
-    __neg__ = unary_ufunc(np.negative)
-    __pos__ = unary_ufunc(np.positive)
-    __abs__ = unary_ufunc(np.absolute)
-    __invert__ = unary_ufunc(np.invert)
+    __neg__ = unary_ufunc(negative)
+    __pos__ = unary_ufunc(positive)
+    __abs__ = unary_ufunc(abs)
+    __invert__ = unary_ufunc(negative)
 
     #--------------------
     # Selection
@@ -791,165 +1030,14 @@ class FFTArray(metaclass=ABCMeta):
 
 
 
-# Implementing NEP 13 https://numpy.org/neps/nep-0013-ufunc-overrides.html
-# See also https://numpy.org/doc/stable/user/basics.dispatch.html
-def _array_ufunc(self: FFTArray, ufunc, method, inputs, kwargs):
-    """Override NumPy ufuncs, per NEP-13."""
-    if method != "__call__":
-        return NotImplemented
-
-    if "out" in kwargs:
-        return NotImplemented
-
-    # For now only unary and binary ufuncs
-    if len(inputs) > 2:
-        return NotImplemented
-
-    # Split out the single-element case because we can then skip the whole unpacking.
-    if len(inputs) == 1:
-        inp = inputs[0]
-        assert isinstance(inp, FFTArray)
-        return _single_element_ufunc(ufunc=ufunc, inp=inp, kwargs=kwargs)
-
-    unp_inp: UnpackedValues = _unpack_fft_arrays(inputs)
-
-    # Returning NotImplemented gives other operands a chance to see if they support interacting with us.
-    # Not really necessary here.
-    if not all(isinstance(x, (Number, FFTArray)) or hasattr(x, "__array__") for x in unp_inp.values):
-        return NotImplemented
-
-    # Look up the actual ufunc
-    try:
-        backend_ufunc = getattr(unp_inp.backend.numpy_ufuncs, ufunc.__name__)
-    except:
-        return NotImplemented
-
-    factor_transforms: List[List[Literal[-1, 1, None]]] = [[None]*len(unp_inp.dims) for _ in range(2)]
-    final_factors_applied: List[bool] = []
-
-    if (ufunc == np.multiply or ufunc == np.divide) and len(inputs) == 2:
-        # Element-wise multiplication is commutative with the multiplication of the phase factors.
-        # So we can always directly multiply with the inner values and can delay up to one set of phase factors per dimension.
-
-        # We only handle two operands.
-        # If both have a phase factor we must remove it for one of the values.
-        # Otherwise we can just take the raw values
-        for dim_idx in range(len(unp_inp.dims)):
-            fac_applied: Tuple[bool, bool] = (unp_inp.factors_applied[dim_idx][0], unp_inp.factors_applied[dim_idx][1])
-
-            # If both are not applied we have to apply the factor once
-            if fac_applied == (False, False):
-                # We pick to always do it on the second one.
-                # Divide requires this, multiply could also choose the first.
-                factor_transforms[1][dim_idx] = -1
-
-            # If both operands are applied, the final will be too, otherwise it will not.
-            final_factors_applied.append(all(fac_applied))
-
-    elif (ufunc == np.add or ufunc == np.subtract) and len(inputs) == 2:
-        for dim_idx in range(len(unp_inp.dims)):
-            fac_applied = (unp_inp.factors_applied[dim_idx][0], unp_inp.factors_applied[dim_idx][1])
-            if fac_applied[0] == fac_applied[1]:
-                # Both factors still need to be applied => factor them out
-                final_factors_applied.append(fac_applied[0])
-            else:
-                final_factors_applied.append(unp_inp.eager[dim_idx])
-
-                # Same as the commented out code below.
-                # Not sure if it is readable enough.
-
-                # If the first operand is applied and eager, we convert the second one.
-                # Same if it is not applied and lazy.
-                # Otherwise we convert the first one.
-                transformed_op_idx = int(fac_applied[0] == unp_inp.eager[dim_idx])
-                # If we are eager we want to the applied state, so sign=-1
-                # else we want to the internal state so we apply 1.
-                factor_transforms[transformed_op_idx][dim_idx] = -1 if unp_inp.eager[dim_idx] else 1
-
-    else:
-        # Define factor_transforms such that factors are applied for
-        # both operators because there is no special case applicable
-        for op_idx in [0,1]:
-            if isinstance(inputs[op_idx], FFTArray):
-                res = unp_inp.backend.get_transform_signs(
-                    input_factors_applied=[unp_inp.factors_applied[dim_idx][op_idx] for dim_idx in range(len(unp_inp.dims))],
-                    target_factors_applied=[True]*len(unp_inp.dims),
-                )
-                if res is not None:
-                    factor_transforms[op_idx] = res
-
-        final_factors_applied = [True]*len(unp_inp.dims)
-
-    # Apply above defined scale and phase factors depending on the specific case
-    for op_idx, signs_op in zip([0,1], factor_transforms):
-        if isinstance(inputs[op_idx], FFTArray):
-            unp_inp.values[op_idx] = unp_inp.backend.apply_scale_phases(
-                values=unp_inp.values[op_idx],
-                dims=unp_inp.dims,
-                signs=signs_op,
-                spaces=unp_inp.space,
-            )
-
-    values = backend_ufunc(*unp_inp.values, **kwargs)
-    return FFTArray(
-        values=values,
-        space=unp_inp.space,
-        dims=unp_inp.dims,
-        eager=unp_inp.eager,
-        factors_applied=final_factors_applied,
-        backend=unp_inp.backend,
-    )
-
-def _single_element_ufunc(ufunc, inp: FFTArray, kwargs):
-    try:
-        backend_ufunc = getattr(inp.backend.numpy_ufuncs, ufunc.__name__)
-    except:
-        return NotImplemented
-
-    if ufunc == np.abs:
-        # For abs the final result does not change if we apply the phases
-        # to the values so we can simply ignore the phases.
-        values = backend_ufunc(inp._values, **kwargs)
-        # The scale can be applied after abs which is more efficient in the case of a complex input
-        signs: List[Literal[-1, 1, None]] | None = inp.backend.get_transform_signs(
-            # Can use input because with a single value no broadcasting happened.
-            input_factors_applied=inp._factors_applied,
-            target_factors_applied=[True]*len(inp._factors_applied),
-        )
-        if signs is not None:
-            values = inp.backend.apply_scale(
-                values=values,
-                dims=inp.dims,
-                signs=signs,
-                spaces=inp.space,
-            )
-
-        return FFTArray(
-            values=values,
-            space=inp.space,
-            dims=inp.dims,
-            eager=inp.eager,
-            factors_applied=True,
-            backend=inp.backend,
-        )
-
-    # Fallback if no special case applies
-    values = backend_ufunc(inp.values(space=inp.space), **kwargs)
-    return FFTArray(
-        values=values,
-        space=inp.space,
-        dims=inp.dims,
-        eager=inp.eager,
-        factors_applied=True,
-        backend=inp.backend,
-    )
-
 @dataclass
 class UnpackedValues:
     # FFTDimensions in the order in which they appear in each non-scalar value.
     dims: Tuple[FFTDimension, ...]
     # Values without any dimensions, etc.
     values: List[Union[Number, Any]]
+    # whether the input was a FFTArray
+    is_fftarray: List[bool]
     # Shared backend between all values.
     backend: Backend
     # outer list: dim_idx, inner_list: op_idx, None: dim does not appear in operand
@@ -977,7 +1065,7 @@ class UnpackedDimProperties:
         self.eager = UniformValue()
         self.space = UniformValue()
 
-def _unpack_fft_arrays(
+def unpack_fft_arrays(
         values: List[Union[Number, FFTArray, Any]],
     ) -> UnpackedValues:
     """
@@ -988,6 +1076,7 @@ def _unpack_fft_arrays(
     arrays_to_align: List[Tuple[List[Hashable], Any]] = []
     array_indices = []
     unpacked_values: List[Optional[Union[Number, Any]]] = [None]*len(values)
+    is_fftarray: List[bool] = [isinstance(x, FFTArray) for x in values]
     backend: UniformValue[Backend] = UniformValue()
 
     for op_idx, x in enumerate(values):
@@ -1068,6 +1157,7 @@ def _unpack_fft_arrays(
     return UnpackedValues(
         dims = tuple(dims_list),
         values = unpacked_values, # type: ignore
+        is_fftarray = is_fftarray,
         space = space_list,
         factors_applied=factors_applied,
         eager=eager_list,

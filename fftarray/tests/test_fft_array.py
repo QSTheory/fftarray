@@ -128,8 +128,8 @@ def test_dtype(backend, precision, override, eager: bool) -> None:
     assert fa.array_from_dim(dim=x_dim, backend=backend_init, space="pos", eager=eager).into(space="freq").values(space="freq").dtype == backend_init.complex_type
     assert fa.array_from_dim(dim=x_dim, backend=backend_init, space="freq", eager=eager).into(space="pos").values(space="pos").dtype == backend_init.complex_type
 
-    assert np.abs(fa.array_from_dim(dim=x_dim, backend=backend_init, space="pos", eager=eager).into(space="freq")).values(space="freq").dtype == backend_init.real_type # type: ignore
-    assert np.abs(fa.array_from_dim(dim=x_dim, backend=backend_init, space="freq", eager=eager).into(space="pos")).values(space="pos").dtype == backend_init.real_type # type: ignore
+    assert fa.abs(fa.array_from_dim(dim=x_dim, backend=backend_init, space="pos", eager=eager).into(space="freq")).values(space="freq").dtype == backend_init.real_type # type: ignore
+    assert fa.abs(fa.array_from_dim(dim=x_dim, backend=backend_init, space="freq", eager=eager).into(space="pos")).values(space="pos").dtype == backend_init.real_type # type: ignore
 
     if backend_override is not None:
         assert fa.array_from_dim(dim=x_dim, backend=backend_init, space="pos", eager=eager).into(space="freq", backend=backend_override).values(space="freq").dtype == backend_override.complex_type
@@ -421,7 +421,7 @@ def internal_and_public_values_should_differ(arr: FFTArray):
 def assert_equal_op(
         arr: FFTArray,
         values: Any,
-        op: Callable[[Any],Any],
+        ops: Union[Callable[[Any],Any], Tuple[Callable[[Any],Any], Callable[[Any],Any]]],
         precise: bool,
         op_forces_factors_applied: bool,
         log
@@ -437,8 +437,14 @@ def assert_equal_op(
     if the factors have not been applied after operation and if the values are
     non-zero). If it is True, it is tested if they are equal.
     """
-    arr_op = op(arr).values(space=arr.space)
-    values_op = op(values)
+    if isinstance(ops, tuple):
+        np_op, fa_op = ops
+    else:
+        np_op = ops
+        fa_op = ops
+
+    arr_op = fa_op(arr).values(space=arr.space)
+    values_op = np_op(values)
 
     if arr_op.dtype != values_op.dtype:
         log(f"Changing type to {values_op.dtype}")
@@ -459,7 +465,7 @@ def assert_equal_op(
     else:
         np.testing.assert_allclose(arr_op, values_op, rtol=rtol, atol=1e-38)
 
-    _arr_op = op(arr)._values
+    _arr_op = fa_op(arr)._values
     if op_forces_factors_applied:
         # _values should have factors applied
         np.testing.assert_allclose(_arr_op, values_op, rtol=rtol, atol=1e-38)
@@ -492,15 +498,15 @@ def assert_single_operand_fun_equivalence(arr: FFTArray, precise: bool, log):
     log("f(x) = pi*x")
     assert_equal_op(arr, values, lambda x: np.pi*x, precise, False, log)
     log("f(x) = abs(x)")
-    assert_equal_op(arr, values, np.abs, precise, True, log)
+    assert_equal_op(arr, values, (np.abs, fa.abs), precise, True, log)
     log("f(x) = x**2")
     assert_equal_op(arr, values, lambda x: x**2, precise, True, log)
     log("f(x) = x**3")
     assert_equal_op(arr, values, lambda x: x**3, precise, True, log)
     log("f(x) = exp(x)")
-    assert_equal_op(arr, values, np.exp, False, True, log) # precise comparison fails
+    assert_equal_op(arr, values, (np.exp, fa.exp), False, True, log) # precise comparison fails
     log("f(x) = sqrt(x)")
-    assert_equal_op(arr, values, np.sqrt, False, True, log) # precise comparison fails
+    assert_equal_op(arr, values, (np.sqrt, fa.sqrt), False, True, log) # precise comparison fails
 
 def assert_dual_operand_fun_equivalence(arr: FFTArray, precise: bool, log):
     """Test whether a dual operation on an FFTArray, e.g., the
@@ -522,7 +528,7 @@ def assert_dual_operand_fun_equivalence(arr: FFTArray, precise: bool, log):
     log("f(x,y) = x**y")
     # integers to negative integer powers are not allowed
     if "int" in str(values.dtype):
-        assert_equal_op(arr, values, lambda x: x**np.abs(x), precise, True, log)
+        assert_equal_op(arr, values, (lambda x: x**np.abs(x), lambda x: x**fa.abs(x)), precise, True, log)
     else:
         assert_equal_op(arr, values, lambda x: x**x, precise, True, log)
 
@@ -550,7 +556,7 @@ def assert_fftarray_eager_factors_applied(arr: FFTArray, log):
     np.testing.assert_array_equal(arr_sq._factors_applied, arr._factors_applied) # type: ignore
 
     log("abs(x)._factors_applied == True")
-    arr_abs = np.abs(arr)
+    arr_abs = fa.abs(arr)
     np.testing.assert_array_equal(arr_abs.eager, arr.eager) # type: ignore
     np.testing.assert_array_equal(arr_abs._factors_applied, True) # type: ignore
 
