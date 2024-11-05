@@ -6,8 +6,8 @@ import numpy as np
 import jax
 import xarray as xr
 
+import fftarray as fa
 from fftarray.fft_array import FFTArray, Space
-from fftarray.fft_dimension import FFTDimension
 from fftarray.backends.backend import Backend
 from fftarray.backends.jax import JaxBackend
 from fftarray.backends.numpy import NumpyBackend
@@ -19,7 +19,7 @@ EllipsisType = TypeVar('EllipsisType')
 
 BACKENDS = [NumpyBackend, JaxBackend, PyFFTWBackend]
 
-TEST_FFTDIM = FFTDimension(
+TEST_FFTDIM = fa.dim(
     name="x", n=8, d_pos=1, pos_min=0, freq_min=0
 )
 STANDARD_TEST_DATAARRAY = xr.DataArray(
@@ -59,7 +59,7 @@ def test_fftdim_single_element_indexing(backend_class) -> None:
 
     backend = backend_class()
 
-    dim = FFTDimension("x",
+    dim = fa.dim("x",
         n=4,
         d_pos=1,
         pos_min=0.5,
@@ -459,7 +459,7 @@ def test_fftarray_state_management(
     """
 
     dims = {
-        dim_name: FFTDimension(name=dim_name, n=8, d_pos=1, pos_min=0, freq_min=0)
+        dim_name: fa.dim(name=dim_name, n=8, d_pos=1, pos_min=0, freq_min=0)
         for dim_name in space_combination
     }
     fft_arrays = {
@@ -544,7 +544,7 @@ def generate_test_fftarray_xrdataset(
         dimension_length = [dimension_length]*len(dimension_names)
 
     dims = [
-        FFTDimension(name=dim_name, n=dim_length, d_pos=1, pos_min=0, freq_min=0)
+        fa.dim(name=dim_name, n=dim_length, d_pos=1, pos_min=0, freq_min=0)
         for dim_name, dim_length in zip(dimension_names, dimension_length)
     ]
 

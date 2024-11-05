@@ -13,6 +13,27 @@ from ._utils.defaults import get_default_backend, get_default_eager
 
 from .fft_array import Space, FFTArray
 
+
+def dim(
+        name: str,
+        n: int,
+        d_pos: float,
+        pos_min: float,
+        freq_min: float,
+        *,
+        dynamically_traced_coords: bool = True,
+    ) -> FFTDimension:
+    # TODO: How to duplicate the doc-string between function and FFTDimension
+
+    return FFTDimension(
+        name=name,
+        n=n,
+        d_pos=d_pos,
+        pos_min=pos_min,
+        freq_min=freq_min,
+        dynamically_traced_coords=dynamically_traced_coords,
+    )
+
 @dataclass
 class FFTDimension:
     """Properties of an FFTWave grid for one dimension.
@@ -150,7 +171,7 @@ class FFTDimension:
             d_pos: float,
             pos_min: float,
             freq_min: float,
-            dynamically_traced_coords: bool = True,
+            dynamically_traced_coords: bool,
         ):
         self._name = name
         self._n = n
@@ -313,6 +334,7 @@ class FFTDimension:
             pos_min=pos_min,
             freq_min=freq_min,
             d_pos=d_pos,
+            dynamically_traced_coords=self._dynamically_traced_coords,
         )
 
     def _index_from_coord(

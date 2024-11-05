@@ -6,9 +6,8 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 
-import fftarray
+import fftarray as fa
 from fftarray.fft_array import FFTArray, Space
-from fftarray.fft_dimension import FFTDimension
 from fftarray.backends.jax import JaxBackend
 from fftarray.backends.numpy import NumpyBackend
 from fftarray.backends.pyfftw import PyFFTWBackend
@@ -29,7 +28,7 @@ def test_fft_array_constructor():
     An FFTArray can only be initialized if the values array type is compatible
     with the provided Backend.
     """
-    dim = FFTDimension("x", n=4, d_pos=0.1, pos_min=0., freq_min=0.)
+    dim = fa.dim("x", n=4, d_pos=0.1, pos_min=0., freq_min=0.)
     values = [1,2,3,4]
     np_arr = np.array(values)
     jnp_arr = jnp.array(values)
@@ -70,7 +69,7 @@ def test_fft_array_constructor():
 @pytest.mark.parametrize("backend_class", backends)
 @pytest.mark.parametrize("space", ["pos", "freq"])
 def test_comparison(backend_class, space) -> None:
-    x_dim = FFTDimension("x",
+    x_dim = fa.dim("x",
         n=4,
         d_pos=1,
         pos_min=0.5,
@@ -103,7 +102,7 @@ def test_dtype(backend, precision, override, eager: bool) -> None:
     else:
         backend_override = backend(precision=override)
 
-    x_dim = FFTDimension("x",
+    x_dim = fa.dim("x",
         n=4,
         d_pos=1,
         pos_min=0.,
@@ -165,7 +164,7 @@ def test_invalid_dtype(backend) -> None:
 @pytest.mark.parametrize("backend", backends)
 @pytest.mark.parametrize("override", backends)
 def test_backend_override(backend, override) -> None:
-    x_dim = FFTDimension("x",
+    x_dim = fa.dim("x",
         n=4,
         d_pos=1,
         pos_min=0.,
@@ -182,8 +181,8 @@ def test_backend_override(backend, override) -> None:
 
 
 def test_broadcasting(nulp: int = 1) -> None:
-    x_dim = FFTDimension("x", n=4, d_pos=1, pos_min=0., freq_min=0.)
-    y_dim = FFTDimension("y", n=8, d_pos=1, pos_min=0., freq_min=0.)
+    x_dim = fa.dim("x", n=4, d_pos=1, pos_min=0., freq_min=0.)
+    y_dim = fa.dim("y", n=8, d_pos=1, pos_min=0., freq_min=0.)
 
     x_ref = np.arange(0., 4.)
     y_ref = np.arange(0., 8.)
@@ -206,8 +205,8 @@ def test_sel_order(backend, space):
 
     should be true.
     """
-    xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
-    ydim = FFTDimension("y", n=8, d_pos=0.03, pos_min=-0.5, freq_min=-4.7)
+    xdim = fa.dim("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
+    ydim = fa.dim("y", n=8, d_pos=0.03, pos_min=-0.5, freq_min=-4.7)
     arr = xdim.fft_array(backend=backend(), space=space) + ydim.fft_array(backend=backend(), space=space)
     arr_selx = arr.sel(**{"x": getattr(xdim, f"{space}_middle")})
     arr_sely = arr.sel(**{"y": getattr(ydim, f"{space}_middle")})
@@ -216,32 +215,32 @@ def test_sel_order(backend, space):
     np.testing.assert_allclose(arr_selx_sely.values(space=space), arr_sely_selx.values(space=space))
 
 def test_defaults() -> None:
-    assert fftarray.get_default_eager() is False
-    assert fftarray.get_default_backend() == NumpyBackend("default")
+    assert fa.get_default_eager() is False
+    assert fa.get_default_backend() == NumpyBackend("default")
 
-    xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=0., freq_min=0.)
+    xdim = fa.dim("x", n=4, d_pos=0.1, pos_min=0., freq_min=0.)
 
     check_defaults(xdim, backend=NumpyBackend(precision="default"), eager=False)
 
-    fftarray.set_default_backend(JaxBackend(precision="fp32"))
+    fa.set_default_backend(JaxBackend(precision="fp32"))
     check_defaults(xdim, backend=JaxBackend(precision="fp32"), eager=False)
 
-    fftarray.set_default_eager(True)
+    fa.set_default_eager(True)
     check_defaults(xdim, backend=JaxBackend(precision="fp32"), eager=True)
 
     # Reset global state for other tests
-    fftarray.set_default_eager(False)
-    fftarray.set_default_backend(NumpyBackend(precision="default"))
+    fa.set_default_eager(False)
+    fa.set_default_backend(NumpyBackend(precision="default"))
 
 
 def test_defaults_context() -> None:
-    xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=0., freq_min=0.)
+    xdim = fa.dim("x", n=4, d_pos=0.1, pos_min=0., freq_min=0.)
 
-    with fftarray.default_backend(backend=JaxBackend(precision="fp32")):
+    with fa.default_backend(backend=JaxBackend(precision="fp32")):
        check_defaults(xdim, backend=JaxBackend(precision="fp32"), eager=False)
     check_defaults(xdim, backend=NumpyBackend(precision="default"), eager=False)
-    with fftarray.default_backend(backend=JaxBackend(precision="fp32")):
-        with fftarray.default_eager(eager=True):
+    with fa.default_backend(backend=JaxBackend(precision="fp32")):
+        with fa.default_eager(eager=True):
             check_defaults(xdim, backend=JaxBackend(precision="fp32"), eager=True)
         check_defaults(xdim, backend=JaxBackend(precision="fp32"), eager=False)
 
@@ -254,12 +253,12 @@ def check_defaults(dim, backend: Backend, eager: bool) -> None:
         space="pos",
     )
     assert (manual_arr==arr).values(space="pos").all()
-    assert fftarray.get_default_backend() == backend
+    assert fa.get_default_backend() == backend
     assert arr.eager == (eager,)
     assert arr.backend == backend
 
 def test_bool() -> None:
-    xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
+    xdim = fa.dim("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
     arr = xdim.fft_array(backend=NumpyBackend(), space="pos")
     with pytest.raises(ValueError):
         bool(arr)
@@ -292,7 +291,7 @@ def fftarray_strategy(draw):
     backend = backend(precision=precision)
     note(backend)
     dims = [
-        FFTDimension(f"{ndim}", n=draw(st.integers(min_value=2, max_value=8)), d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
+        fa.dim(f"{ndim}", n=draw(st.integers(min_value=2, max_value=8)), d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
     for ndim in range(ndims)]
     note(dims)
     fftarr_values = backend.array(draw_hypothesis_fft_array_values(draw, value, [dim.n for dim in dims]))
@@ -336,8 +335,8 @@ def test_fftarray_lazyness_reduced(backend, precision, space, eager, factors_app
     factors_applied and eager. This is the reduced/faster version of the test
     using hypothesis.
     """
-    xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
-    ydim = FFTDimension("y", n=8, d_pos=0.03, pos_min=-0.5, freq_min=-4.7)
+    xdim = fa.dim("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
+    ydim = fa.dim("y", n=8, d_pos=0.03, pos_min=-0.5, freq_min=-4.7)
     backend = backend(precision=precision)
     fftarr = xdim.fft_array(backend=backend, space=space, eager=eager) + ydim.fft_array(backend=backend, space=space, eager=eager)
     fftarr._factors_applied = (factors_applied, factors_applied)
@@ -348,7 +347,7 @@ def test_fftarray_lazyness_reduced(backend, precision, space, eager, factors_app
 
 @pytest.mark.parametrize("backend", backends)
 def test_immutability(backend) -> None:
-    xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
+    xdim = fa.dim("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
     arr = xdim.fft_array(backend=backend("fp64"), space="pos")
     values = arr.values(space="pos")
     assert arr.values(space="pos")[0] == -0.2
@@ -583,8 +582,8 @@ def test_fft_ifft_invariance(backend, space: Space):
        ifft(fft(FFTArray)) == FFTArray
 
     """
-    xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
-    ydim = FFTDimension("y", n=8, d_pos=0.03, pos_min=-0.4, freq_min=-4.2)
+    xdim = fa.dim("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
+    ydim = fa.dim("y", n=8, d_pos=0.03, pos_min=-0.4, freq_min=-4.2)
     arr = xdim.fft_array(backend=backend(), space=space) + ydim.fft_array(backend=backend(), space=space)
     other_space = get_other_space(space)
     arr_fft = arr.into(space=other_space)
@@ -602,7 +601,7 @@ def test_fft_ifft_invariance(backend, space: Space):
 def test_np_array(backend, spaces: Tuple[Space, Space], precision: PrecisionSpec):
     """Tests if `FFTArray.np_array` returns the values as a NumPy array and if it has the correct precision.
     """
-    xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
+    xdim = fa.dim("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
     arr = xdim.fft_array(backend=backend(precision=precision), space=spaces[0])
 
     np_arr_same = arr.np_array(space=spaces[0])
@@ -633,8 +632,8 @@ def test_grid_manipulation_in_jax_scan(space: Space, dtc: bool, sel_method: str)
     Allowed by static, error for dynamic:
     - selection by coordinate
     """
-    xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1, dynamically_traced_coords=dtc)
-    ydim = FFTDimension("y", n=8, d_pos=0.03, pos_min=-0.4, freq_min=-4.2, dynamically_traced_coords=dtc)
+    xdim = fa.dim("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1, dynamically_traced_coords=dtc)
+    ydim = fa.dim("y", n=8, d_pos=0.03, pos_min=-0.4, freq_min=-4.2, dynamically_traced_coords=dtc)
     fftarr = xdim.fft_array(backend=JaxBackend(), space=space) + ydim.fft_array(backend=JaxBackend(), space=space)
 
     def jax_scan_step_fun_dynamic(carry, *_):
@@ -668,8 +667,8 @@ def test_different_dimension_dynamic_prop() -> None:
     """Tests tracing of an FFTArray whose dimensions have different
     `dynamically_traced_coords`.
     """
-    x_dim = FFTDimension(name="x", pos_min=0, freq_min=0, d_pos=1, n=8, dynamically_traced_coords=False)
-    y_dim = FFTDimension(name="y", pos_min=0, freq_min=0, d_pos=1, n=4, dynamically_traced_coords=True)
+    x_dim = fa.dim(name="x", pos_min=0, freq_min=0, d_pos=1, n=8, dynamically_traced_coords=False)
+    y_dim = fa.dim(name="y", pos_min=0, freq_min=0, d_pos=1, n=4, dynamically_traced_coords=True)
     fftarr = x_dim.fft_array(backend=JaxBackend(), space="pos") + y_dim.fft_array(backend=JaxBackend(), space="pos")
 
     def jax_scan_step_fun_valid(carry, *_):
