@@ -885,36 +885,6 @@ class FFTArray:
         return transposed_arr
 
 
-
-    #--------------------
-    # Helpers for the implementation
-    #--------------------
-    @property
-    def d_freq(self) -> float:
-        """..
-
-        Returns
-        -------
-        float
-            The product of the `d_freq` of all active dimensions.
-        """
-        return self._xp.prod(
-            self._xp.asarray([fft_dim.d_freq for fft_dim in self._dims])
-        )
-
-    @property
-    def d_pos(self) -> float:
-        """..
-
-        Returns
-        -------
-        float
-            The product of the `d_pos` of all active dimensions.
-        """
-        return self._xp.prod(
-            self._xp.asarray([fft_dim.d_pos for fft_dim in self._dims])
-        )
-
     def np_array(self: FFTArray, space: Union[Space, Iterable[Space]], dtype = None):
         """..
 

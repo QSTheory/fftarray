@@ -22,7 +22,7 @@ DTYPE_NAME = Literal[
     "complex128",
 ]
 dtypes_names_all = get_args(DTYPE_NAME)
-dtypes_names_numeric_core = [
+dtype_names_numeric_core = [
     "int32",
     "int64",
     "uint32",
@@ -66,6 +66,7 @@ def get_arr_from_dims(
         spaces: Union[fa.Space, Iterable[fa.Space]] = "pos",
         dtype_name: DTYPE_NAME = "float64",
     ):
+    dtype=getattr(xp, dtype_name)
     dims = list(dims)
     if isinstance(spaces, str):
         spaces_norm: Iterable[fa.Space] = [spaces]*len(dims)
@@ -74,13 +75,13 @@ def get_arr_from_dims(
     arr = fa.array(
         values=xp.asarray(
             1.,
-            dtype=getattr(xp, dtype_name)
+            dtype=dtype,
         ),
         dims=[],
         space=[],
     )
     for dim, space in zip(dims, spaces_norm, strict=True):
-        arr += fa.coords_from_dim(dim=dim, space=space, xp=xp)
+        arr += fa.coords_from_dim(dim=dim, space=space, xp=xp).astype(dtype=dtype)
     return arr
 
 def assert_fa_array_exact_equal(x1: FFTArray, x2: FFTArray) -> None:
