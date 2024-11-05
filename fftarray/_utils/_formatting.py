@@ -1,9 +1,9 @@
-from typing import Optional, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING
 import numpy as np
 
 if TYPE_CHECKING:
     from ..fft_dimension import FFTDimension
-    from ..fft_array import FFTArray
+    from ..fft_array import Space
 
 def format_bytes(bytes) -> str:
     """Converts bytes to KiB, MiB, GiB and TiB."""
@@ -38,6 +38,7 @@ def fft_dim_table(
         include_header=True,
         include_dim_name=False,
         dim_index: Optional[int] = None,
+        spaces: List["Space"] = ["pos", "freq"],
     ) -> str:
     """Constructs a table for FFTDimension.__str__ and FFTArrar.__str__
     containting the grid parameters for each space.
@@ -58,7 +59,7 @@ def fft_dim_table(
             str_out += "+" + (7*"-" if header == "space" else 10*"-")
         str_out += "+\n"
     dim_prop_headers = headers[int(include_dim_name)+1:]
-    for k, space in enumerate(["pos", "freq"]):
+    for k, space in enumerate(spaces):
         if dim_index is not None:
             str_out += f"|{dim_index:^3}" if k==0 else f"|{'':^3}"
         if include_dim_name:
@@ -77,27 +78,4 @@ def fft_dim_table(
             frmt_nmbr = f"{nmbr:.2e}" if abs(nmbr)>1e3 or abs(nmbr)<1e-2 else f"{nmbr:.2f}"
             str_out += f"{frmt_nmbr:^10}|"
         str_out += "\n"
-    return str_out[:-1]
-
-def fft_array_props_table(fftarr: "FFTArray") -> str:
-    """Constructs a table for FFTArray.__str__ containing the FFTArray
-    properties (space, n, eager, factors_applied) per dimension
-    """
-    str_out = "| # "
-    headers = ["dimension", "space", "n", "eager", "factors_applied"]
-    for header in headers:
-        # give space smaller width to stay below 80 characters per line
-        str_out += f"|{header:^7}" if header == "space" else f"|{header:^10}"
-    str_out += "|\n+---"
-    for header in headers:
-        str_out += "+" + (10 + 5*int(header=='factors_applied') - 3*int(header=="space"))*"-"
-    str_out += "+\n"
-    for i, dim in enumerate(fftarr.dims):
-        str_out += f"|{i:^3}"
-        str_out += f"|{truncate_str(str(dim.name), 10):^10}"
-        str_out += f"|{(fftarr.space[i]):^7}"
-        str_out += f"|{format_n(dim.n):^10}"
-        str_out += f"|{repr(fftarr.eager[i]):^10}"
-        str_out += f"|{repr(fftarr._factors_applied[i]):^15}"
-        str_out += "|\n"
     return str_out[:-1]

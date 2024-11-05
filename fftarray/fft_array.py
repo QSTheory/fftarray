@@ -15,9 +15,7 @@ from .backends.backend import Backend
 from .backends.numpy import NumpyBackend
 
 from ._utils._ufuncs import binary_ufuncs, unary_ufunc
-from ._utils._formatting import (
-    fft_dim_table, fft_array_props_table, format_bytes,
-)
+from ._utils._formatting import fft_dim_table, format_bytes
 from ._utils._unpacking import UniformValue, norm_param
 from ._utils._indexing import (
     LocFFTArrayIndexer, check_missing_dim_names,
@@ -125,15 +123,16 @@ class FFTArray:
 
     def __str__(self: FFTArray) -> str:
         bytes_str = format_bytes(self._values.nbytes)
-        str_out = f"<fftarray.FFTArray ({bytes_str})>\n"
-        str_out += f"Backend: {self.backend}\n"
-        str_out += "Dimensions:\n"
+        shape_str = ""
         for i, dim in enumerate(self.dims):
-            str_out += f" # {i}: {repr(dim.name)}\n"
-        str_out += "\n" + fft_array_props_table(self) + "\n\n"
-        for i, dim in enumerate(self.dims):
-            str_out += fft_dim_table(dim, i==0, True, i) + "\n"
-        str_out += f"\nvalues:\n{self.values(space=self.space)}"
+            shape_str += f"{dim.name}: {dim.n}"
+            if i < len(self.dims)-1:
+                shape_str += ", "
+        str_out = f"<fftarray.FFTArray ({shape_str})> Size: {bytes_str}\n"
+        for i, (dim, space) in enumerate(zip(self.dims, self.space)):
+            str_out += fft_dim_table(dim, i==0, True, None, [space]) + "\n"
+        str_out += f"Values<{self.backend}>:\n"
+        str_out += f"{self.values(space=self.space)}"
         return str_out
 
     def __bool__(self: FFTArray):
