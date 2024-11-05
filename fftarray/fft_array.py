@@ -206,16 +206,6 @@ class FFTArray(metaclass=ABCMeta):
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         return _array_ufunc(self, ufunc, method, inputs, kwargs)
 
-    # Support numpy array protocol.
-    # Many libraries use this to coerce special types to plain numpy array e.g.
-    # via np.array(fftarray)
-    def __array__(self, dtype=None, copy=None):
-        if copy is False:
-            raise ValueError("FFTArray is by design immutable and therefore does not allow direct access to the underlying array.")
-        # numpy < 2.0 does not support copy=None.
-        # As we anyway only allow copies at the moment, we can map `None` to `True`.
-        return np.array(self.values(space=self.space), dtype=dtype, copy=True)
-
     # Implement binary operations between FFTArray and also e.g. 1+wf and wf+1
     # This does intentionally not list all possible operators.
     __add__, __radd__ = binary_ufuncs(np.add)
@@ -760,7 +750,7 @@ class FFTArray(metaclass=ABCMeta):
             self._backend.array([fft_dim.d_pos for fft_dim in self._dims])
         )
 
-    def np_array(self: FFTArray, space: Space):
+    def np_array(self: FFTArray, space: Union[Space, Iterable[Space]], dtype = None):
         """..
 
         Returns
@@ -768,7 +758,9 @@ class FFTArray(metaclass=ABCMeta):
         NDArray
             The values of this FFTArray in the specified space as a bare numpy array.
         """
-        return np.array(self.into(backend=NumpyBackend(self.backend.precision), space=space))
+
+        values = self.into(backend=NumpyBackend(self.backend.precision)).values(space=space)
+        return np.array(values, dtype=dtype)
 
     def _check_consistency(self) -> None:
         """

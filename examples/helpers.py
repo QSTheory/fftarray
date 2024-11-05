@@ -43,7 +43,7 @@ def plt_fftarray(
             )
 
             # FFTArray values
-            values_in_space = np.array(arr.into(space=space))
+            values_in_space = arr.np_array(space=space)
             values_imag_part = values_in_space.imag
             values_real_part = values_in_space.real
 

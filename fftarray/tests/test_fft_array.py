@@ -79,6 +79,9 @@ def test_comparison(backend_class, space) -> None:
     x = x_dim.fft_array(backend=backend_class(), space=space)
     x_sq = x**2
 
+    x = x.np_array(space)
+    x_sq = x_sq.np_array(space)
+
     # Eplicitly test the operators to check that the forwarding to array_ufunc is correct
     for a, b in [(0.5, x), (x, x_sq), (x, 0.5), (x, x_sq)]:
         np.testing.assert_array_equal(a < b, np.array(a) < np.array(b), strict=True)
@@ -184,8 +187,8 @@ def test_broadcasting(nulp: int = 1) -> None:
 
     x_ref = np.arange(0., 4.)
     y_ref = np.arange(0., 8.)
-    np.testing.assert_array_almost_equal_nulp(np.array(x_dim.fft_array(backend=NumpyBackend(), space="pos")), x_ref, nulp = 0)
-    np.testing.assert_array_almost_equal_nulp(np.array(y_dim.fft_array(backend=NumpyBackend(), space="pos")), y_ref, nulp = 0)
+    np.testing.assert_array_almost_equal_nulp(x_dim.fft_array(backend=NumpyBackend(), space="pos").np_array(space="pos"), x_ref, nulp = 0)
+    np.testing.assert_array_almost_equal_nulp(y_dim.fft_array(backend=NumpyBackend(), space="pos").np_array(space="pos"), y_ref, nulp = 0)
 
     x_ref_broadcast = x_ref.reshape(1,-1)
     y_ref_broadcast = y_ref.reshape(-1,1)
