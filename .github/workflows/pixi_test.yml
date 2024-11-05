@@ -15,7 +15,9 @@ jobs:
       matrix:
         # 3.13 currently fails on installing pyfftw since the build of the wheel fails.
         environment: [check310, check311, check312]
-        command: [test_all, mypy]
+        command: [mypy, test_all_group 1, test_all_group 2]
+    env:
+      N_GROUPS: 2
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
