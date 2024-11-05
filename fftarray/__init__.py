@@ -30,7 +30,7 @@ Example:
 """
 from .fft_dimension import FFTDimension
 from .fft_array import FFTArray, Space
-from ._utils._defaults import (
+from ._utils.defaults import (
     set_default_backend, get_default_backend, set_default_eager,
     get_default_eager, default_backend, default_eager
 )

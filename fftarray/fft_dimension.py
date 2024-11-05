@@ -7,9 +7,9 @@ import numpy as np
 from .backends.backend import Backend
 from .backends.numpy import NumpyBackend
 
-from ._utils._formatting import fft_dim_table, format_n
-from ._utils._indexing import check_substepping, remap_index_check_int
-from ._utils._defaults import get_default_backend, get_default_eager
+from ._utils.formatting import fft_dim_table, format_n
+from ._utils.indexing import check_substepping, remap_index_check_int
+from ._utils.defaults import get_default_backend, get_default_eager
 
 from .fft_array import Space, FFTArray
 
