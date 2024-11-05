@@ -94,7 +94,7 @@ mypy = { cmd = ["mypy", "fftarray"]}
 check = { depends-on = ["mypy", "test"]}
 cov_html = { cmd = ["python", "-m", "pytest", "--cov=./fftarray", "--cov=./examples", "--cov-report=html"]}
 cov_xml = { cmd = ["python", "-m", "pytest", "--cov=./fftarray", "--cov=./examples", "--cov-report=xml"]}
-doc = { cmd = ["./build_docs.sh"], "cwd" = "docs" }
+doc = { cmd = ["make"], "cwd" = "docs" }
 # TODO: Currently only tested on macOS. Would be nice to make it an --open option like in cargo.
 doc_open = { cmd = ["open", "docs/build/html/development/index.html"], depends-on = ["doc"] }
 
@@ -132,6 +132,7 @@ python = "3.13.*"
 devcuda = ["dev", "check", "doc", "jaxcuda", "pyFFTW", "helpers", "dashboards"]
 dev = ["dev", "check", "doc", "jax", "pyFFTW", "helpers", "dashboards"]
 doc = ["doc", "jax", "pyFFTW", "helpers"]
+doc312 = ["py312", "doc", "jax", "pyFFTW", "helpers"]
 check = ["check", "jax", "pyFFTW", "helpers"]
 check310 = ["py310", "check", "jax", "pyFFTW", "helpers"]
 check311 = ["py311", "check", "jax", "pyFFTW", "helpers"]
