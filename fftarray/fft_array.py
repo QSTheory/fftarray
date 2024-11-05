@@ -19,7 +19,7 @@ from ._utils.ufuncs import binary_ufuncs, unary_ufunc
 from ._utils.formatting import (
     fft_dim_table, fft_array_props_table, format_bytes,
 )
-from ._utils.unpacking import UniformValue, norm_param
+from ._utils.uniform_value import UniformValue
 from ._utils.indexing import (
     LocFFTArrayIndexer, check_missing_dim_names,
     tuple_indexers_from_dict_or_tuple, tuple_indexers_from_mapping,
@@ -30,6 +30,8 @@ if TYPE_CHECKING:
 
 EllipsisType = TypeVar('EllipsisType')
 Space = Literal["pos", "freq"]
+
+T = TypeVar("T")
 
 _DEFAULT_BACKEND: Backend = NumpyBackend("default")
 
@@ -76,6 +78,16 @@ class DefaultEagerContext:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         set_default_eager(self.previous)
+
+def norm_param(val: Union[T, Iterable[T]], n: int, types) -> Tuple[T, ...]:
+    """
+       `val` has to be immutable.
+    """
+    if isinstance(val, types):
+        return (val,)*n
+
+    # TODO: Can we make this type check work?
+    return tuple(val) # type: ignore
 
 class FFTArray(metaclass=ABCMeta):
     """The base class of `PosArray` and `FreqArray` that implements all shared
