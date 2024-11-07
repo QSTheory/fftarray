@@ -37,7 +37,7 @@ from .space import Space
 from .fft_dimension import FFTDimension, dim
 from .fft_array import FFTArray
 
-from .creation_functions import array_from_dim
+from .creation_functions import array, array_from_dim
 from .statistical_functions import sum
 
 from .tools import shift_frequency, shift_position

@@ -26,23 +26,11 @@ from ._utils.indexing import (
     tuple_indexers_from_dict_or_tuple, tuple_indexers_from_mapping,
 )
 from ._utils.defaults import get_default_backend, get_default_eager
+from ._utils.helpers import norm_param
 
 EllipsisType = TypeVar('EllipsisType')
 
-T = TypeVar("T")
-
-def norm_param(val: Union[T, Iterable[T]], n: int, types) -> Tuple[T, ...]:
-    """
-       `val` has to be immutable.
-    """
-    if isinstance(val, types):
-        return (val,)*n
-
-    # TODO: Can we make this type check work?
-    return tuple(val) # type: ignore
-
-
-def mul_transforms(unp_inp: UnpackedValues) -> Tuple[List[List[Literal[-1, 1, None]]], List[bool]]:
+def mul_transforms(unp_inp: UnpackedValues) -> Tuple[List[List[Literal[-1, 1, None]]], Tuple[bool, ...]]:
     factor_transforms: List[List[Literal[-1, 1, None]]] = [[None]*len(unp_inp.dims) for _ in range(2)]
     final_factors_applied: List[bool] = []
     # Element-wise multiplication is commutative with the multiplication of the phase factors.
@@ -63,9 +51,9 @@ def mul_transforms(unp_inp: UnpackedValues) -> Tuple[List[List[Literal[-1, 1, No
         # If both operands are applied, the final will be too, otherwise it will not.
         final_factors_applied.append(all(fac_applied))
 
-    return factor_transforms, final_factors_applied
+    return factor_transforms, tuple(final_factors_applied)
 
-def add_transforms(unp_inp: UnpackedValues) -> Tuple[List[List[Literal[-1, 1, None]]], List[bool]]:
+def add_transforms(unp_inp: UnpackedValues) -> Tuple[List[List[Literal[-1, 1, None]]], Tuple[bool, ...]]:
     factor_transforms: List[List[Literal[-1, 1, None]]] = [[None]*len(unp_inp.dims) for _ in range(2)]
     final_factors_applied: List[bool] = []
 
@@ -87,9 +75,9 @@ def add_transforms(unp_inp: UnpackedValues) -> Tuple[List[List[Literal[-1, 1, No
             # If we are eager we want to the applied state, so sign=-1
             # else we want to the internal state so we apply 1.
             factor_transforms[transformed_op_idx][dim_idx] = -1 if unp_inp.eager[dim_idx] else 1
-    return factor_transforms, final_factors_applied
+    return factor_transforms, tuple(final_factors_applied)
 
-def default_transforms(unp_inp: UnpackedValues) -> Tuple[List[List[Literal[-1, 1, None]]], List[bool]]:
+def default_transforms(unp_inp: UnpackedValues) -> Tuple[List[List[Literal[-1, 1, None]]], Tuple[bool, ...]]:
     factor_transforms: List[List[Literal[-1, 1, None]]] = [[None]*len(unp_inp.dims) for _ in range(2)]
     final_factors_applied: List[bool] = []
 
@@ -105,7 +93,7 @@ def default_transforms(unp_inp: UnpackedValues) -> Tuple[List[List[Literal[-1, 1
                 factor_transforms[op_idx] = res
 
     final_factors_applied = [True]*len(unp_inp.dims)
-    return factor_transforms, final_factors_applied
+    return factor_transforms, tuple(final_factors_applied)
 
 
 # Implementing NEP 13 https://numpy.org/neps/nep-0013-ufunc-overrides.html
@@ -156,7 +144,7 @@ def elementwise_one_operand(name: str) -> Callable[[FFTArray], FFTArray]:
             space=inp.space,
             dims=inp.dims,
             eager=inp.eager,
-            factors_applied=True,
+            factors_applied=tuple(True for _ in range(len(inp.dims))),
             backend=inp.backend,
         )
     return single_element_ufunc
@@ -176,7 +164,7 @@ def clip(x, *, min=None, max=None) -> FFTArray:
         space=x.space,
         dims=x.dims,
         eager=x.eager,
-        factors_applied=True,
+        factors_applied=tuple(True for _ in range(len(x.dims))),
         backend=x.backend,
     )
 
@@ -211,7 +199,7 @@ def abs(x):
         space=x.space,
         dims=x.dims,
         eager=x.eager,
-        factors_applied=True,
+        factors_applied=tuple(True for _ in range(len(x.space))),
         backend=x.backend,
     )
 
@@ -305,20 +293,17 @@ class FFTArray:
     def __init__(
             self,
             values,
-            dims: Iterable[FFTDimension],
-            space: Union[Space, Iterable[Space]],
-            backend: Optional[Backend] = None,
-            eager: Optional[Union[bool, Iterable[bool]]] = None,
-            factors_applied: Union[bool, Iterable[bool]] = True,
+            dims: Tuple[FFTDimension, ...],
+            space: Tuple[Space, ...],
+            backend: Backend,
+            eager: Tuple[bool, ...],
+            factors_applied: Tuple[bool, ...],
         ):
         """
         Construct a new instance of FFTArray from raw values.
         For normal usage it is recommended to construct
-        new instances via the `fft_array()` function of FFTDimension
-        since this ensures that the dimension parameters and the
-        values match.
-
-        TODO: Check that this does not copy?
+        new instances via the `array` function of `fftarray`
+        since this ensures that all values match and are valid.
 
         Parameters
         ----------
@@ -327,19 +312,16 @@ class FFTArray:
             For performance reasons they are assumed to not be aliased (or immutable)
             and therefore do not get copied under any circumstances.
             The type must fit with the specified backend.
-        dims : Iterable[FFTDimension]
+        dims : Tuple[FFTDimension, ...]
             The FFTDimensions for each dimension of the passed in values.
-        space: Union[Space, Iterable[Space]]
+        space: Tuple[Space, ...]
             Specify the space of the coordinates and in which space the returned FFTArray is intialized.
-        backend: Optional[Backend]
-            The backend to use for the returned FFTArray.  `None` uses default `NumpyBackend("default")` which can be globally changed.
-            The values are transformed into the appropiate type defined by the backend.
-        eager: Union[bool, Iterable[bool]]
-            The eager-mode to use for the returned FFTArray.  `None` uses default `False` which can be globally changed.
-        factors_applied: Union[bool, Iterable[bool]]
+        backend: Backend
+            The backend to use for the returned FFTArray.
+        eager: Tuple[bool, ...]
+            The eager-mode to use for the returned FFTArray.
+        factors_applied: Tuple[bool, ...]
             Whether the fft-factors are applied are already applied for the various dimensions.
-            For external values this is usually `True` since `False` assumes the internal (and unstable)
-            factors-format.
 
         Returns
         -------
@@ -348,25 +330,15 @@ class FFTArray:
 
         See Also
         --------
-        set_default_backend, get_default_backend
-        set_default_eager, get_default_eager
         fft_array
         """
 
-        if backend is None:
-            backend = get_default_backend()
-
-        if eager is None:
-            eager = get_default_eager()
-
-        self._dims = tuple(dims)
-        n_dims = len(self._dims)
+        self._dims = dims
         self._values = values
-        self._spaces = norm_param(space, n_dims, str)
-        self._eager = norm_param(eager, n_dims, bool)
-        self._factors_applied = norm_param(factors_applied, n_dims, bool)
+        self._spaces = space
+        self._eager = eager
+        self._factors_applied = factors_applied
         self._backend = backend
-        self._check_consistency()
 
     def __repr__(self: FFTArray) -> str:
         arg_str = ", ".join(
@@ -522,10 +494,10 @@ class FFTArray:
 
         return FFTArray(
             values=selected_values,
-            dims=new_dims,
+            dims=tuple(new_dims),
             space=self.space,
             eager=self.eager,
-            factors_applied=[True]*len(new_dims),
+            factors_applied=tuple(True for _ in range(len(new_dims))),
             backend=self.backend,
         )
 
@@ -831,10 +803,10 @@ class FFTArray:
 
         transposed_arr = FFTArray(
             values=transposed_values,
-            dims=[self._dims[idx] for idx in axes_transpose],
-            space=[self._spaces[idx] for idx in axes_transpose],
-            eager=[self._eager[idx] for idx in axes_transpose],
-            factors_applied=[self._factors_applied[idx] for idx in axes_transpose],
+            dims=tuple(self._dims[idx] for idx in axes_transpose),
+            space=tuple(self._spaces[idx] for idx in axes_transpose),
+            eager=tuple(self._eager[idx] for idx in axes_transpose),
+            factors_applied=tuple(self._factors_applied[idx] for idx in axes_transpose),
             backend=self.backend,
         )
         return transposed_arr
@@ -899,6 +871,12 @@ class FFTArray:
         """
             Check some invariants of FFTArray.
         """
+
+        assert isinstance(self._dims, tuple)
+        assert isinstance(self._spaces, tuple)
+        assert isinstance(self._eager, tuple)
+        assert isinstance(self._factors_applied, tuple)
+
         if not isinstance(self._values, self._backend.array_type):
             raise ValueError(
                 f"Passed in values of type '{type(self._values)}' "
@@ -918,6 +896,7 @@ class FFTArray:
                 f"Passed in FFTDimension of name {dim.name} twice!"
             dim_names.add(dim.name)
 
+        assert all([isinstance(dim, FFTDimension) for dim in self._dims])
         assert all([dim_space in get_args(Space) for dim_space in self._spaces])
         assert all([isinstance(dim_eager, bool) for dim_eager in self._eager])
         assert all([isinstance(factor_applied, bool) for factor_applied in self._factors_applied])
@@ -937,9 +916,9 @@ class UnpackedValues:
     # outer list: dim_idx, inner_list: op_idx, None: dim does not appear in operand
     factors_applied: List[List[bool]]
     # Space per dimension, must be homogeneous over all values
-    space: List[Space]
+    space: Tuple[Space, ...]
     # eager per dimension, must be homogeneous over all values
-    eager: List[bool]
+    eager: Tuple[bool, ...]
 
 
 @dataclass
@@ -1052,9 +1031,9 @@ def unpack_fft_arrays(
         dims = tuple(dims_list),
         values = unpacked_values, # type: ignore
         is_fftarray = is_fftarray,
-        space = space_list,
+        space = tuple(space_list),
         factors_applied=factors_applied,
-        eager=eager_list,
+        eager=tuple(eager_list),
         backend = backend.get(),
     )
 

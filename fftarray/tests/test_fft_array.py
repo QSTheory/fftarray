@@ -11,6 +11,7 @@ import fftarray as fa
 import fftarray
 from fftarray.fft_array import FFTArray, Space
 from fftarray.fft_dimension import FFTDimension
+from fftarray.creation_functions import array
 from fftarray.backends.jax import JaxBackend
 from fftarray.backends.numpy import NumpyBackend
 from fftarray.backends.pyfftw import PyFFTWBackend
@@ -26,7 +27,7 @@ precisions: List[PrecisionSpec] = ["fp32", "fp64", "default"]
 spaces: List[Space] = ["pos", "freq"]
 
 # Currently only tests the values type
-def test_fft_array_constructor():
+def test_fft_array_constructor() -> None:
     """Tests whether the type checking of the FFTArray input values works.
     An FFTArray can only be initialized if the values array type is compatible
     with the provided Backend.
@@ -36,37 +37,19 @@ def test_fft_array_constructor():
     np_arr = np.array(values)
     jnp_arr = jnp.array(values)
 
-    failing_sets = [
-        (values, [NumpyBackend(), JaxBackend(), PyFFTWBackend()]),
-        (np_arr, [JaxBackend()]),
-        (jnp_arr, [NumpyBackend(), PyFFTWBackend()]),
-    ]
-    for arr, backends in failing_sets:
-        for backend in backends:
-            with pytest.raises(ValueError):
-                _ = FFTArray(
-                    values=arr,
-                    dims=[dim],
-                    space="pos",
-                    eager=False,
-                    factors_applied=False,
-                    backend=backend,
-                )
-
-    working_sets = [
-        (np_arr, NumpyBackend()),
-        (np_arr, PyFFTWBackend()),
-        (jnp_arr, JaxBackend()),
-    ]
-    for arr, backend in working_sets:
-            _ = FFTArray(
-                values=arr,
+    backends = [NumpyBackend(), JaxBackend(), PyFFTWBackend()]
+    backend_array_class = [np.ndarray, jax.Array, np.ndarray]
+    for val_arr in [values, np_arr, jnp_arr]:
+        for backend, array_class  in zip(backends, backend_array_class):
+            arr = array(
+                values=val_arr,
                 dims=[dim],
                 space="pos",
                 eager=False,
                 factors_applied=False,
                 backend=backend,
             )
+            assert isinstance(arr.values("pos"), array_class)
 
 
 @pytest.mark.parametrize("backend_class", backends)
@@ -141,21 +124,21 @@ def test_dtype(backend, precision, override, eager: bool) -> None:
 
     int_arr = FFTArray(
         values=backend_init.array([1,2,3,4]),
-        dims=[x_dim],
-        space="pos",
-        eager=eager,
+        dims=(x_dim,),
+        space=("pos",),
+        eager=(eager,),
         backend=backend_init,
-        factors_applied=True,
+        factors_applied=(True,),
     )
     assert int_arr.values(space="pos").dtype == int_arr.into(backend=backend_override).values(space="pos").dtype
 
     bool_arr = FFTArray(
         values=backend_init.array([False, True, False, False]),
-        dims=[x_dim],
-        space="pos",
-        eager=eager,
+        dims=(x_dim,),
+        space=("pos",),
+        eager=(eager,),
         backend=backend_init,
-        factors_applied=True,
+        factors_applied=(True,),
     )
     assert bool_arr.values(space="pos").dtype == bool_arr.into(backend=backend_override).values(space="pos").dtype
 
@@ -249,16 +232,22 @@ def test_defaults_context() -> None:
 
 
 def check_defaults(dim, backend: Backend, eager: bool) -> None:
-    arr = fa.array_from_dim(dim=dim, space="pos")
+    values = 0.1*backend.numpy_ufuncs.arange(4, dtype=backend.real_type)
+    arr_from_dim = fa.array_from_dim(dim=dim, space="pos")
+    arr_direct = fa.array(dims=dim, space="pos", values=values)
     manual_arr = FFTArray(
-        values=0.1*backend.numpy_ufuncs.arange(4, dtype=backend.real_type),
-        dims=[dim],
-        space="pos",
+        values=values,
+        dims=(dim,),
+        space=("pos",),
+        eager=(eager,),
+        backend=backend,
+        factors_applied=(True,),
     )
-    assert (manual_arr==arr).values(space="pos").all()
-    assert fftarray.get_default_backend() == backend
-    assert arr.eager == (eager,)
-    assert arr.backend == backend
+    for arr in [arr_from_dim, arr_direct]:
+        assert (manual_arr==arr).values(space="pos").all()
+        assert fftarray.get_default_backend() == backend
+        assert arr.eager == (eager,)
+        assert arr.backend == backend
 
 def test_bool() -> None:
     xdim = FFTDimension("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
@@ -274,7 +263,7 @@ def draw_hypothesis_fft_array_values(draw, st_type, shape):
     return draw(st.lists(st_type, min_size=shape[0], max_size=shape[0]))
 
 @st.composite
-def fftarray_strategy(draw):
+def fftarray_strategy(draw) -> FFTArray:
     """Initializes an FFTArray using hypothesis."""
     ndims = draw(st.integers(min_value=1, max_value=4))
     value = st.one_of([
@@ -301,7 +290,7 @@ def fftarray_strategy(draw):
     note(fftarr_values.dtype)
     note(fftarr_values)
 
-    return FFTArray(
+    return fa.array(
         values=fftarr_values,
         dims=dims,
         space=init_space,

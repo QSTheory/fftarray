@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Iterable, Optional, Union, List
+from typing import Iterable, Optional, Union, List, Tuple
 
 from fftarray.fft_dimension import FFTDimension
 
@@ -12,9 +12,9 @@ class SplitArrayMeta:
         Internal helper class for the metadata after a reduction operation.
     """
     axis: List[int]
-    eager: List[bool]
-    space: List[Space]
-    fft_dims: List[FFTDimension]
+    eager: Tuple[bool, ...]
+    space: Tuple[Space, ...]
+    fft_dims: Tuple[FFTDimension, ...]
 
 def _named_dims_to_axis(x: FFTArray, dim: Union[str, Iterable[str]]) -> SplitArrayMeta:
     """
@@ -38,9 +38,9 @@ def _named_dims_to_axis(x: FFTArray, dim: Union[str, Iterable[str]]) -> SplitArr
 
     return SplitArrayMeta(
         axis=axis,
-        space=spaces,
-        fft_dims=fft_dims,
-        eager=eagers,
+        space=tuple(spaces),
+        fft_dims=tuple(fft_dims),
+        eager=tuple(eagers),
     )
 
 def sum(
@@ -62,7 +62,7 @@ def sum(
         space=res_meta.space,
         dims=res_meta.fft_dims,
         eager=res_meta.eager,
-        factors_applied=True,
+        factors_applied=tuple(True for _ in range(len(res_meta.fft_dims))),
         backend=x.backend,
     )
 
@@ -84,7 +84,7 @@ def max(
         space=res_meta.space,
         dims=res_meta.fft_dims,
         eager=res_meta.eager,
-        factors_applied=True,
+        factors_applied=tuple(True for _ in range(len(res_meta.fft_dims))),
         backend=x.backend,
     )
 
@@ -124,6 +124,6 @@ def integrate(
         space=res_meta.space,
         dims=res_meta.fft_dims,
         eager=res_meta.eager,
-        factors_applied=True,
+        factors_applied=tuple(True for _ in range(len(res_meta.fft_dims))),
         backend=x.backend,
     )
