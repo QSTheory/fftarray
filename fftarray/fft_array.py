@@ -2,8 +2,8 @@ from __future__ import annotations
 from ast import Assert
 from collections import abc
 from typing import (
-    Mapping, Optional, Union, List, Any, Tuple, Dict, Hashable,
-    Literal, TypeVar, Iterable, Set, get_args, Callable
+    Mapping, Optional, Union, List, Any, Tuple, Dict,
+    Literal, TypeVar, Iterable, Set, get_args, Callable,
 )
 from copy import copy
 from numbers import Number
@@ -428,7 +428,7 @@ class FFTArray:
             item: Union[
                 int, slice, EllipsisType,
                 Tuple[Union[int, slice, EllipsisType],...],
-                Mapping[Hashable, Union[int, slice]],
+                Mapping[str, Union[int, slice]],
             ]
         ) -> FFTArray:
         """This method is called when indexing an FFTArray instance by integer index,
@@ -457,7 +457,7 @@ class FFTArray:
 
         Parameters
         ----------
-        item : Union[ int, slice, EllipsisType, Tuple[Union[int, slice, EllipsisType],...], Mapping[Hashable, Union[int, slice]], ]
+        item : Union[ int, slice, EllipsisType, Tuple[Union[int, slice, EllipsisType],...], Mapping[str, Union[int, slice]], ]
             An indexer object with either dimension lookup method either
             via position or name. When using positional lookup, the order
             of the dimensions in the FFTArray object is applied (FFTArray.dims).
@@ -672,12 +672,12 @@ class FFTArray:
         return self.__getitem__(tuple(tuple_indexers_as_integer))
 
     @property
-    def dims_dict(self) -> Dict[Hashable, FFTDimension]:
+    def dims_dict(self) -> Dict[str, FFTDimension]:
         # TODO Ordered Mapping?
         return {dim.name: dim for dim in self._dims}
 
     @property
-    def sizes(self) -> Dict[Hashable, int]:
+    def sizes(self) -> Dict[str, int]:
         # TODO Ordered Mapping?
         return {dim.name: dim.n for dim in self._dims}
 
@@ -814,7 +814,7 @@ class FFTArray:
     def backend(self) -> Backend:
         return self._backend
 
-    def transpose(self: FFTArray, *dims: Hashable) -> FFTArray:
+    def transpose(self: FFTArray, *dims: str) -> FFTArray:
         """
             Transpose with dimension names.
         """
@@ -910,7 +910,7 @@ class FFTArray:
         assert len(self._eager) == len(self._values.shape)
         assert len(self._factors_applied) == len(self._values.shape)
 
-        dim_names: Set[Hashable] = set()
+        dim_names: Set[str] = set()
         for n, dim in zip(self._values.shape, self._dims):
             assert dim.n == n, \
                 "Passed in inconsistent n from FFTDimension and values."
@@ -966,8 +966,8 @@ def unpack_fft_arrays(
         This handles all "alignment" of input values.
         Align dimensions, unify them, unpack all operands to a simple list of values.
     """
-    dims: Dict[Hashable, UnpackedDimProperties] = {}
-    arrays_to_align: List[Tuple[List[Hashable], Any]] = []
+    dims: Dict[str, UnpackedDimProperties] = {}
+    arrays_to_align: List[Tuple[List[str], Any]] = []
     array_indices = []
     unpacked_values: List[Optional[Union[Number, Any]]] = [None]*len(values)
     is_fftarray: List[bool] = [isinstance(x, FFTArray) for x in values]

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional, Union, Hashable, Literal
+from typing import Optional, Union, Literal
 from dataclasses import dataclass
 
 import numpy as np
@@ -160,7 +160,7 @@ class FFTDimension:
     _freq_min: float
     _d_pos: float
     _n: int
-    _name: Hashable
+    _name: str
     _dynamically_traced_coords: bool
 
     def __init__(
@@ -205,7 +205,7 @@ class FFTDimension:
         return self._n
 
     @property
-    def name(self: FFTDimension) -> Hashable:
+    def name(self: FFTDimension) -> str:
         """..
 
         Returns

@@ -1,6 +1,6 @@
 from typing import (
     Dict, List, Optional, Tuple, TypeVar, Union, Iterable,
-    Hashable, Literal, Literal, Generic, TYPE_CHECKING
+    Literal, Literal, Generic, TYPE_CHECKING
 )
 import warnings
 
@@ -60,7 +60,7 @@ class LocFFTArrayIndexer(Generic[T]):
 
         Parameters
         ----------
-        item : Union[ int, slice, EllipsisType, Tuple[Union[int, slice, EllipsisType],...], Mapping[Hashable, Union[int, slice]], ]
+        item : Union[ int, slice, EllipsisType, Tuple[Union[int, slice, EllipsisType],...], Mapping[str, Union[int, slice]], ]
             An indexer object with dimension lookup method either
             via position or name. When using positional lookup, the order
             of the dimensions in the FFTArray object is used (FFTArray.dims).
@@ -151,8 +151,8 @@ def parse_tuple_indexer_to_dims(
     return full_tuple_indexers
 
 def check_missing_dim_names(
-    indexer_names: Iterable[Hashable],
-    dim_names: Tuple[Hashable, ...],
+    indexer_names: Iterable[str],
+    dim_names: Tuple[str, ...],
     missing_dims: Literal["raise", "warn", "ignore"],
 ) -> None:
     """Check for indexers with a dimension name that does not appear in the FFTArray.

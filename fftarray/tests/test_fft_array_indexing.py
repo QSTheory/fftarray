@@ -1,6 +1,6 @@
 
 from functools import reduce
-from typing import Dict, Hashable, List, Literal, Mapping, Tuple, TypeVar, Union
+from typing import Dict, List, Literal, Mapping, Tuple, TypeVar, Union
 import pytest
 import numpy as np
 import jax
@@ -230,7 +230,7 @@ integer_indexers_test_samples = [
 def test_3d_fft_array_indexing_by_integer(
     space: Space,
     backend_class,
-    indexers: Mapping[Hashable, Union[int, slice]],
+    indexers: Mapping[str, Union[int, slice]],
 ) -> None:
 
     fft_array, xr_dataset = generate_test_fftarray_xrdataset(
@@ -329,7 +329,7 @@ label_indexers_test_samples = [
 def test_3d_fft_array_label_indexing(
     space: Space,
     backend_class,
-    indexers: Mapping[Hashable, Union[int, slice]],
+    indexers: Mapping[str, Union[int, slice]],
     method: Literal["nearest", "pad", "ffill", "backfill", "bfill", None],
 ) -> None:
 
@@ -368,7 +368,7 @@ def test_3d_fft_array_label_indexing(
 def test_3d_fft_array_indexing(
     space: Space,
     index_by: Literal["label", "integer"],
-    indexers: Mapping[Hashable, Union[int, slice]],
+    indexers: Mapping[str, Union[int, slice]],
 ) -> None:
 
     backend = JaxBackend()
@@ -450,7 +450,7 @@ space_combinations = [
 def test_fftarray_state_management(
     space_combination: Dict[str, Space],
     backend_class,
-    indexers: Mapping[Hashable, Union[int, slice]],
+    indexers: Mapping[str, Union[int, slice]],
 ) -> None:
     """
     Tests if the indexed FFTArray has the correct internal properties,
