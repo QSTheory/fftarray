@@ -1,8 +1,8 @@
 from __future__ import annotations
 from collections import abc
 from typing import (
-    Mapping, Optional, Union, List, Any, Tuple, Dict, Hashable,
-    Literal, TypeVar, Iterable, Set, get_args
+    Mapping, Optional, Union, List, Any, Tuple, Dict,
+    Literal, TypeVar, Iterable, Set, get_args,
 )
 from copy import copy
 from numbers import Number
@@ -188,7 +188,7 @@ class FFTArray:
             item: Union[
                 int, slice, EllipsisType,
                 Tuple[Union[int, slice, EllipsisType],...],
-                Mapping[Hashable, Union[int, slice]],
+                Mapping[str, Union[int, slice]],
             ]
         ) -> FFTArray:
         """This method is called when indexing an FFTArray instance by integer index,
@@ -217,7 +217,7 @@ class FFTArray:
 
         Parameters
         ----------
-        item : Union[ int, slice, EllipsisType, Tuple[Union[int, slice, EllipsisType],...], Mapping[Hashable, Union[int, slice]], ]
+        item : Union[ int, slice, EllipsisType, Tuple[Union[int, slice, EllipsisType],...], Mapping[str, Union[int, slice]], ]
             An indexer object with either dimension lookup method either
             via position or name. When using positional lookup, the order
             of the dimensions in the FFTArray object is applied (FFTArray.dims).
@@ -242,7 +242,7 @@ class FFTArray:
         # Return full tuple of indexers as slice or int object
         tuple_indexers: Tuple[Union[int, slice], ...] = tuple_indexers_from_dict_or_tuple(
             indexers=item, # type: ignore
-            dim_names=tuple(dim.name for dim in self.dims) # type: ignore
+            dim_names=tuple(dim.name for dim in self.dims)
         )
 
         new_dims = []
@@ -339,7 +339,7 @@ class FFTArray:
         # Map indexers into full tuple of valid indexers, one entry per dimension
         tuple_indexers: Tuple[Union[int, slice], ...] = tuple_indexers_from_mapping(
             final_indexers, # type: ignore
-            dim_names=[dim.name for dim in self.dims], # type: ignore
+            dim_names=[dim.name for dim in self.dims],
         )
 
         return self.__getitem__(tuple_indexers)
@@ -395,7 +395,7 @@ class FFTArray:
         tuple_indexers_as_integer = []
         for dim, space in zip(self.dims, self.space):
             if dim.name in final_indexers:
-                index = final_indexers[dim.name] # type: ignore
+                index = final_indexers[dim.name]
                 try:
                     tuple_indexers_as_integer.append(
                         dim._index_from_coord(
@@ -432,12 +432,12 @@ class FFTArray:
         return self.__getitem__(tuple(tuple_indexers_as_integer))
 
     @property
-    def dims_dict(self) -> Dict[Hashable, FFTDimension]:
+    def dims_dict(self) -> Dict[str, FFTDimension]:
         # TODO Ordered Mapping?
         return {dim.name: dim for dim in self._dims}
 
     @property
-    def sizes(self) -> Dict[Hashable, int]:
+    def sizes(self) -> Dict[str, int]:
         # TODO Ordered Mapping?
         return {dim.name: dim.n for dim in self._dims}
 
@@ -574,7 +574,7 @@ class FFTArray:
     def backend(self) -> Backend:
         return self._backend
 
-    def transpose(self: FFTArray, *dims: Hashable) -> FFTArray:
+    def transpose(self: FFTArray, *dims: str) -> FFTArray:
         """
             Transpose with dimension names.
         """
@@ -670,7 +670,7 @@ class FFTArray:
         assert len(self._eager) == len(self._values.shape)
         assert len(self._factors_applied) == len(self._values.shape)
 
-        dim_names: Set[Hashable] = set()
+        dim_names: Set[str] = set()
         for n, dim in zip(self._values.shape, self._dims):
             assert dim.n == n, \
                 "Passed in inconsistent n from FFTDimension and values."
@@ -877,8 +877,8 @@ def _unpack_fft_arrays(
         This handles all "alignment" of input values.
         Align dimensions, unify them, unpack all operands to a simple list of values.
     """
-    dims: Dict[Hashable, UnpackedDimProperties] = {}
-    arrays_to_align: List[Tuple[List[Hashable], Any]] = []
+    dims: Dict[str, UnpackedDimProperties] = {}
+    arrays_to_align: List[Tuple[List[str], Any]] = []
     array_indices = []
     unpacked_values: List[Optional[Union[Number, Any]]] = [None]*len(values)
     backend: UniformValue[Backend] = UniformValue()
