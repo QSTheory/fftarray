@@ -66,6 +66,7 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
     "bokeh",
     "pytest-cov",
     "pytest-split",
+    "pytest-xdist[psutil]",
 ]
 
 "doc" = [
@@ -90,8 +91,8 @@ source = "vcs"
 version-file = "_version.py"
 
 [tool.pixi.tasks]
-test = { cmd = ["python", "-m", "pytest"]}
-test_all = { cmd = ["python", "-m", "pytest", "--include-slow"]}
+test = { cmd = ["python", "-m", "pytest", "-n", "auto"]}
+test_all = { cmd = ["python", "-m", "pytest", "--include-slow", "-n", "auto"]}
 test_all_group = { cmd = ["python", "-m", "pytest", "--include-slow", "--splitting-algorithm", "least_duration", "--splits", "$N_GROUPS", "--group", "$GROUP_ID"]}
 # These durations are used to estimate the best split of tests when parallelizing.
 # This only needs to be run when tests changed significantly.
