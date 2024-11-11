@@ -10,7 +10,6 @@ import fftarray as fa
 from fftarray.fft_array import FFTArray, Space
 from fftarray.backends.jax import JaxBackend
 from fftarray.backends.numpy import NumpyBackend
-from fftarray.backends.pyfftw import PyFFTWBackend
 from fftarray.backends.backend import Backend, PrecisionSpec, InvalidPrecisionError
 
 jax.config.update("jax_enable_x64", True)
@@ -18,7 +17,7 @@ jax.config.update("jax_enable_x64", True)
 def assert_scalars_almost_equal_nulp(x, y, nulp = 1):
     np.testing.assert_array_almost_equal_nulp(np.array([x]), np.array([y]), nulp = nulp)
 
-backends: List[Type[Backend]] = [NumpyBackend, JaxBackend, PyFFTWBackend]
+backends: List[Type[Backend]] = [NumpyBackend, JaxBackend]
 precisions: List[PrecisionSpec] = ["fp32", "fp64", "default"]
 spaces: List[Space] = ["pos", "freq"]
 
@@ -34,9 +33,9 @@ def test_fft_array_constructor():
     jnp_arr = jnp.array(values)
 
     failing_sets = [
-        (values, [NumpyBackend(), JaxBackend(), PyFFTWBackend()]),
+        (values, [NumpyBackend(), JaxBackend()]),
         (np_arr, [JaxBackend()]),
-        (jnp_arr, [NumpyBackend(), PyFFTWBackend()]),
+        (jnp_arr, [NumpyBackend()]),
     ]
     for arr, backends in failing_sets:
         for backend in backends:
@@ -52,7 +51,6 @@ def test_fft_array_constructor():
 
     working_sets = [
         (np_arr, NumpyBackend()),
-        (np_arr, PyFFTWBackend()),
         (jnp_arr, JaxBackend()),
     ]
     for arr, backend in working_sets:

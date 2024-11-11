@@ -11,13 +11,12 @@ from fftarray.fft_array import FFTArray, Space
 from fftarray.backends.backend import Backend
 from fftarray.backends.jax import JaxBackend
 from fftarray.backends.numpy import NumpyBackend
-from fftarray.backends.pyfftw import PyFFTWBackend
 
 jax.config.update("jax_enable_x64", True)
 
 EllipsisType = TypeVar('EllipsisType')
 
-BACKENDS = [NumpyBackend, JaxBackend, PyFFTWBackend]
+BACKENDS = [NumpyBackend, JaxBackend]
 
 TEST_FFTDIM = fa.dim(
     name="x", n=8, d_pos=1, pos_min=0, freq_min=0

@@ -37,9 +37,6 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
 "jax" = [
     "jax>=0.4.30"
 ]
-"pyFFTW" = [
-    "pyFFTW"
-]
 "helpers" = [
     "z3-solver",
     "xarray"
@@ -52,12 +49,12 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
 ]
 
 "dev" = [
-    "fftarray[jax, pyFFTW, helpers, dashboards, check, doc]",
+    "fftarray[jax, helpers, dashboards, check, doc]",
     "hatch",
 ]
 
 "check" = [
-    "fftarray[jax, pyFFTW, helpers]",
+    "fftarray[jax, helpers]",
     "mypy>=0.910",
     "pytest",
     "hypothesis",
@@ -70,7 +67,7 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
 ]
 
 "doc" = [
-    "fftarray[jax, pyFFTW, helpers]",
+    "fftarray[jax, helpers]",
     "sphinx>=4.2",
     "sphinx-autodoc-typehints",
     "sphinx-book-theme>=1.0.1",
@@ -139,14 +136,14 @@ python = "3.13.*"
 
 [tool.pixi.environments]
 # Recursive optional dependencies are currently ignored by pixi environments: https://github.com/prefix-dev/pixi/issues/2024
-devcuda = ["dev", "check", "doc", "jaxcuda", "pyFFTW", "helpers", "dashboards"]
-dev = ["dev", "check", "doc", "jax", "pyFFTW", "helpers", "dashboards"]
-doc = ["doc", "jax", "pyFFTW", "helpers"]
-check = ["check", "jax", "pyFFTW", "helpers"]
-check310 = ["py310", "check", "jax", "pyFFTW", "helpers"]
-check311 = ["py311", "check", "jax", "pyFFTW", "helpers"]
-check312 = ["py312", "check", "jax", "pyFFTW", "helpers"]
-check313 = ["py313", "check", "jax", "pyFFTW", "helpers"]
+devcuda = ["dev", "check", "doc", "jaxcuda", "helpers", "dashboards"]
+dev = ["dev", "check", "doc", "jax", "helpers", "dashboards"]
+doc = ["doc", "jax", "helpers"]
+check = ["check", "jax", "helpers"]
+check310 = ["py310", "check", "jax", "helpers"]
+check311 = ["py311", "check", "jax", "helpers"]
+check312 = ["py312", "check", "jax", "helpers"]
+check313 = ["py313", "check", "jax", "helpers"]
 
 [tool.pixi.feature.doc.dependencies]
 pandoc = ">=3.5,<4"
