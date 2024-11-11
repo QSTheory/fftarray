@@ -21,4 +21,5 @@ jobs:
         pixi-version: v0.34.0
         environments: ${{ matrix.environment }}
         cache: true
-    - run: pixi run -e ${{ matrix.environment }} test
+    # Here we do not split mypy and test into a matrix to save resources.
+    - run: pixi run -e ${{ matrix.environment }} check
