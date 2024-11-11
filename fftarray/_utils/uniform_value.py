@@ -1,22 +1,6 @@
-from typing import Tuple, Any, Union, TypeVar, Iterable, Generic
-from functools import reduce
-
+from typing import Any, TypeVar, Generic
 
 T = TypeVar("T")
-
-#------------
-# Helpers to reduce objects that should be same for all elements of a list
-#------------
-def reduce_equal(objects: Iterable[T], error_msg: str) -> T:
-    """
-        Reduce the Iterable to a single instance while checking the assumption that all objects are the same.
-    """
-    def join_equal(a, b):
-        if a == b:
-            return a
-        raise ValueError(error_msg)
-    return reduce(join_equal, objects)
-
 
 class UniformValue(Generic[T]):
     """
@@ -60,14 +44,4 @@ class UniformValue(Generic[T]):
 
         raise ValueError("Value has never been set.")
 
-
-def norm_param(val: Union[T, Iterable[T]], n: int, types) -> Tuple[T, ...]:
-    """
-       `val` has to be immutable.
-    """
-    if isinstance(val, types):
-        return (val,)*n
-
-    # TODO: Can we make this type check work?
-    return tuple(val) # type: ignore
 
