@@ -7,6 +7,18 @@ from bokeh.models import LinearColorMapper
 
 from fftarray import FFTArray, Space
 
+
+# global plot parameters for bokeh
+plt_width       = 450
+plt_height      = 400
+plt_line_width  = 2
+plt_border      =  50
+plt_color1      = "navy"
+plt_color2      = "firebrick"
+plt_color3      = "limegreen"
+x_range1        =   (-15,15)
+
+
 def plt_fftarray(
         arr: FFTArray,
         data_name: Optional[str] = None,
@@ -14,16 +26,16 @@ def plt_fftarray(
     ):
     if len(arr.dims) == 1:
         dim = arr.dims[0]
-        p_pos = figure(width=450, height=400, x_axis_label = f"{dim.name} pos coordinate", min_border=50)
-        pos_values = arr.values(space="pos")
-        p_pos.line(dim.np_array(space="pos"), np.real(pos_values), line_width=2, color = "navy", legend_label="real")
-        p_pos.line(dim.np_array(space="pos"), np.imag(pos_values), line_width=2, color = "firebrick", legend_label="imag")
+        p_pos = figure(width=plt_width, height=plt_height, x_axis_label = f"{dim.name} pos coordinate", min_border=plt_border)
+        pos_values = arr.np_array(space="pos")
+        p_pos.line(dim.np_array(space="pos"), np.real(pos_values), line_width=plt_line_width, color = plt_color1, legend_label="real")
+        p_pos.line(dim.np_array(space="pos"), np.imag(pos_values), line_width=plt_line_width, color = plt_color2, legend_label="imag")
         p_pos.title.text = f"{data_name or 'FFTArray values'} shown in position space" # type: ignore
 
-        p_freq = figure(width=450, height=400, x_axis_label = f"{dim.name} freq coordinate", min_border=50)
-        freq_values = arr.values(space="freq")
-        p_freq.line(dim.np_array(space="freq"), np.real(freq_values), line_width=2, color = "navy", legend_label="real")
-        p_freq.line(dim.np_array(space="freq"), np.imag(freq_values), line_width=2, color = "firebrick", legend_label="imag")
+        p_freq = figure(width=plt_width, height=plt_height, x_axis_label = f"{dim.name} freq coordinate", min_border=plt_border)
+        freq_values = arr.np_array(space="freq")
+        p_freq.line(dim.np_array(space="freq"), np.real(freq_values), line_width=plt_line_width, color = plt_color1, legend_label="real")
+        p_freq.line(dim.np_array(space="freq"), np.imag(freq_values), line_width=plt_line_width, color = plt_color2, legend_label="imag")
         p_freq.title.text = f"{data_name or 'FFTArray values'} shown in frequency space" # type: ignore
 
         plot = row([p_pos, p_freq], sizing_mode="stretch_width") # type: ignore
@@ -35,7 +47,7 @@ def plt_fftarray(
             dim_names = [dim.name for dim in arr.dims]
 
             fig_props = dict(
-                width=450, height=400, min_border=50,
+                width=plt_width, height=plt_height, min_border=plt_border,
                 x_range=tuple(getattr(arr.dims[0], f"{space}_{prop}") for prop in ["min", "max"]),
                 y_range=tuple(getattr(arr.dims[1], f"{space}_{prop}") for prop in ["min", "max"]),
                 x_axis_label = f"{dim_names[0]} {space} coordinate",
@@ -123,26 +135,147 @@ def plt_complex_comparison(
     for name, ufunc in [("Real", np.real), ("Imag", np.imag)]:
         p=figure(
             title=f"{title} {name} Part",
-            width=450,
-            height=400,
+            width=plt_width,
+            height=plt_height,
             x_axis_label = f"{dim.name} pos coordinate",
         )
         p.line(
             x=dim.np_array("pos"),
             y=np.array(ufunc(arr1)),
             legend_label=name1,
-            color="navy",
-            line_width=2,
+            color=plt_color1,
+            line_width=plt_line_width,
         )
         p.line(
             x=dim.np_array("pos"),
             y=np.array(ufunc(arr2)),
             legend_label=name2,
-            color="firebrick",
-            line_width=2,
+            color=plt_color2,
+            line_width=plt_line_width,
         )
         p.legend.click_policy="hide"
         plots.append(p)
+
+    figs = row(plots)
+
+    if show_plot:
+        show(figs)
+    else:
+        return figs
+
+def plt_deriv_sampling(
+        plt_title: str,
+        arr1: FFTArray,
+        arr2: FFTArray,
+        arr3: FFTArray,
+        show_plot: bool = True,
+    ):
+    # check compatibility of dimensions
+    assert len(arr1.dims) == 1
+    assert len(arr2.dims) == 1
+    assert arr1.dims[0] == arr2.dims[0]== arr3.dims[0]
+
+    dim = arr1.dims[0] # save FFTDimension information for plot labels
+    plots = []
+    p=figure(
+        title=f"{plt_title} comparison",
+        width=plt_width,
+        height=plt_height,
+        x_axis_label = f"{dim.name} pos coordinate",
+        x_range=(x_range1),
+    )
+    p.line(
+        x=dim.np_array("pos"),
+        y=np.array(np.real(arr1)),
+        legend_label="g(x)",
+        color=plt_color1,
+        line_width=plt_line_width,
+        line_dash="solid",
+    )
+    p.line(
+        x=dim.np_array("pos"),
+        y=np.array(np.real(arr2)),
+        legend_label="g'(x)",
+        color=plt_color2,
+        line_width=plt_line_width,
+        line_dash="dashed"
+    )
+    p.line(
+        x=dim.np_array("pos"),
+        y=np.array(np.real(arr3)),
+        legend_label="g''(x)",
+        color=plt_color3,
+        line_width=plt_line_width,
+        line_dash="dotted"
+    )
+    p.legend.click_policy="hide"
+    plots.append(p)
+
+    figs = row(plots)
+
+    if show_plot:
+        show(figs)
+    else:
+        return figs
+
+def plt_deriv_comparison(
+        plt_title: str,
+        arr1: FFTArray,
+        name1: str,
+        arr2: FFTArray,
+        name2: str,        
+        show_plot: bool = True,
+    ):
+    # check compatibility of dimensions
+    assert len(arr1.dims) == 1
+    assert len(arr2.dims) == 1
+    assert arr1.dims[0] == arr2.dims[0]
+
+    dim = arr1.dims[0] # save FFTDimension information for plot labels
+    plots = []
+    p=figure(
+        title=f"{plt_title} Comparison",
+        width=plt_width,
+        height=plt_height,
+        x_axis_label = f"{dim.name} pos coordinate",
+        x_range=(x_range1),
+    )
+    p.line(
+        x=dim.np_array("pos"),
+        y=np.array(np.real(arr1)),
+        legend_label=f"{name1}",
+        color=plt_color1,
+        line_width=plt_line_width,
+        line_dash="solid",
+    )
+    p.line(
+        x=dim.np_array("pos"),
+        y=np.array(np.real(arr2)),
+        legend_label=f"{name2}",
+        color=plt_color2,
+        line_width=plt_line_width,
+        line_dash="dashed"
+    )    
+    p.legend.click_policy="hide"
+    plots.append(p)
+
+    # Plot residuals
+    p=figure(
+        title=f"{plt_title} Residuals",
+        width=plt_width,
+        height=plt_height,
+        x_axis_label = f"{dim.name} pos coordinate",
+        x_range=(x_range1),
+    )
+    p.line(
+        x=dim.np_array("pos"),
+        y=np.array(np.real(arr1)-np.array(np.real(arr2))),
+        legend_label=f"{name1}-{name2}",
+        color=plt_color1,
+        line_width=plt_line_width,
+        line_dash="solid",
+    )    
+    plots.append(p)
 
     figs = row(plots)
 
