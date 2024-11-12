@@ -18,9 +18,10 @@ By name | By label | `fft_arr.loc[dict(y=1e-3)]` or `arr.sel(y=1e-3)` |
 
 ## Some Examples
 ```python
-x_dim = FFTDimension(name="x", n=8, d_pos=0.4, pos_min=0, freq_min=0)
-y_dim = FFTDimension(name="y", n=8, d_pos=0.4, pos_min=0, freq_min=0)
-z_dim = FFTDimension(name="z", n=8, d_pos=0.4, pos_min=0, freq_min=0)
+import fftarray as fa
+x_dim = fa.dim(name="x", n=8, d_pos=0.4, pos_min=0, freq_min=0)
+y_dim = fa.dim(name="y", n=8, d_pos=0.4, pos_min=0, freq_min=0)
+z_dim = fa.dim(name="z", n=8, d_pos=0.4, pos_min=0, freq_min=0)
 
 backend = NumpyBackend()
 fft_arr = (

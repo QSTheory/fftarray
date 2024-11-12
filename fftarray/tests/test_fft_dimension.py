@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 import jax
 
+import fftarray as fa
 from fftarray import FFTDimension
 from fftarray.backends.jax import JaxBackend
 from fftarray.backends.numpy import NumpyBackend
@@ -22,7 +23,7 @@ def test_fftdim_accessors():
     Test if the accessors of FFTDimension are defined and do not result in a
     contradiction.
     """
-    sol = FFTDimension("x",
+    sol = fa.dim("x",
         pos_min = 3e-6,
         d_pos = 1e-5,
         freq_min = 0.,
@@ -45,7 +46,7 @@ def test_fftdim_jax():
     def jax_func(fftdim: FFTDimension):
         return fftdim
 
-    fftdim = FFTDimension("x",
+    fftdim = fa.dim("x",
         pos_min = 3e-6,
         d_pos = 1e-5,
         freq_min = 0.,
@@ -62,7 +63,7 @@ def test_arrays(backend) -> None:
 
     n = 16
 
-    fftdim = FFTDimension("x",
+    fftdim = fa.dim("x",
         pos_min = 3e-6,
         d_pos = 1e-5,
         freq_min = 0.,
@@ -83,13 +84,13 @@ def test_arrays(backend) -> None:
     assert_scalars_almost_equal_nulp(fftdim.freq_max, freq_grid[-1])
 
 def test_equality() -> None:
-    dim_1 = FFTDimension("x",
+    dim_1 = fa.dim("x",
         pos_min = 3e-6,
         d_pos = 1e-5,
         freq_min = 0.,
         n = 8,
     )
-    dim_2 = FFTDimension("x",
+    dim_2 = fa.dim("x",
         pos_min = 2e-6,
         d_pos = 1e-5,
         freq_min = 0.,
@@ -113,7 +114,7 @@ def test_dynamically_traced_coords(dtc: bool) -> None:
     changed within a jax.lax.scan step function.
     """
 
-    fftdim_test = FFTDimension("x",
+    fftdim_test = fa.dim("x",
         pos_min = 3e-6,
         d_pos = 1e-5,
         freq_min = 0.,
