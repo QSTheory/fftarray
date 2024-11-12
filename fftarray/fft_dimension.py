@@ -9,10 +9,8 @@ from .backends.numpy import NumpyBackend
 
 from ._utils.formatting import fft_dim_table, format_n
 from ._utils.indexing import check_substepping, remap_index_check_int
-from ._utils.defaults import get_default_backend, get_default_eager
 
-from .fft_array import Space, FFTArray
-
+from .space import Space
 
 def dim(
         name: str,
@@ -518,54 +516,6 @@ class FFTDimension:
             return indices * self.d_freq + self.freq_min
         else:
             raise ValueError(f"space has to be either 'pos' or 'freq', not {space}.")
-
-    def fft_array(
-            self: FFTDimension,
-            space: Space,
-            backend: Optional[Backend] = None,
-            eager: Optional[bool] = None,
-        ) -> FFTArray:
-        """..
-
-        Parameters
-        ----------
-        space : Space
-            Specify the space of the coordinates and in which space the returned FFTArray is intialized.
-        backend : Optional[Backend]
-            The backend to use for the returned FFTArray.  `None` uses default `NumpyBackend("default")` which can be globally changed.
-        eager :  Optional[bool]
-            The eager-mode to use for the returned FFTArray.  `None` uses default `False` which can be globally changed.
-
-        Returns
-        -------
-        FFTArray
-            The grid coordinates of the chosen space packed into an FFTArray with self as only dimension.
-
-        See Also
-        --------
-            set_default_backend, get_default_backend
-            set_default_eager, get_default_eager
-        """
-
-        if backend is None:
-            backend = get_default_backend()
-
-        if eager is None:
-            eager = get_default_eager()
-
-        values = self._raw_coord_array(
-            backend=backend,
-            space=space,
-        )
-
-        return FFTArray(
-            values=values,
-            dims=[self],
-            eager=eager,
-            factors_applied=True,
-            space=space,
-            backend=backend,
-        )
 
     def np_array(self: FFTDimension, space: Space):
         return self._raw_coord_array(backend=NumpyBackend(), space=space)
