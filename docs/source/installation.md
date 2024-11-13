@@ -1,7 +1,7 @@
 # Installing FFTArray
 
 There are different versions of fftarray available for installation, enabling different capabilities and thus, coming with different external packages as requirements.
-The bare version features the core capabilities. For example, there are no helper methods to define a `FFTDimension` or export into/import from an `xarray.DataArray`. There is also no automatic installation of required packages for accelerated FFT implementations on CPUs (`pyFFTW`) or GPUs (`jax`). Additinally, there is a version to enable the execution of the examples.
+The bare version features the core capabilities. For example, there are no helper methods to define a `FFTDimension` or export into/import from an `xarray.DataArray`. There is also no automatic installation of required packages for accelerated FFT implementations on GPUs (`jax`). Additionally, there is a version to enable the execution of the examples.
 
 You can install each version of fftarray from the GitHub repository directly via SSH (recommended) or HTTPS.
 ```shell
@@ -13,8 +13,6 @@ python -m pip install 'fftarray @ git+https://github.com/QSTheory/fftarray.git' 
 ```shell
 ## JAX support (GPU acceleration)
 python -m pip install 'fftarray[jax] @ git+ssh://git@github.com/QSTheory/fftarray.git' # SSH
-## pyFFTW support (CPU acceleration)
-python -m pip install 'fftarray[pyFFTW] @ git+ssh://git@github.com/QSTheory/fftarray.git' # SSH
 ## Some helper methods (FFT constraint solver + xarray import/export)
 python -m pip install 'fftarray[helpers] @ git+ssh://git@github.com/QSTheory/fftarray.git' # SSH
 ## Examples

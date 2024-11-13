@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.abspath("../../examples/"))
 # ---------------------------- Project information --------------------------- #
 
 project = "FFTArray"
-copyright = "2024, The FFTArray authors. NumPy, Jax and PyFFTW are copyright the respective authors."
+copyright = "2024, The FFTArray authors. NumPy and Jax are copyright the respective authors."
 author = "The FFTArray authors"
 
 version = ""
@@ -51,8 +51,7 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "scipy": ("https://docs.scipy.org/doc/scipy/reference/", None),
     "panel": ("https://panel.holoviz.org/", None),
-    "jax": ("https://jax.readthedocs.io/en/latest/", None),
-    "pyfftw": ("https://pyfftw.readthedocs.io/en/latest/", None)
+    "jax": ("https://jax.readthedocs.io/en/latest/", None)
 }
 
 templates_path = ['_templates']
