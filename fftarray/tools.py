@@ -1,4 +1,4 @@
-from typing import Dict, Hashable
+from typing import Dict
 
 import numpy as np
 
@@ -6,7 +6,7 @@ from fftarray import FFTArray
 import fftarray as fa
 
 # TODO: change names of FFTArray argument here
-def shift_frequency(wf: FFTArray, offsets: Dict[Hashable, float]) -> FFTArray:
+def shift_frequency(wf: FFTArray, offsets: Dict[str, float]) -> FFTArray:
     """Shift the wavefunction in frequency space:
     :math:`k_{x,y,z} \mapsto k_{x,y,z} - \Delta k_{x,y,z}`.
     The wavefunction is transformed according to:
@@ -44,7 +44,7 @@ def shift_frequency(wf: FFTArray, offsets: Dict[Hashable, float]) -> FFTArray:
         phase_shift *= np.exp(1.j * 2.*np.pi * offset * x)
     return wf.into(space="pos") * phase_shift
 
-def shift_position(wf: FFTArray, offsets: Dict[Hashable, float]) -> FFTArray:
+def shift_position(wf: FFTArray, offsets: Dict[str, float]) -> FFTArray:
     """Shift the wavefunction in position space:
     :math:`x \mapsto x - \Delta x`. :math:`y` and :math:`z` analogously.
     The wavefunction is transformed according to:

@@ -1,13 +1,13 @@
-from typing import Sequence, Tuple, Hashable, Any, List, Dict
+from typing import Sequence, Tuple, Any, List, Dict
 from dataclasses import dataclass
 
 #-------------------
 # TODO This is copied from abstraction but then quite significantly modified
 #-------------------
 def align_named_arrays(
-        arrays: Sequence[Tuple[Sequence[Hashable], Any]],
+        arrays: Sequence[Tuple[Sequence[str], Any]],
         backend
-    ) -> Tuple[Sequence[Hashable], List[Any]]:
+    ) -> Tuple[Sequence[str], List[Any]]:
     """
         The arrays may have longer shapes than there are named dims.
         Those are always kept as the last dims.
@@ -18,7 +18,7 @@ def align_named_arrays(
 
         Returns the new dim-names and the list of aligned arrays.
     """
-    target_shape: Dict[Hashable, int] = {}
+    target_shape: Dict[str, int] = {}
     for dims, arr in arrays:
         for i, dim in enumerate(dims):
             if dim in target_shape:
@@ -56,8 +56,8 @@ class FillDim:
         return hash(self.index)
 
 def get_axes_transpose(
-            old_dims: Sequence[Hashable],
-            new_dims: Sequence[Hashable]
+            old_dims: Sequence[str],
+            new_dims: Sequence[str]
         ) -> Tuple[int, ...]:
     assert len(old_dims) == len(new_dims)
     dim_index_lut = {dim: i for i, dim in enumerate(old_dims)}
@@ -67,8 +67,8 @@ def get_axes_transpose(
 def transpose_array(
         array: Any,
         backend,
-        old_dims: Sequence[Hashable],
-        new_dims: Sequence[Hashable]
+        old_dims: Sequence[str],
+        new_dims: Sequence[str]
     ) -> Any:
     """
         `old_dims` and `new_dims` must be a transpose of one another.
