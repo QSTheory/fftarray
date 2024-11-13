@@ -60,6 +60,7 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
     "hypothesis",
     "ipython",
     "nbformat",
+    "nbqa",
     "bokeh",
     "pytest-cov",
     "pytest-xdist[psutil]",
@@ -97,7 +98,8 @@ test_all_group = { cmd = ["python", "-m", "pytest", "--include-slow", "--splitti
 # If the timings are out of date it just makes the split a bit less optimal.
 store_test_durations = { cmd = ["python", "-m", "pytest", "--include-slow", "--store-durations"]}
 
-mypy = { cmd = ["mypy", "fftarray"]}
+mypy_nb = { cmd = ["nbqa", "mypy", "examples"]}
+mypy = { cmd = ["mypy", "examples", "fftarray"], depends-on = ["mypy_nb"]}
 check = { depends-on = ["mypy", "test"]}
 cov_html = { cmd = ["python", "-m", "pytest", "--cov=./fftarray", "--cov=./examples", "--cov-report=html"]}
 cov_xml = { cmd = ["python", "-m", "pytest", "--cov=./fftarray", "--cov=./examples", "--cov-report=xml"]}
