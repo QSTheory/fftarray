@@ -10,6 +10,7 @@ from dataclasses import dataclass
 import textwrap
 
 import numpy as np
+import numpy.typing as npt
 import array_api_compat
 
 from .space import Space
@@ -28,165 +29,243 @@ from .transform_application import do_fft, get_transform_signs, apply_lazy, comp
 
 EllipsisType = TypeVar('EllipsisType')
 
-def mul_transforms(unp_inp: UnpackedValues) -> Tuple[List[List[Literal[-1, 1, None]]], Tuple[bool, ...]]:
+
+@dataclass
+class TwoOperandTransforms:
     """
-        Generates the required phase factor applications and factors_applied result required
-        for multiplications and divisions while keeping factors_applied correct.
+        When combining two operands with addition or multiplication
+        not all phase-factors need to be applied necessarily.
 
-        Generates the required phase factor applications and factors_applied result required
-        for multiplications and divisions while keeping factors_applied correct.
+        The rules on how to combine the phase factors of two operands per
+        dimension are stored in this class as a look-up-table.
 
-        This table shows the results of this function for different ``factors_applied``.
-        A scalar input has always ``factor_applied=True``.
+        The inputs per dimension are three booleans:
 
-        +--------+--------+-------------------+-------------------+-------+
-        |x1 input|x2 input|x1 sign (to target)|x2 sign (to target)| res   |
-        +========+========+===================+===================+=======+
-        | False  | False  | 0(False)          |-1(True)           | False |
-        +--------+--------+-------------------+-------------------+-------+
-        | False  | True   | 0(False)          | 0(True)           | False |
-        +--------+--------+-------------------+-------------------+-------+
-        | True   | False  | 0(True)           | 0(False)          | False |
-        +--------+--------+-------------------+-------------------+-------+
-        | True   | True   | 0(True)           | 0(True)           | True  |
-        +--------+--------+-------------------+-------------------+-------+
+        +----------+------------------------------------------+
+        |Input     |Description                               |
+        +==========+==========================================+
+        | eager    | Must be the same between the two arrays, |
+        |          | otherwise they cannot be combined.       |
+        +----------+------------------------------------------+
+        | factors1 | `factors_applied` of the first operand   |
+        +----------+------------------------------------------+
+        | factors2 | `factors_applied` of the first operand   |
+        +----------+------------------------------------------+
 
-        The choice between the operands in the last line is be arbitrary for multiplication
-        but is the necessary choice for division.
+        These three booleans are then converted into a binary number in the order
+        ``(eager, factors1, factors2)``.
+        This then yields the index between ``0`` and ``7`` for the look up.
+
+        The actual application code assumes that `factors1 and factors2` never gets mapped
+        to `factors_applied=False`.
+        This property is not checked since the tables are hard-coded.
     """
-    factor_transforms: List[List[Literal[-1, 1, None]]] = [[None]*len(unp_inp.dims) for _ in range(2)]
-    final_factors_applied: List[bool] = []
-    # Element-wise multiplication is commutative with the multiplication of the phase factors.
-    # So we can always directly multiply with the inner values and can delay up to one set of phase factors per dimension.
 
-    # We only handle two operands.
-    # If both have a phase factor we must remove it for one of the values.
-    # Otherwise we can just take the raw values
-    for dim_idx in range(len(unp_inp.dims)):
-        fac_applied: Tuple[bool, bool] = (unp_inp.factors_applied[dim_idx][0], unp_inp.factors_applied[dim_idx][1])
+    def __init__(
+            self,
+            factor_application_signs: npt.NDArray[np.int8],
+            final_factor_state: npt.NDArray[np.bool],
+        ):
+        """..
 
-        # If both are not applied we have to apply the factor once
-        if fac_applied == (False, False):
-            # We pick to always do it on the second one.
-            # Divide requires this, multiply could also choose the first.
-            factor_transforms[1][dim_idx] = -1
+        If length 4 is passed in, this signals the result does not depend on ``eager``.
+        The table then gets automatically extended to length ``8`` by duplication.
 
-        # If both operands are applied, the final will be too, otherwise it will not.
-        final_factors_applied.append(all(fac_applied))
+        Args:
+            factor_application_signs (npt.NDArray[np.int8]): Shape 2x4 or 2x8
+            final_factor_state (npt.NDArray[np.bool]): Shape 4 or 8
+        """
 
-    return factor_transforms, tuple(final_factors_applied)
+        # If only for op-combinations are given, it is implied that eager is irrelevant
+        # and the values are duplicated for both cases.
+        if factor_application_signs.shape[0]==4:
+            # Same for both possible values of eager.
+            factor_application_signs = np.tile(factor_application_signs, (2,1))
+            final_factor_state = np.tile(final_factor_state, 2)
 
-def add_transforms(unp_inp: UnpackedValues) -> Tuple[List[List[Literal[-1, 1, None]]], Tuple[bool, ...]]:
-    """
-        Generates the required phase factor applications and factors_applied result required
-        for addition and subtraction while keeping factors_applied correct.
-        This requires to always have the same phase factor state for both operands.
-
-        This tables shows the results of this function for different ``factors_applied``.
-        A scalar input has always ``factor_applied=True``.
-
-        With `eager=False` when given an arbitrary choice, `False` is preferred for the result:
-
-        +--------+--------+--------+-------------------+-------------------+-------+
-        | eager  |x1 input|x2 input|x1 sign (to target)|x2 sign (to target)| res   |
-        +========+========+========+===================+===================+=======+
-        | False  | False  | False  | 0(False)          | 0(False)          | False |
-        +--------+--------+--------+-------------------+-------------------+-------+
-        | False  | False  | True   | 0(False)          | 1(False)          | False |
-        +--------+--------+--------+-------------------+-------------------+-------+
-        | False  | True   | False  | 1(False)          | 0(False)          | False |
-        +--------+--------+--------+-------------------+-------------------+-------+
-        | False  | True   | True   | 0(True)           | 0(True)           | True  |
-        +--------+--------+--------+-------------------+-------------------+-------+
-
-        With ``eager=True`` when given an arbitrary choice, ``True`` is preferred for the result:
-
-        +--------+--------+--------+-------------------+-------------------+-------+
-        | eager  |x1 input|x2 input|x1 sign (to target)|x2 sign (to target)| res   |
-        +========+========+========+===================+===================+=======+
-        | True   | False  | False  | 0(False)          | 0(False)          | False |
-        +--------+--------+--------+-------------------+-------------------+-------+
-        | True   | False  | True   |-1(True)           | 0(True)           | True  |
-        +--------+--------+--------+-------------------+-------------------+-------+
-        | True   | True   | False  | 0(True)           |-1(True)           | True  |
-        +--------+--------+--------+-------------------+-------------------+-------+
-        | True   | True   | True   | 0(True)           | 0(True)           | True  |
-        +--------+--------+--------+-------------------+-------------------+-------+
-    """
-    factor_transforms: List[List[Literal[-1, 1, None]]] = [[None]*len(unp_inp.dims) for _ in range(2)]
-    final_factors_applied: List[bool] = []
-
-    for dim_idx in range(len(unp_inp.dims)):
-        fac_applied = (unp_inp.factors_applied[dim_idx][0], unp_inp.factors_applied[dim_idx][1])
-        if fac_applied[0] == fac_applied[1]:
-            # Both factors still need to be applied => factor them out
-            final_factors_applied.append(fac_applied[0])
-        else:
-            final_factors_applied.append(unp_inp.eager[dim_idx])
-
-            # Same as the commented out code below.
-            # Not sure if it is readable enough.
-
-            # If the first operand is applied and eager, we convert the second one.
-            # Same if it is not applied and lazy.
-            # Otherwise we convert the first one.
-            transformed_op_idx = int(fac_applied[0] == unp_inp.eager[dim_idx])
-            # If we are eager we want to the applied state, so sign=-1
-            # else we want to the internal state so we apply 1.
-            factor_transforms[transformed_op_idx][dim_idx] = -1 if unp_inp.eager[dim_idx] else 1
-    return factor_transforms, tuple(final_factors_applied)
-
-def default_transforms(unp_inp: UnpackedValues) -> Tuple[List[List[Literal[-1, 1, None]]], Tuple[bool, ...]]:
-    """
-        Generates the required phase factor applications and factors_applied result required for
-        any two-operands operation which requires the phase factors to be applied.
-        This requires to always have the same phase factor state for both operands.
-
-        This tables shows the results of this function for different ``factors_applied``.
-        A scalar input has always ``factor_applied=True``.
-
-        +--------+--------+-------------------+-------------------+-------+
-        |x1 input|x2 input|x1 sign (to target)|x2 sign (to target)| res   |
-        +========+========+===================+===================+=======+
-        | False  | False  |-1(True)           |-1(True)           | True  |
-        +--------+--------+-------------------+-------------------+-------+
-        | False  | True   |-1(True)           | 0(True)           | True  |
-        +--------+--------+-------------------+-------------------+-------+
-        | True   | False  | 0(True)           |-1(True)           | True  |
-        +--------+--------+-------------------+-------------------+-------+
-        | True   | True   | 0(True)           | 0(True)           | True  |
-        +--------+--------+-------------------+-------------------+-------+
-    """
-    factor_transforms: List[List[Literal[-1, 1, None]]] = [[None]*len(unp_inp.dims) for _ in range(2)]
-
-    # Define factor_transforms such that factors are applied for
-    # both operators because there is no special case applicable
-    for op_idx in [0,1]:
-        if unp_inp.is_fftarray[op_idx]:
-            res = get_transform_signs(
-                input_factors_applied=[unp_inp.factors_applied[dim_idx][op_idx] for dim_idx in range(len(unp_inp.dims))],
-                target_factors_applied=[True]*len(unp_inp.dims),
-            )
-            if res is not None:
-                factor_transforms[op_idx] = res
-
-    return factor_transforms, (True,)*len(unp_inp.dims)
+        self.factor_application_signs = factor_application_signs
+        self.final_factor_state = final_factor_state
 
 
-def two_inputs_func(unp_inp: UnpackedValues, op, get_transforms=default_transforms, kwargs={}):
-    factor_transforms, final_factors_applied = get_transforms(unp_inp)
+    # Shape 2(operands)*8(input state combinations), valid values: -1, 0, 1
+    factor_application_signs: npt.NDArray[np.int8]
+    # Shape 8(input state combinations)
+    final_factor_state: npt.NDArray[np.bool]
+
+"""
+    Generates the required phase factor applications and factors_applied result required
+    for multiplications and divisions while keeping factors_applied correct.
+
+    This table shows the results of this function for different ``factors_applied``.
+    A scalar input has always ``factor_applied=True``.
+
+    +--------+--------+-----------+-------------------+-------------------+-------+
+    |factors1|factors2| LUT Index |x1 sign (to target)|x2 sign (to target)| res   |
+    +========+========+===========+===================+===================+=======+
+    | False  | False  | 0/4       | 0(False)          |-1(True)           | False |
+    +--------+--------+-----------+-------------------+-------------------+-------+
+    | False  | True   | 1/5       | 0(False)          | 0(True)           | False |
+    +--------+--------+-----------+-------------------+-------------------+-------+
+    | True   | False  | 2/6       | 0(True)           | 0(False)          | False |
+    +--------+--------+-----------+-------------------+-------------------+-------+
+    | True   | True   | 3/7       | 0(True)           | 0(True)           | True  |
+    +--------+--------+-----------+-------------------+-------------------+-------+
+
+    The choice between the operands in the last line is be arbitrary for multiplication
+    but is the necessary choice for division.
+"""
+mul_transforms_lut = TwoOperandTransforms(
+    factor_application_signs=np.array([
+        # The choice between the operands is arbitrary for multiplication
+        # but is the necessary choice for division.
+        # (False, False)
+        [0, -1],
+        # (False, True)
+        [0, 0],
+        # (True,  False)
+        [0,  0],
+        # (True,  True)
+        [0,  0],
+    ]),
+    final_factor_state=np.array([False, False, False, True])
+)
+
+"""
+    Defines the required phase factor applications and factors_applied result required
+    for addition and subtraction while keeping factors_applied correct.
+    This requires to always have the same phase factor state for both operands.
+
+    This tables shows the results of this function for different ``factors_applied``.
+    A scalar input has always ``factor_applied=True``.
+
+    With `eager=False` when given an arbitrary choice, `False` is preferred for the result:
+
+    +--------+--------+--------+-----------+-------------------+-------------------+-------+
+    | eager  |factors1|factors2| LUT Index |x1 sign (to target)|x2 sign (to target)| res   |
+    +========+========+========+===========+===================+===================+=======+
+    | False  | False  | False  | 0         | 0(False)          | 0(False)          | False |
+    +--------+--------+--------+-----------+-------------------+-------------------+-------+
+    | False  | False  | True   | 1         | 0(False)          | 1(False)          | False |
+    +--------+--------+--------+-----------+-------------------+-------------------+-------+
+    | False  | True   | False  | 2         | 1(False)          | 0(False)          | False |
+    +--------+--------+--------+-----------+-------------------+-------------------+-------+
+    | False  | True   | True   | 3         | 0(True)           | 0(True)           | True  |
+    +--------+--------+--------+-----------+-------------------+-------------------+-------+
+
+    With ``eager=True`` when given an arbitrary choice, ``True`` is preferred for the result:
+
+    +--------+--------+--------+----------+-------------------+-------------------+-------+
+    | eager  |factors1|factors2| LUT Index|x1 sign (to target)|x2 sign (to target)| res   |
+    +========+========+========+==========+===================+===================+=======+
+    | True   | False  | False  | 4        | 0(False)          | 0(False)          | False |
+    +--------+--------+--------+----------+-------------------+-------------------+-------+
+    | True   | False  | True   | 5        |-1(True)           | 0(True)           | True  |
+    +--------+--------+--------+----------+-------------------+-------------------+-------+
+    | True   | True   | False  | 6        | 0(True)           |-1(True)           | True  |
+    +--------+--------+--------+----------+-------------------+-------------------+-------+
+    | True   | True   | True   | 7        | 0(True)           | 0(True)           | True  |
+    +--------+--------+--------+----------+-------------------+-------------------+-------+
+"""
+add_transforms_lut = TwoOperandTransforms(
+    factor_application_signs=np.array([
+        #--------
+        # eager=False
+        #--------
+        # (False, False)
+        [0,0],
+        # (False, True)
+        [0,1],
+        # (True,  False)
+        [1,0],
+        # (True,  True)
+        [0,0],
+        #--------
+        # eager=True
+        #--------
+        # (False, False)
+        [0,0],
+        # (False, True)
+        [-1,0],
+        # (True,  False)
+        [0,-1],
+        # (True,  True)
+        [0,0],
+    ]),
+    final_factor_state=np.array([
+        # eager=False
+        False, False, False, True,
+        # eager=True
+        False, True, True, True,
+    ])
+)
+
+
+"""
+    Defines the required phase factor applications and factors_applied result required for
+    any two-operands operation which requires the phase factors to be applied.
+    This requires to always have the same phase factor state for both operands.
+
+    This tables shows the results of this function for different ``factors_applied``.
+    A scalar input has always ``factor_applied=True``.
+
+    +--------+--------+-----------+-------------------+-------------------+-------+
+    |factors1|factors2| LUT Index |x1 sign (to target)|x2 sign (to target)| res   |
+    +========+========+===========+===================+===================+=======+
+    | False  | False  | 0/4       |-1(True)           |-1(True)           | True  |
+    +--------+--------+-----------+-------------------+-------------------+-------+
+    | False  | True   | 1/5       |-1(True)           | 0(True)           | True  |
+    +--------+--------+-----------+-------------------+-------------------+-------+
+    | True   | False  | 2/6       | 0(True)           |-1(True)           | True  |
+    +--------+--------+-----------+-------------------+-------------------+-------+
+    | True   | True   | 3/7       | 0(True)           | 0(True)           | True  |
+    +--------+--------+-----------+-------------------+-------------------+-------+
+"""
+default_transforms_lut = TwoOperandTransforms(
+    factor_application_signs=np.array([
+        # (False, False)
+        [-1,-1],
+        # (False, True)
+        [-1,0],
+        # (True,  False)
+        [0,-1],
+        # (True,  True)
+        [0,0],
+    ]),
+    final_factor_state=np.array([True, True, True, True])
+)
+
+def two_inputs_func(
+            unp_inp: UnpackedValues,
+            op,
+            transforms_lut: TwoOperandTransforms=default_transforms_lut,
+            kwargs={}
+        ) -> FFTArray:
+    # Convert inputs into a n_dimsx3 boolean array containing the bits for the look-up table
+    bits = np.concatenate([np.array(unp_inp.eager).reshape(-1,1), unp_inp.factors_applied], axis=1)
+    # Compute look-up indices by interpreting the three bits as a binary number.
+    lut_indices = np.sum(bits*np.array([[4,2,1]]), axis=1)
+    # Compute the required phase applications for each operand per dimension
+    # by applying the rules encoded in the look-up table.
+    factor_transforms = transforms_lut.factor_application_signs[lut_indices]
+    # Compute the resulting factors_applied per dimension
+    # by applying the rules encoded in the look-up table.
+    final_factors_applied = transforms_lut.final_factor_state[lut_indices]
+
 
     # Apply above defined scale and phase factors depending on the specific case
-    for op_idx, signs_op in enumerate(factor_transforms):
-        if unp_inp.is_fftarray[op_idx] and not all([sign is None for sign in signs_op]):
-            # It is always an array type and not just a Literal.
+    for op_idx in [0,1]:
+        signs = factor_transforms[:,op_idx]
+        if not np.all(signs==0):
+            # It is always an array type and not just a Literal,
+            # because a literal is always factors_applied=True
+            # and none of the LUTs maps that to factors_applied=False.
             sub_values: Any = unp_inp.values[op_idx]
             sub_values = unp_inp.xp.asarray(sub_values, dtype=complex_type(unp_inp.xp, sub_values.dtype), copy=True)
             unp_inp.values[op_idx] = apply_lazy(
                 xp=unp_inp.xp,
                 values=sub_values,
                 dims=unp_inp.dims,
-                signs=signs_op,
+                signs=signs.tolist(),
                 spaces=unp_inp.space,
                 scale_only=False,
             )
@@ -197,13 +276,13 @@ def two_inputs_func(unp_inp: UnpackedValues, op, get_transforms=default_transfor
         space=unp_inp.space,
         dims=unp_inp.dims,
         eager=unp_inp.eager,
-        factors_applied=final_factors_applied,
+        factors_applied=tuple(final_factors_applied.tolist()),
         xp=unp_inp.xp,
     )
 
 def elementwise_two_operands(
         name: str,
-        get_transforms=default_transforms,
+        transforms_lut: TwoOperandTransforms = default_transforms_lut,
         is_on_self: bool=False,
     ): # This type makes problem for the dunder methods -> Callable[[Any, Any], FFTArray]:
 
@@ -216,10 +295,12 @@ def elementwise_two_operands(
         return two_inputs_func(
             unp_inp=unp_inp,
             op=op_norm,
-            get_transforms=get_transforms,
+            transforms_lut=transforms_lut,
         )
     fun.__doc__ = textwrap.dedent(
-        f"""Wrapper around the underlying element-wise function ``{name}`` from the Python Array API standard.
+        f"""..
+
+        Wrapper around the underlying element-wise function ``{name}`` from the Python Array API standard.
         See https://data-apis.org/array-api/latest/API_specification/generated/array_api.{name}.html
         """
     )
@@ -246,7 +327,9 @@ def elementwise_one_operand(
             xp=x.xp,
         )
     single_element_func.__doc__ = textwrap.dedent(
-        f"""Wrapper around the underlying element-wise function ``{name}`` from the Python Array API standard.
+        f"""..
+
+        Wrapper around the underlying element-wise function ``{name}`` from the Python Array API standard.
         See https://data-apis.org/array-api/latest/API_specification/generated/array_api.{name}.html
         """
     )
@@ -368,47 +451,47 @@ class FFTArray:
     # in order to ensure the correct promotion rules.
     __add__ = elementwise_two_operands(
         name="__add__",
-        get_transforms=add_transforms,
+        transforms_lut=add_transforms_lut,
         is_on_self=True,
     )
     __radd__ = elementwise_two_operands(
         name="__radd__",
-        get_transforms=add_transforms,
+        transforms_lut=add_transforms_lut,
         is_on_self=True,
     )
     __sub__ = elementwise_two_operands(
         name="__sub__",
-        get_transforms=add_transforms,
+        transforms_lut=add_transforms_lut,
         is_on_self=True,
     )
     __rsub__ = elementwise_two_operands(
         name="__rsub__",
-        get_transforms=add_transforms,
+        transforms_lut=add_transforms_lut,
         is_on_self=True,
     )
     __mul__ = elementwise_two_operands(
         name="__mul__",
-        get_transforms=mul_transforms,
+        transforms_lut=mul_transforms_lut,
         is_on_self=True,
     )
     __rmul__ = elementwise_two_operands(
         name="__rmul__",
-        get_transforms=mul_transforms,
+        transforms_lut=mul_transforms_lut,
         is_on_self=True,
     )
     __truediv__ = elementwise_two_operands(
         name="__truediv__",
-        get_transforms=mul_transforms,
+        transforms_lut=mul_transforms_lut,
         is_on_self=True,
     )
     __rtruediv__ = elementwise_two_operands(
         name="__rtruediv__",
-        get_transforms=mul_transforms,
+        transforms_lut=mul_transforms_lut,
         is_on_self=True,
     )
     __rfloordiv__ = elementwise_two_operands(
         name="__rfloordiv__",
-        get_transforms=mul_transforms,
+        transforms_lut=mul_transforms_lut,
         is_on_self=True,
     )
     __pow__ = elementwise_two_operands("__pow__", is_on_self=True)
@@ -999,12 +1082,10 @@ class UnpackedValues:
     dims: Tuple[FFTDimension, ...]
     # Values without any dimensions, etc.
     values: List[Union[Number, Any]]
-    # whether the input was a FFTArray
-    is_fftarray: List[bool]
     # Shared array namespace between all values.
     xp: Any
-    # outer list: dim_idx, inner_list: op_idx, None: dim does not appear in operand
-    factors_applied: List[List[bool]]
+    # dim 0: dim_idx, dim 1: op_idx
+    factors_applied: npt.NDArray[np.bool]
     # Space per dimension, must be homogeneous over all values
     space: Tuple[Space, ...]
     # eager per dimension, must be homogeneous over all values
@@ -1039,7 +1120,6 @@ def unpack_fft_arrays(
     arrays_to_align: List[Tuple[List[str], Any]] = []
     array_indices = []
     unpacked_values: List[Optional[Union[Number, Any]]] = [None]*len(values)
-    is_fftarray: List[bool] = [isinstance(x, FFTArray) for x in values]
     xp: UniformValue[Any] = UniformValue()
 
     for op_idx, x in enumerate(values):
@@ -1110,7 +1190,7 @@ def unpack_fft_arrays(
     dims_list = [dims[dim_name].dim.get() for dim_name in dim_names]
     space_list = [dims[dim_name].space.get() for dim_name in dim_names]
     eager_list = [dims[dim_name].eager.get() for dim_name in dim_names]
-    factors_applied = [dims[dim_name].factors_applied for dim_name in dim_names]
+    factors_applied: npt.NDArray[np.bool] = np.array([dims[dim_name].factors_applied for dim_name in dim_names])
 
     for value in unpacked_values:
         assert value is not None
@@ -1121,7 +1201,6 @@ def unpack_fft_arrays(
         dims = tuple(dims_list),
         values = unpacked_values, # type: ignore
         space = tuple(space_list),
-        is_fftarray = is_fftarray,
         factors_applied=factors_applied,
         eager=tuple(eager_list),
         xp = xp.get(),

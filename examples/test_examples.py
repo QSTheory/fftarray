@@ -1,7 +1,8 @@
 # Runs all the notebooks as parts of the tests.
 # originally based on https://jupyter-notebook.readthedocs.io/en/5.7.6/examples/Notebook/Importing%20Notebooks.html
 
-import io, types
+import io
+import types
 import pytest
 
 from IPython import get_ipython
