@@ -1,8 +1,13 @@
-from typing import List, Literal
 
 from .fft_array import (
-    elementwise_one_operand, elementwise_two_operands, FFTArray,
-    add_transforms, mul_transforms,
+    elementwise_one_operand,
+    elementwise_two_operands,
+    FFTArray,
+)
+from .op_lazy_luts import (
+    add_transforms_lut,
+    mul_transforms_lut,
+    div_transforms_lut,
 )
 from .transform_application import get_transform_signs, apply_lazy
 
@@ -16,7 +21,7 @@ def abs(x: FFTArray, /) -> FFTArray:
     # to the values so we can simply ignore the phases.
     values = x.xp.abs(x._values)
     # The scale can be applied after abs which is more efficient in the case of a complex input
-    signs: List[Literal[-1, 1, None]] | None = get_transform_signs(
+    signs = get_transform_signs(
         # Can use input because with a single value no broadcasting happened.
         input_factors_applied=x._factors_applied,
         target_factors_applied=[True]*len(x._factors_applied),
@@ -58,10 +63,10 @@ def clip(x: FFTArray, /, *, min=None, max=None) -> FFTArray:
 
 
 # These use special shortcuts in the phase application.
-add = elementwise_two_operands("add", add_transforms)
-subtract = elementwise_two_operands("subtract", add_transforms)
-multiply = elementwise_two_operands("multiply", mul_transforms)
-divide = elementwise_two_operands("divide", mul_transforms)
+add = elementwise_two_operands("add", add_transforms_lut)
+subtract = elementwise_two_operands("subtract", add_transforms_lut)
+multiply = elementwise_two_operands("multiply", mul_transforms_lut)
+divide = elementwise_two_operands("divide", div_transforms_lut)
 
 
 #------------------
