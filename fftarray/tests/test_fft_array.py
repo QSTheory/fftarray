@@ -568,18 +568,65 @@ def assert_fftarray_eager_factors_applied(arr: FFTArray, log):
     for ffapplied, feager in zip(arr_fft._factors_applied, arr_fft.eager):
         assert (feager and ffapplied) or (not feager and not ffapplied)
 
+
+def get_two_operand_transform_factors(
+        op_name: str,
+        eager: bool,
+        factors_applied_1: bool,
+        factors_applied_2: bool,
+    ) -> Tuple[Tuple[bool], Tuple[bool, bool]]:
+
+    match op_name:
+        case "add" | "sub":
+            if factors_applied_1 == factors_applied_2:
+                x2_factors = (factors_applied_1,)
+            else:
+                x2_factors = (eager,)
+
+            if eager:
+                xy_factors = (True, True)
+            else:
+                xy_factors = (factors_applied_1, factors_applied_2)
+
+        case "mul":
+            if factors_applied_1 == True and factors_applied_2 == True:
+                x2_factors = (True,)
+            else:
+                x2_factors = (False,)
+            xy_factors = (factors_applied_1, factors_applied_2)
+
+        case "div":
+            x2_factors = (factors_applied_1,)
+            xy_factors = (factors_applied_1, True)
+
+        case "pow":
+            x2_factors = (True,)
+            xy_factors = (True, True)
+
+    return x2_factors, xy_factors
+
+op_lambdas = {
+    "add": lambda x1, x2: x1+x2,
+    "sub": lambda x1, x2: x1-x2,
+    "mul": lambda x1, x2: x1*x2,
+    "div": lambda x1, x2: x1/x2,
+    "pow": lambda x1, x2: x1**x2,
+}
+
 @pytest.mark.parametrize("xp", XPS)
 @pytest.mark.parametrize("space", spaces)
 @pytest.mark.parametrize("eager", [True, False])
 @pytest.mark.parametrize("factors_applied_1", [True, False])
 @pytest.mark.parametrize("factors_applied_2", [True, False])
+@pytest.mark.parametrize("op_name", ["add", "sub", "mul", "div", "pow"])
 def test_transform_application(
         xp,
         space: Space,
         eager: bool,
         factors_applied_1: bool,
         factors_applied_2: bool,
-    ):
+        op_name: str,
+    ) -> None:
     """
     Tests whether `factors_applied` is correctly handled in addition and
     multiplication for a single dimension and for two different dimensions.
@@ -591,38 +638,89 @@ def test_transform_application(
     x2_arr = fa.array_from_dim(x_dim, space, xp=xp, eager=eager).as_factors_applied(factors_applied_2)
     y_arr = fa.array_from_dim(y_dim, space, xp=xp, eager=eager).as_factors_applied(factors_applied_2)
 
-    x2_add = x_arr + x2_arr
-    xy_add = x_arr + y_arr
-    if factors_applied_1 == factors_applied_2:
-        assert x2_add.factors_applied == (factors_applied_1,)
-    else:
-        assert x2_add.factors_applied == (eager,)
+    op_lambda = op_lambdas[op_name]
+    x2_res = op_lambda(x_arr, x2_arr)
+    xy_res = op_lambda(x_arr, y_arr)
 
-    if eager:
-        assert xy_add.factors_applied == (True, True)
-    else:
-        assert xy_add.factors_applied == (factors_applied_1, factors_applied_2)
-
-    assert xp.all(x2_add.values(space) == x_arr.values(space) + x2_arr.values(space))
-    np.testing.assert_allclose(
-        np.array(xy_add.values(space)),
-        np.array(xp.reshape(x_arr.values(space), shape=(-1,1)) + xp.reshape(y_arr.values(space), shape=(1,-1))),
+    x2_factors, xy_factors = get_two_operand_transform_factors(
+        op_name=op_name,
+        eager=eager,
+        factors_applied_1=factors_applied_1,
+        factors_applied_2=factors_applied_2,
     )
+    assert x2_res.factors_applied == x2_factors
+    assert xy_res.factors_applied == xy_factors
 
-    x2_mul = x_arr * x2_arr
-    xy_mul = x_arr * y_arr
-    if factors_applied_1 == True and factors_applied_2 == True:
-        assert x2_mul.factors_applied == (True,)
-    else:
-        assert x2_mul.factors_applied == (False,)
-    assert xy_mul.factors_applied == (factors_applied_1, factors_applied_2)
     np.testing.assert_allclose(
-        np.array(x2_mul.values(space)),
-        np.array(x_arr.values(space) * x2_arr.values(space)),
+        x2_res.values(space),
+        op_lambda(x_arr.values(space), x2_arr.values(space))
     )
     np.testing.assert_allclose(
-        np.array(xy_mul.values(space)),
-        np.array(xp.reshape(x_arr.values(space), shape=(-1,1)) * xp.reshape(y_arr.values(space), shape=(1,-1))),
+        xy_res.values(space),
+        op_lambda(
+            xp.reshape(x_arr.values(space), shape=(-1,1)),
+            xp.reshape(y_arr.values(space), shape=(1,-1))
+        )
+    )
+
+@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("space", spaces)
+@pytest.mark.parametrize("eager", [True, False])
+@pytest.mark.parametrize("factors_applied", [True, False])
+@pytest.mark.parametrize("scalar_value", [
+    5,
+    5.,
+    5.+2.j,
+])
+@pytest.mark.parametrize("op_idxs", [(0,1), (1,0)])
+@pytest.mark.parametrize("op_name", ["add", "sub", "mul", "div", "pow"])
+def test_transform_application_scalar(
+        xp,
+        space: Space,
+        eager: bool,
+        factors_applied: bool,
+        scalar_value,
+        op_idxs: Tuple[Literal[0,1], Literal[0,1]],
+        op_name: str,
+    ) -> None:
+    """
+    Tests whether `factors_applied` is correctly handled in addition and
+    multiplication for a single dimension and a scalar.
+    """
+    x_dim = fa.dim("x", n=5, d_pos=0.1, pos_min=0, freq_min=0)
+    x_arr = fa.array_from_dim(x_dim, space, xp=xp, eager=eager).as_factors_applied(factors_applied)
+
+    op_lambda = op_lambdas[op_name]
+
+    input_raw_arr: List[Any] = [None, None]
+    input_raw_arr[op_idxs[0]] = x_arr.values(space)
+    input_raw_arr[op_idxs[1]] = scalar_value
+    x2_raw_res = op_lambda(*input_raw_arr)
+
+    input_fa_arr: List[Any] = [None, None]
+    input_fa_arr[op_idxs[0]] = x_arr
+    input_fa_arr[op_idxs[1]] = scalar_value
+    x2_res = op_lambda(*input_fa_arr)
+
+    if op_idxs[0] == 0:
+        factors_applied_1 = factors_applied
+        factors_applied_2 = True
+    else:
+        factors_applied_1 = True
+        factors_applied_2 = factors_applied
+
+    x2_factors, _ = get_two_operand_transform_factors(
+        op_name=op_name,
+        eager=eager,
+        factors_applied_1=factors_applied_1,
+        factors_applied_2=factors_applied_2,
+    )
+    assert x2_res.factors_applied == x2_factors
+
+
+    np.testing.assert_allclose(
+        x2_res.values(space),
+        x2_raw_res,
     )
 
 

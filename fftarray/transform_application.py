@@ -8,15 +8,15 @@ import numpy as np
 def get_transform_signs(
             input_factors_applied: Iterable[bool],
             target_factors_applied: Iterable[bool],
-        ) -> Optional[List[Literal[-1, 1, None]]]:
+        ) -> Optional[List[Literal[-1, 1, 0]]]:
 
     do_return_list = False
-    signs: List[Literal[-1, 1, None]] = []
+    signs: List[Literal[-1, 1, 0]] = []
     for input_factor_applied, target_factor_applied in zip(input_factors_applied, target_factors_applied):
         # If both are the same, we do not need to do anything
 
         if input_factor_applied == target_factor_applied:
-            signs.append(None)
+            signs.append(0)
         else:
             do_return_list = True
             # 1: Go from applied (external) to not applied (internal)
@@ -56,7 +56,7 @@ def apply_lazy(
         xp,
         values,
         dims: Tuple[FFTDimension, ...],
-        signs: List[Literal[1,-1, None]],
+        signs: List[Literal[1,-1,0]],
         spaces: Iterable[Space],
         scale_only: bool,
     ):
@@ -68,15 +68,18 @@ def apply_lazy(
             else:
                 complex array from the namespace of xp, might be mutated
         Does return the modified values and only that array is guarantueed to be changed.
+                complex array from the namespace of xp, will be mutated
 
-
+        sign:
+            1 from external to internal (True to False)
+            -1 from internal to external (False to True)
     """
 
     # Real-numbered scale
     scale: float = 1.
     do_apply = False
     for dim, sign, dim_space in zip(dims, signs, spaces):
-        if sign is not None and dim_space == "freq":
+        if sign != 0 and dim_space == "freq":
             # TODO: Write as separate mul or div?
             scale = scale * (dim.d_freq*dim.n)**sign
             do_apply = True
@@ -97,7 +100,7 @@ def apply_lazy(
         # if we do change the phase factor in a dim where the length is
         # 1 (not broadcast yet) while the dim.n is longer we need to expand
         # the array now in order to be able to apply the phase_factors.
-        if sign is not None and length != dim.n:
+        if sign != 0 and length != dim.n:
             assert length == 1
             reps.append(dim.n)
             needs_expansion = True
@@ -111,7 +114,7 @@ def apply_lazy(
     for dim_idx, (dim, sign, dim_space) in enumerate(zip(dims, signs, spaces)):
         # If both are the same, we do not need to do anything
 
-        if sign is not None:
+        if sign != 0:
             # Create indices with correct shape
             indices = xp.arange(0, dim.n, dtype=real_type(xp, values.dtype))
             extended_shape = np.ones(len(values.shape), dtype=int)
