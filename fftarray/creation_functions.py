@@ -1,10 +1,12 @@
-from typing import Optional, Union, Iterable, Tuple, get_args
+from typing import Any, Optional, Union, Iterable, Tuple, get_args
 
-from .backends.backend import Backend
+import array_api_compat
+
 from .fft_dimension import FFTDimension
 from .fft_array import FFTArray
-from ._utils.defaults import get_default_backend, get_default_eager
 from .space import Space
+from .transform_application import real_type
+from ._utils.defaults import get_default_eager, get_default_dtype_name, get_default_xp
 from ._utils.helpers import norm_param
 
 def array(
@@ -12,7 +14,6 @@ def array(
         dims: Union[FFTDimension, Iterable[FFTDimension]],
         space: Union[Space, Iterable[Space]],
         *,
-        backend: Optional[Backend] = None,
         eager: Optional[Union[bool, Iterable[bool]]] = None,
         factors_applied: Union[bool, Iterable[bool]] = True,
     ) -> FFTArray:
@@ -23,14 +24,11 @@ def array(
         ----------
         values :
             The values to initialize the `FFTArray` with.
-            They are converted and copied into an array of the backend.
+            They can be of any Python Arrray API v2023.12 compatible library.
         dims : Iterable[FFTDimension]
             The FFTDimensions for each dimension of the passed in values.
         space: Union[Space, Iterable[Space]]
             Specify the space of the coordinates and in which space the returned FFTArray is intialized.
-        backend: Optional[Backend]
-            The backend to use for the returned FFTArray.  `None` uses default `NumpyBackend("default")` which can be globally changed.
-            The values are transformed into the appropiate type defined by the backend.
         eager: Union[bool, Iterable[bool]]
             The eager-mode to use for the returned FFTArray.  `None` uses default `False` which can be globally changed.
         factors_applied: Union[bool, Iterable[bool]]
@@ -45,13 +43,10 @@ def array(
 
         See Also
         --------
-        set_default_backend, get_default_backend
         set_default_eager, get_default_eager
         fft_array
     """
 
-    if backend is None:
-        backend = get_default_backend()
 
     if eager is None:
         eager = get_default_eager()
@@ -61,19 +56,27 @@ def array(
     else:
         dims_tuple = tuple(dims)
 
+    xp = array_api_compat.array_namespace(values)
     n_dims = len(dims_tuple)
-    inner_values = backend.array(values)
+    inner_values = xp.asarray(values)
     spaces_normalized: Tuple[Space, ...] = norm_param(space, n_dims, str)
     for sub_space in spaces_normalized:
         assert sub_space in get_args(Space)
+
+    factors_applied_norm = norm_param(factors_applied, n_dims, bool)
+    if not all(factors_applied_norm) and not xp.isdtype(inner_values.dtype, "complex floating"):
+        raise ValueError(
+            "If any `factors_applied' is False, the values have to be of dtype 'complex floating'"
+            + "since the not applied phase factor implies a complex value."
+        )
 
     arr = FFTArray(
         dims=dims_tuple,
         values=inner_values,
         space=spaces_normalized,
         eager=norm_param(eager, n_dims, bool),
-        factors_applied=norm_param(factors_applied, n_dims, bool),
-        backend=backend,
+        factors_applied=factors_applied_norm,
+        xp=xp,
     )
     arr._check_consistency()
     return arr
@@ -82,7 +85,8 @@ def array_from_dim(
         dim: FFTDimension,
         space: Space,
         *,
-        backend: Optional[Backend] = None,
+        xp: Optional[Any] = None,
+        dtype: Optional[Any] = None,
         eager: Optional[bool] = None,
     ) -> FFTArray:
     """..
@@ -93,10 +97,12 @@ def array_from_dim(
         The dimension from which the coordinate grid should be created.
     space : Space
         Specify the space of the coordinates and in which space the returned FFTArray is intialized.
-    backend : Optional[Backend]
-        The backend to use for the returned FFTArray.  `None` uses default `NumpyBackend("default")` which can be globally changed.
+    xp : Optional[Any]
+        The array namespace to use for the returned FFTArray. `None` uses default `numpy` which can be globally changed.
+    dtype : Optional[Any]
+        The dtype to use for the returned FFTArray. `None` uses default `numpy.float64` which can be globally changed.
     eager :  Optional[bool]
-        The eager-mode to use for the returned FFTArray.  `None` uses default `False` which can be globally changed.
+        The eager-mode to use for the returned FFTArray. `None` uses default `False` which can be globally changed.
 
     Returns
     -------
@@ -105,19 +111,24 @@ def array_from_dim(
 
     See Also
     --------
-        set_default_backend, get_default_backend
         set_default_eager, get_default_eager
     """
 
-    if backend is None:
-        backend = get_default_backend()
+    if xp is None:
+        xp = get_default_xp()
+    else:
+        xp = array_api_compat.array_namespace(xp.asarray(0))
+
+    if dtype is None:
+        dtype = getattr(xp, get_default_dtype_name())
 
     if eager is None:
         eager = get_default_eager()
 
     values = dim._raw_coord_array(
-        backend=backend,
+        xp=xp,
         space=space,
+        dtype=dtype,
     )
 
     return FFTArray(
@@ -126,5 +137,115 @@ def array_from_dim(
         eager=(eager,),
         factors_applied=(True,),
         space=(space,),
-        backend=backend,
+        xp=xp,
     )
+
+
+def coords_array(
+        x: FFTArray,
+        space: Union[Space],
+        dim_name: str,
+	) -> FFTArray:
+    """
+
+    Constructs an array filled with the coordinates of the specified dimension
+    while keeping all other attributes (Array API namespace, eager) of the
+    specified array.
+
+    Parameters
+    ----------
+    x : FFTArray
+        The dimensions of the created array. They also imply the shape.
+    space : Space
+        Specify the space of the returned FFTArray is intialized.
+    dim_name : str
+        The name of the dimension from which to construct the coordinate array.
+
+    Returns
+    -------
+    FFTArray
+        The grid coordinates of the chosen space packed into an FFTArray with self as only dimension.
+
+    See Also
+    --------
+    """
+
+    for dim_idx, dim in enumerate(x.dims):
+        if dim.name == dim_name:
+            return array_from_dim(
+                dim=dim,
+                space=space,
+                xp=x.xp,
+                eager=x.eager[dim_idx],
+                dtype=real_type(x.xp, x.dtype),
+            )
+    raise ValueError("Specified dim_name not part of the FFTArray's dimensions.")
+
+def full(
+        dim: Union[FFTDimension, Iterable[FFTDimension]],
+        space: Union[Space, Iterable[Space]],
+        fill_value: Union[bool, int, float, complex],
+        *,
+        xp: Optional[Any] = None,
+        dtype: Optional[Any] = None,
+        eager: Optional[bool] = None,
+    ) -> FFTArray:
+    """..
+
+    Parameters
+    ----------
+    dim : Union[FFTDimension, Iterable[FFTDimension]]
+        The dimensions of the created array. They also imply the shape.
+    space : Space
+        Specify the space of the returned FFTArray is intialized.
+    xp : Optional[Any]
+        The array namespace to use for the returned FFTArray. `None` uses default `numpy` which can be globally changed.
+    dtype : Optional[Any]
+        The dtype to use for the returned FFTArray. `None` uses default `numpy.float64` which can be globally changed.
+    eager :  Optional[bool]
+        The eager-mode to use for the returned FFTArray. `None` uses default `False` which can be globally changed.
+
+    Returns
+    -------
+    FFTArray
+        The grid coordinates of the chosen space packed into an FFTArray with self as only dimension.
+
+    See Also
+    --------
+        set_default_eager, get_default_eager
+    """
+
+    if xp is None:
+        xp = get_default_xp()
+    else:
+        xp = array_api_compat.array_namespace(xp.asarray(0))
+
+    if dtype is None:
+        dtype = getattr(xp, get_default_dtype_name())
+
+    if eager is None:
+        eager = get_default_eager()
+
+    if isinstance(dim, FFTDimension):
+        dims: Tuple[FFTDimension, ...] = (dim,)
+    else:
+        dims = tuple(dim)
+
+    n_dims = len(dims)
+    shape = tuple(dim.n for dim in dims)
+    values = xp.full(shape, fill_value, dtype=dtype)
+    spaces_normalized: Tuple[Space, ...] = norm_param(space, n_dims, str)
+
+    arr = FFTArray(
+        values=values,
+        dims=dims,
+        space=spaces_normalized,
+        eager=norm_param(eager, n_dims, bool),
+        factors_applied=(True,)*n_dims,
+        xp=xp,
+    )
+    arr._check_consistency()
+
+    return arr
+
+

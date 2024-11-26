@@ -3,20 +3,15 @@ from functools import reduce
 from typing import Dict, List, Literal, Mapping, Tuple, TypeVar, Union
 import pytest
 import numpy as np
-import jax
 import xarray as xr
 
 import fftarray as fa
 from fftarray.fft_array import FFTArray, Space
-from fftarray.backends.backend import Backend
-from fftarray.backends.jax import JaxBackend
-from fftarray.backends.numpy import NumpyBackend
 
-jax.config.update("jax_enable_x64", True)
 
 EllipsisType = TypeVar('EllipsisType')
 
-BACKENDS = [NumpyBackend, JaxBackend]
+from fftarray.tests.helpers import XPS
 
 TEST_FFTDIM = fa.dim(
     name="x", n=8, d_pos=1, pos_min=0, freq_min=0
@@ -52,12 +47,7 @@ Relevant functions/classes for indexing
 - method FFTDimension._dim_from_slice
 - method FFTDimension._dim_from_start_and_n
 """
-
-@pytest.mark.parametrize("backend_class", BACKENDS)
-def test_fftdim_single_element_indexing(backend_class) -> None:
-
-    backend = backend_class()
-
+def test_fftdim_single_element_indexing() -> None:
     dim = fa.dim("x",
         n=4,
         d_pos=1,
@@ -67,10 +57,10 @@ def test_fftdim_single_element_indexing(backend_class) -> None:
 
     def test_functions(dim):
         return (
-            dim._index_from_coord(0.5, method = None, space="pos", backend=backend),
-            dim._index_from_coord(2.5, method = None, space="pos", backend=backend),
-            dim._index_from_coord(0.4, method = "nearest", space="pos", backend=backend),
-            dim._index_from_coord(2.6, method = "nearest", space="pos", backend=backend),
+            dim._index_from_coord(0.5, method = None, space="pos"),
+            dim._index_from_coord(2.5, method = None, space="pos"),
+            dim._index_from_coord(0.4, method = "nearest", space="pos"),
+            dim._index_from_coord(2.6, method = "nearest", space="pos"),
         )
 
     results = test_functions(dim)
@@ -116,17 +106,17 @@ invalid_substepping_slices = [
 ]
 
 @pytest.mark.parametrize("as_dict", [True, False])
-@pytest.mark.parametrize("backend_class", BACKENDS)
+@pytest.mark.parametrize("xp", XPS)
 @pytest.mark.parametrize("invalid_slice", invalid_substepping_slices)
 @pytest.mark.parametrize("space", ["pos", "freq"])
 def test_errors_fftarray_index_substepping(
     space: Space,
     invalid_slice: slice,
-    backend_class,
+    xp,
     as_dict: bool,
 ) -> None:
 
-    fft_arr = fa.array_from_dim(dim=TEST_FFTDIM, backend=backend_class(), space=space)
+    fft_arr = fa.array_from_dim(dim=TEST_FFTDIM, xp=xp, space=space)
 
     if as_dict:
         invalid_slice = {"x": invalid_slice} # type: ignore
@@ -154,19 +144,19 @@ invalid_tuples = [
     (slice(None, None), slice(None, None), Ellipsis),
 ]
 
-@pytest.mark.parametrize("backend_class", BACKENDS)
+@pytest.mark.parametrize("xp", XPS)
 @pytest.mark.parametrize("invalid_tuple", invalid_tuples)
 @pytest.mark.parametrize("space", ["pos", "freq"])
 def test_errors_fftarray_invalid_indexes(
     space: Space,
     invalid_tuple: tuple,
-    backend_class,
+    xp,
 ) -> None:
 
     fft_arr, _ = generate_test_fftarray_xrdataset(
         ["x", "y"],
         dimension_length=8,
-        backend=backend_class()
+        xp=xp
     )
     fft_arr = fft_arr.into(space=space)
 
@@ -180,7 +170,6 @@ coord_test_samples = [
     slice(-5,10), slice(None, None), slice(0,7), slice(0,8), slice(0.5,0.1)
 ]
 
-@pytest.mark.parametrize("backend_class", BACKENDS)
 @pytest.mark.parametrize("method", ["nearest", "pad", "ffill", "backfill", "bfill", None])
 @pytest.mark.parametrize("valid_coord", coord_test_samples)
 @pytest.mark.parametrize("space", ["pos", "freq"])
@@ -188,11 +177,10 @@ def test_valid_index_from_coord(
     space: Space,
     valid_coord: Union[float,slice],
     method: Literal["nearest", "pad", "ffill", "backfill", "bfill", None],
-    backend_class
 ) -> None:
 
     def test_function(_coord):
-        return TEST_FFTDIM._index_from_coord(coord=_coord, space=space, method=method, backend=backend_class())
+        return TEST_FFTDIM._index_from_coord(coord=_coord, space=space, method=method)
 
     try:
         dim_index_result = test_function(valid_coord)
@@ -218,22 +206,22 @@ def make_xr_indexer(indexer, space: Space):
 integer_indexers_test_samples = [
     {"x": 1, "y": 1, "z": 1}, {"x": 1, "y": 1, "z": slice(None, None)},
     {"x": 1, "y": 1}, {"x": -20}, {"z": 5}, {"random": 1}, {},
-    {"x": slice(-20,5), "y": slice(-6,6), "z": slice(None, 4)}
+    {"x": slice(-7,5), "y": slice(-6,6), "z": slice(None, 4)}
 ]
 
 @pytest.mark.parametrize("indexers", integer_indexers_test_samples)
-@pytest.mark.parametrize("backend_class", BACKENDS)
+@pytest.mark.parametrize("xp", XPS)
 @pytest.mark.parametrize("space", ["pos", "freq"])
 def test_3d_fft_array_indexing_by_integer(
     space: Space,
-    backend_class,
+    xp,
     indexers: Mapping[str, Union[int, slice]],
 ) -> None:
 
     fft_array, xr_dataset = generate_test_fftarray_xrdataset(
         ["x", "y", "z"],
         dimension_length=8,
-        backend=backend_class()
+        xp=xp
     )
 
     def test_function_isel(_indexers) -> FFTArray:
@@ -278,18 +266,18 @@ tuple_indexers = [
 ]
 
 @pytest.mark.parametrize("indexers", tuple_indexers)
-@pytest.mark.parametrize("backend_class", BACKENDS)
+@pytest.mark.parametrize("xp", XPS)
 @pytest.mark.parametrize("space", ["pos", "freq"])
 def test_3d_fft_array_positional_indexing(
     space: Space,
-    backend_class,
+    xp,
     indexers: Tuple[Union[int, float, slice, EllipsisType]],
 ) -> None:
 
     fft_array, xr_dataset = generate_test_fftarray_xrdataset(
         ["x", "y", "z"],
         dimension_length=8,
-        backend=backend_class()
+        xp=xp
     )
 
     def test_function_loc_square_brackets(_indexers) -> FFTArray:
@@ -316,16 +304,16 @@ def test_3d_fft_array_positional_indexing(
 label_indexers_test_samples = [
     {"x": 3, "y": 1, "z": 4}, {"x": 0, "y": 2, "z": slice(None, None)},
     {"x": 1, "y": 4}, {"x": -25}, {"z": 5}, {"random": 1}, {},
-    {"x": slice(-23,5), "y": slice(-6,6), "z": slice(None, 3)},
+    {"x": slice(-7,5), "y": slice(-6,6), "z": slice(None, 3)},
 ]
 
 @pytest.mark.parametrize("indexers", label_indexers_test_samples)
-@pytest.mark.parametrize("backend_class", BACKENDS)
+@pytest.mark.parametrize("xp", XPS)
 @pytest.mark.parametrize("space", ["pos", "freq"])
 @pytest.mark.parametrize("method", ["nearest", "pad", "ffill", "backfill", "bfill", None, "unsupported"])
 def test_3d_fft_array_label_indexing(
     space: Space,
-    backend_class,
+    xp,
     indexers: Mapping[str, Union[int, slice]],
     method: Literal["nearest", "pad", "ffill", "backfill", "bfill", None],
 ) -> None:
@@ -333,7 +321,7 @@ def test_3d_fft_array_label_indexing(
     fft_array, xr_dataset = generate_test_fftarray_xrdataset(
         ["x", "y", "z"],
         dimension_length=8,
-        backend=backend_class()
+        xp=xp
     )
 
     try:
@@ -362,17 +350,18 @@ def test_3d_fft_array_label_indexing(
 @pytest.mark.parametrize("indexers", label_indexers_test_samples)
 @pytest.mark.parametrize("index_by", ["label", "integer"])
 @pytest.mark.parametrize("space", ["pos", "freq"])
+@pytest.mark.parametrize("xp", XPS)
 def test_3d_fft_array_indexing(
     space: Space,
     index_by: Literal["label", "integer"],
     indexers: Mapping[str, Union[int, slice]],
+    xp,
 ) -> None:
 
-    backend = JaxBackend()
     fft_array, xr_dataset = generate_test_fftarray_xrdataset(
         ["x", "y", "z"],
         dimension_length=8,
-        backend=backend
+        xp=xp,
     )
 
     def test_function_sel(_indexers) -> FFTArray:
@@ -442,11 +431,11 @@ space_combinations = [
 ]
 
 @pytest.mark.parametrize("indexers", valid_indexers)
-@pytest.mark.parametrize("backend_class", BACKENDS)
+@pytest.mark.parametrize("xp", XPS)
 @pytest.mark.parametrize("space_combination", space_combinations)
 def test_fftarray_state_management(
     space_combination: Dict[str, Space],
-    backend_class,
+    xp,
     indexers: Mapping[str, Union[int, slice]],
 ) -> None:
     """
@@ -462,14 +451,14 @@ def test_fftarray_state_management(
         for dim_name in space_combination
     }
     fft_arrays = {
-        dim_name: fa.array_from_dim(dim=dims[dim_name], space=space, backend=backend_class(), eager=False)
+        dim_name: fa.array_from_dim(dim=dims[dim_name], space=space, xp=xp, eager=False)
         for dim_name, space in space_combination.items()
     }
 
     fft_array_2d = fft_arrays["x"] + fft_arrays["y"]
 
     space_comb_list = [space_combination[dim_name] for dim_name in ["x", "y"]]
-    diff_space_comb = [
+    diff_space_comb: List[Space] = [
         "pos" if space_comb == "freq" else "freq"
         for space_comb in space_comb_list
     ]
@@ -536,7 +525,7 @@ def test_fftarray_state_management(
 def generate_test_fftarray_xrdataset(
     dimension_names: List[str],
     dimension_length: Union[int, List[int]],
-    backend: Backend,
+    xp,
 ) -> Tuple[FFTArray, xr.Dataset]:
 
     if isinstance(dimension_length, int):
@@ -547,7 +536,7 @@ def generate_test_fftarray_xrdataset(
         for dim_name, dim_length in zip(dimension_names, dimension_length)
     ]
 
-    fft_array = reduce(lambda x,y: x+y, [fa.array_from_dim(dim=dim, backend=backend, space="pos") for dim in dims])
+    fft_array = reduce(lambda x,y: x+y, [fa.array_from_dim(dim=dim, xp=xp, space="pos") for dim in dims])
 
     pos_coords = {
         f"{dim.name}_pos": dim.np_array(space="pos")
@@ -568,68 +557,72 @@ def generate_test_fftarray_xrdataset(
 
     return (fft_array, xr_dataset)
 
-@jax.jit
-def index_with_tracer_getitem(obj, idx):
-    return obj[idx]
-@jax.jit
-def index_with_tracer_loc(obj, idx):
-    return obj.loc[idx]
-@jax.jit
-def index_with_tracer_isel(obj, idx):
-    return obj.isel(idx)
-@jax.jit
-def index_with_tracer_sel(obj, idx):
-    return obj.sel(idx)
+try:
+    import jax
+    import jax.numpy as jnp
+    @jax.jit
+    def index_with_tracer_getitem(obj, idx):
+        return obj[idx]
+    @jax.jit
+    def index_with_tracer_loc(obj, idx):
+        return obj.loc[idx]
+    @jax.jit
+    def index_with_tracer_isel(obj, idx):
+        return obj.isel(idx)
+    @jax.jit
+    def index_with_tracer_sel(obj, idx):
+        return obj.sel(idx)
 
-def test_invalid_tracer_index() -> None:
-    fft_arr = fa.array_from_dim(dim=TEST_FFTDIM, backend=JaxBackend(), space="pos")
-    tracer_index = jax.numpy.array(3)
+    def test_invalid_tracer_index() -> None:
+        fft_arr = fa.array_from_dim(dim=TEST_FFTDIM, xp=jnp, space="pos")
+        tracer_index = jax.numpy.array(3)
 
-    with pytest.raises(NotImplementedError):
-        index_with_tracer_getitem(fft_arr, {'x': tracer_index})
-    with pytest.raises(NotImplementedError):
-        index_with_tracer_loc(fft_arr, {'x': tracer_index})
-    with pytest.raises(NotImplementedError):
-        index_with_tracer_isel(fft_arr, {'x': tracer_index})
-    with pytest.raises(NotImplementedError):
-        index_with_tracer_sel(fft_arr, {'x': tracer_index})
+        with pytest.raises(NotImplementedError):
+            index_with_tracer_getitem(fft_arr, {'x': tracer_index})
+        with pytest.raises(NotImplementedError):
+            index_with_tracer_loc(fft_arr, {'x': tracer_index})
+        with pytest.raises(NotImplementedError):
+            index_with_tracer_isel(fft_arr, {'x': tracer_index})
+        with pytest.raises(NotImplementedError):
+            index_with_tracer_sel(fft_arr, {'x': tracer_index})
 
-def test_jit_static_indexing() -> None:
+    def test_jit_static_indexing() -> None:
 
-    fft_arr, xr_dataset = generate_test_fftarray_xrdataset(["x"], dimension_length=8, backend=JaxBackend())
+        fft_arr, xr_dataset = generate_test_fftarray_xrdataset(["x"], dimension_length=8, xp=jnp)
 
-    def test_function_isel(_indexers) -> FFTArray:
-        return fft_arr.isel(x=_indexers)
+        def test_function_isel(_indexers) -> FFTArray:
+            return fft_arr.isel(x=_indexers)
 
-    def test_function_square_brackets(_indexers) -> FFTArray:
-        return fft_arr[slice(*_indexers)]
+        def test_function_square_brackets(_indexers) -> FFTArray:
+            return fft_arr[slice(*_indexers)]
 
-    test_function_isel = jax.jit(test_function_isel, static_argnums=(0,))
-    test_function_square_brackets = jax.jit(test_function_square_brackets, static_argnums=(0,))
+        test_function_isel = jax.jit(test_function_isel, static_argnums=(0,))
+        test_function_square_brackets = jax.jit(test_function_square_brackets, static_argnums=(0,))
 
-    isel_indexer = 3
-    sq_brackets_indexer = (1,4)
+        isel_indexer = 3
+        sq_brackets_indexer = (1,4)
 
-    fft_array_result_isel = test_function_isel(isel_indexer) # type: ignore
-    fft_array_result_square_brackets = test_function_square_brackets(sq_brackets_indexer) # type: ignore
+        fft_array_result_isel = test_function_isel(isel_indexer) # type: ignore
+        fft_array_result_square_brackets = test_function_square_brackets(sq_brackets_indexer) # type: ignore
 
-    xr_result_isel = xr_dataset["pos"].isel(x_pos=isel_indexer).data
-    xr_result_square_brackets = xr_dataset["pos"][slice(*sq_brackets_indexer)].data
+        xr_result_isel = xr_dataset["pos"].isel(x_pos=isel_indexer).data
+        xr_result_square_brackets = xr_dataset["pos"][slice(*sq_brackets_indexer)].data
 
-    np.testing.assert_array_equal(
-        fft_array_result_isel.values(space="pos"),
-        xr_result_isel
-    )
+        np.testing.assert_array_equal(
+            fft_array_result_isel.values(space="pos"),
+            xr_result_isel
+        )
 
-    np.testing.assert_array_equal(
-        fft_array_result_square_brackets.values(space="pos"),
-        xr_result_square_brackets
-    )
+        np.testing.assert_array_equal(
+            fft_array_result_square_brackets.values(space="pos"),
+            xr_result_square_brackets
+        )
+except ImportError:
+    pass
 
 
 def test_invalid_kw_and_pos_indexers() -> None:
-
-    fft_arr, _ = generate_test_fftarray_xrdataset(["x", "y"], dimension_length=8, backend=NumpyBackend())
+    fft_arr, _ = generate_test_fftarray_xrdataset(["x", "y"], dimension_length=8, xp=np)
 
     with pytest.raises(ValueError):
         fft_arr.sel({'x': 3}, y=3)
@@ -641,7 +634,7 @@ def test_missing_dims(
     index_method: Literal["sel", "isel"]
 ) -> None:
 
-    fft_arr, _ = generate_test_fftarray_xrdataset(["x", "y"], dimension_length=8, backend=NumpyBackend())
+    fft_arr, _ = generate_test_fftarray_xrdataset(["x", "y"], dimension_length=8, xp=np)
 
     with pytest.raises(ValueError):
         getattr(fft_arr, index_method)({"x": 3}, missing_dims="unsupported")

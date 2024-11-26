@@ -30,18 +30,27 @@ Example:
 """
 
 from ._utils.defaults import (
-    set_default_backend, get_default_backend, set_default_eager,
-    get_default_eager, default_backend, default_eager
+    set_default_xp, get_default_xp, default_xp,
+    set_default_dtype_name, get_default_dtype_name, default_dtype_name,
+    set_default_eager, get_default_eager, default_eager,
 )
+
 from .space import Space
 from .fft_dimension import FFTDimension, dim
 from .fft_array import FFTArray
 
-from .creation_functions import array, array_from_dim
+from .creation_functions import (
+   array,
+   array_from_dim,
+   coords_array,
+   full,
+)
 
 from .tools import shift_frequency, shift_position
 
-from .fft_array import (
+from .jax_pytrees import jax_register_pytree_nodes
+
+from .elementwise_functions import (
    abs,
    acos,
    acosh,
@@ -106,7 +115,7 @@ from .fft_array import (
    subtract,
    tan,
    tanh,
-   trunc
+   trunc,
 )
 
 from typing import Optional, Literal, Union, List

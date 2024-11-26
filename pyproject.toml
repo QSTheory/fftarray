@@ -23,6 +23,7 @@ classifiers = [
 ]
 dependencies = [
     "numpy>=1.25",
+    "array-api-compat>=1.9.1",
 ]
 
 [build-system]
@@ -65,6 +66,7 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
     "pytest-cov",
     "pytest-xdist[psutil]",
     "pytest-split",
+    "array-api-strict",
 ]
 
 "doc" = [
@@ -99,7 +101,7 @@ test_all_group = { cmd = ["python", "-m", "pytest", "--include-slow", "--splitti
 store_test_durations = { cmd = ["python", "-m", "pytest", "--include-slow", "--store-durations"]}
 
 mypy_nb = { cmd = ["nbqa", "mypy", "examples"]}
-mypy = { cmd = ["mypy", "examples", "fftarray"], depends-on = ["mypy_nb"]}
+mypy = { cmd = ["mypy", "examples", "fftarray", "tests"], depends-on = ["mypy_nb"]}
 check = { depends-on = ["mypy", "test"]}
 cov_html = { cmd = ["python", "-m", "pytest", "--cov=./fftarray", "--cov=./examples", "--cov-report=html"]}
 cov_xml = { cmd = ["python", "-m", "pytest", "--cov=./fftarray", "--cov=./examples", "--cov-report=xml"]}

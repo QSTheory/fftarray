@@ -6,7 +6,7 @@ from dataclasses import dataclass
 #-------------------
 def align_named_arrays(
         arrays: Sequence[Tuple[Sequence[str], Any]],
-        backend
+        xp,
     ) -> Tuple[Sequence[str], List[Any]]:
     """
         The arrays may have longer shapes than there are named dims.
@@ -33,15 +33,15 @@ def align_named_arrays(
     for dims, arr in arrays:
         dim_names = [*dims]
         for target_dim, target_length in target_shape.items():
-            if not target_dim in dims:
-                arr = arr.reshape(-1, *arr.shape)
+            if target_dim not in dims:
+                arr = xp.reshape(arr, (-1, *arr.shape))
                 dim_names.insert(0, target_dim)
         # TODO the list conversion of keys should not be necessary but is needed for mypy
         arr = transpose_array(
             arr,
             old_dims=dim_names,
             new_dims=list(target_shape.keys()),
-            backend=backend
+            xp=xp,
         )
         aligned_arrays.append(arr)
     return list(target_indices.keys()), aligned_arrays
@@ -66,7 +66,7 @@ def get_axes_transpose(
 
 def transpose_array(
         array: Any,
-        backend,
+        xp,
         old_dims: Sequence[str],
         new_dims: Sequence[str]
     ) -> Any:
@@ -75,5 +75,5 @@ def transpose_array(
         They may be shorter than array.shape. The last dims are left untouched.
     """
     axes_transpose = get_axes_transpose(old_dims, new_dims)
-    array = backend.numpy_ufuncs.transpose(array, tuple(axes_transpose))
+    array = xp.permute_dims(array, tuple(axes_transpose))
     return array
