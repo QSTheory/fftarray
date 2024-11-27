@@ -17,7 +17,7 @@ from z3 import (
 import numpy as np
 
 from .fft_dimension import FFTDimension
-from .constraint_solver_exceptions import *
+from .constraint_solver_exceptions import NoSolutionFoundError, NoUniqueSolutionError, ConstraintSolverError, ConstraintValueError
 
 # This dict contains all possible user constraints
 # and their optimized directions for n widening
