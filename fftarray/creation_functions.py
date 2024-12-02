@@ -16,6 +16,7 @@ def array(
         *,
         eager: Optional[Union[bool, Iterable[bool]]] = None,
         factors_applied: Union[bool, Iterable[bool]] = True,
+        copy: bool = True,
     ) -> FFTArray:
     """
         Construct a new instance of FFTArray from raw values.
@@ -25,6 +26,7 @@ def array(
         values :
             The values to initialize the `FFTArray` with.
             They can be of any Python Arrray API v2023.12 compatible library.
+            By default they are copied to make sure an external alias cannot influence the created ``FFTArray``.
         dims : Iterable[FFTDimension]
             The FFTDimensions for each dimension of the passed in values.
         space: Union[Space, Iterable[Space]]
@@ -35,6 +37,11 @@ def array(
             Whether the fft-factors are applied are already applied for the various dimensions.
             For external values this is usually `True` since `False` assumes the internal (and unstable)
             factors-format.
+        copy:  bool
+            If ``True`` the values array is always copied in order to ensure no external alias to it exists.
+            This ensures the immutability of the created ``FFTArray``.
+            If this is unnecessary, this defensive copy can be prevented by setting this argument to ``False``.
+            In this case it has to be ensured that the passed in array is not used externally after creation.
 
         Returns
         -------
@@ -57,11 +64,17 @@ def array(
         dims_tuple = tuple(dims)
 
     xp = array_api_compat.array_namespace(values)
+    if copy:
+        values = xp.asarray(values, copy=True)
     n_dims = len(dims_tuple)
     inner_values = xp.asarray(values)
     spaces_normalized: Tuple[Space, ...] = norm_param(space, n_dims, str)
     for sub_space in spaces_normalized:
         assert sub_space in get_args(Space)
+
+    for i, (length, dim) in enumerate(zip(values.shape, dims_tuple, strict=True)):
+        if length != dim.n:
+            raise ValueError(f"The dimension `{dim.name}' has length {dim.n} but the dim {i} of the passed in `values` array has length {length}.")
 
     factors_applied_norm = norm_param(factors_applied, n_dims, bool)
     if not all(factors_applied_norm) and not xp.isdtype(inner_values.dtype, "complex floating"):
