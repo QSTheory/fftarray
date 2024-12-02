@@ -48,9 +48,7 @@ def fftarray_strategy_int(draw) -> FFTArray:
         values=fftarr_values,
         dims=dims,
         space=init_space,
-        eager=eager,
-        factors_applied=True,
-    )
+    ).as_eager(eager=eager)
 
 
 @pytest.mark.slow

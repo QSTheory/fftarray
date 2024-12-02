@@ -81,12 +81,35 @@ single_operand_lambdas = {
 @pytest.mark.parametrize("eager", [True, False])
 @pytest.mark.parametrize("space", get_args(fa.Space))
 @pytest.mark.parametrize("factors_applied", [True, False])
-@pytest.mark.parametrize("dtype_name", ["bool", "int64", "float64", "complex128"])
-def test_elementwise_single_arg_full(
+def test_elementwise_single_arg_full_complex(
         xp,
         op_name: str,
         eager: bool,
         factors_applied: bool,
+        space: fa.Space,
+    ) -> None:
+    """
+        Doing all permutations of possible inputs for all functions creates unnecessarily many tests.
+        Therefore this is only done for functions which have a special implementation path.
+        Only complex values can be combined with ``factors_applied=False``
+    """
+    elementwise_single_arg(
+        xp=xp,
+        space=space,
+        eager=eager,
+        factors_applied=factors_applied,
+        op_name=op_name,
+        dtype_name="complex128",
+    )
+
+
+@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("op_name", elementwise_ops_single_arg_full)
+@pytest.mark.parametrize("space", get_args(fa.Space))
+@pytest.mark.parametrize("dtype_name", ["bool", "int64", "float64"])
+def test_elementwise_single_arg_full(
+        xp,
+        op_name: str,
         space: fa.Space,
         dtype_name: str,
     ) -> None:
@@ -97,12 +120,12 @@ def test_elementwise_single_arg_full(
     elementwise_single_arg(
         xp=xp,
         space=space,
-        eager=eager,
-        factors_applied=factors_applied,
+        # Since factors_applied=True, it does not matter, which value eager has.
+        eager=False,
+        factors_applied=True,
         op_name=op_name,
         dtype_name=dtype_name,
     )
-
 
 # List all element-wise ops with the the data types which they support at minimum
 # for both operands as mandated by the Pthon Array API Standard.
@@ -149,6 +172,7 @@ elementwise_ops_double_arg_full = [
     "equal",
 ]
 
+# These operations don't have a special path and therefore get more basic tests.
 elementwise_ops_double_arg_sparse = [
     op_name for op_name in elementwise_ops_double_arg.keys() if op_name not in elementwise_ops_double_arg_full
 ]
@@ -175,10 +199,14 @@ two_operand_lambdas = {
     "not_equal": lambda x1, x2: x1!=x2,
 }
 
+# All two operarand dunder methods which have a special path
+# and therefore get more extensive tests.
 elementwise_ops_double_arg_full_dunder = [
     op_name for op_name in elementwise_ops_double_arg_full if op_name in two_operand_lambdas
 ]
 
+# All two operarand dunder methods which don't have a special path
+# and therefore get more basic tests.
 elementwise_ops_double_arg_sparse_dunder = [
     op_name for op_name in elementwise_ops_double_arg_sparse if op_name in two_operand_lambdas
 ]
@@ -274,7 +302,8 @@ def elementwise_single_arg(
     x_dim = fa.dim("x", n=5, d_pos=0.1, pos_min=0, freq_min=0)
 
     arr1 = (
-        fa.array_from_dim(x_dim, space, xp=xp, eager=eager)
+        fa.coords_from_dim(x_dim, space, xp=xp)
+        .as_eager(eager=eager)
         .as_factors_applied(factors_applied)
     )
 
@@ -338,13 +367,11 @@ def test_elementwise_two_arrs_full_complex(
 
 @pytest.mark.parametrize("xp", XPS)
 @pytest.mark.parametrize("space", get_args(fa.Space))
-@pytest.mark.parametrize("eager", [True, False])
 @pytest.mark.parametrize("op_name", elementwise_ops_double_arg_full)
 @pytest.mark.parametrize("dtype_name", ["bool", "int64", "float64"])
 def test_elementwise_two_arrs_full(
         xp,
         space: fa.Space,
-        eager: bool,
         op_name: str,
         dtype_name: str,
     ) -> None:
@@ -354,7 +381,8 @@ def test_elementwise_two_arrs_full(
     elementwise_two_arrs(
         xp=xp,
         space=space,
-        eager=eager,
+        # Since factors_applied=True, it does not matter, which value eager has.
+        eager=False,
         factors_applied_1=True,
         factors_applied_2=True,
         op_name=op_name,
@@ -402,19 +430,22 @@ def elementwise_two_arrs(
     y_dim = fa.dim("y", n=8, d_pos=0.1, pos_min=0, freq_min=0)
 
     x_arr = (
-        fa.array_from_dim(x_dim, space, xp=xp, eager=eager)
+        fa.coords_from_dim(x_dim, space, xp=xp)
+        .as_eager(eager=eager)
         .as_factors_applied(factors_applied_1)
         .astype(dtype)
 
     )
     x2_arr = (
-        fa.array_from_dim(x_dim, space, xp=xp, eager=eager)
+        fa.coords_from_dim(x_dim, space, xp=xp)
+        .as_eager(eager=eager)
         .as_factors_applied(factors_applied_2)
         .astype(dtype)
     )
 
     y_arr = (
-        fa.array_from_dim(y_dim, space, xp=xp, eager=eager)
+        fa.coords_from_dim(y_dim, space, xp=xp)
+        .as_eager(eager=eager)
         .as_factors_applied(factors_applied_2)
         .astype(dtype)
     )
@@ -477,6 +508,9 @@ dtype_scalar_combinations = [
     pytest.param("float32", 5.),
     pytest.param("float64", 5),
     pytest.param("float64", 5.),
+]
+
+dtype_scalar_combinations_complex = [
     pytest.param("complex64", 5),
     pytest.param("complex64", 5.),
     pytest.param("complex64", 5.+1.j),
@@ -487,12 +521,38 @@ dtype_scalar_combinations = [
 
 @pytest.mark.parametrize("xp", XPS)
 @pytest.mark.parametrize("space", get_args(fa.Space))
-@pytest.mark.parametrize("eager", [True, False])
-@pytest.mark.parametrize("factors_applied", [True, False])
 @pytest.mark.parametrize("op_idxs", [(0,1), (1,0)])
 @pytest.mark.parametrize("op_name", elementwise_ops_double_arg_full_dunder)
 @pytest.mark.parametrize("dtype_name, scalar_value", dtype_scalar_combinations)
 def test_elementwise_arr_scalar_full(
+        xp,
+        space: fa.Space,
+        scalar_value,
+        op_idxs: Tuple[Literal[0,1], Literal[0,1]],
+        op_name: str,
+        dtype_name: str,
+    ) -> None:
+
+    elementwise_arr_scalar(
+        xp=xp,
+        space=space,
+        # Since factors_applied=True, it does not matter, which value eager has.
+        eager=False,
+        factors_applied=True,
+        scalar_value=scalar_value,
+        op_idxs=op_idxs,
+        op_name=op_name,
+        dtype_name=dtype_name,
+    )
+
+@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("space", get_args(fa.Space))
+@pytest.mark.parametrize("eager", [True, False])
+@pytest.mark.parametrize("factors_applied", [True, False])
+@pytest.mark.parametrize("op_idxs", [(0,1), (1,0)])
+@pytest.mark.parametrize("op_name", elementwise_ops_double_arg_full_dunder)
+@pytest.mark.parametrize("dtype_name, scalar_value", dtype_scalar_combinations_complex)
+def test_elementwise_arr_scalar_full_complex(
         xp,
         space: fa.Space,
         eager: bool,
@@ -517,7 +577,10 @@ def test_elementwise_arr_scalar_full(
 @pytest.mark.parametrize("xp", XPS)
 @pytest.mark.parametrize("op_idxs", [(0,1), (1,0)])
 @pytest.mark.parametrize("op_name", elementwise_ops_double_arg_sparse_dunder)
-@pytest.mark.parametrize("dtype_name, scalar_value", dtype_scalar_combinations)
+@pytest.mark.parametrize("dtype_name, scalar_value", [
+    *dtype_scalar_combinations,
+    *dtype_scalar_combinations_complex,
+])
 def test_elementwise_arr_scalar_sparse(
         xp,
         scalar_value,
@@ -529,7 +592,8 @@ def test_elementwise_arr_scalar_sparse(
     elementwise_arr_scalar(
         xp=xp,
         space="pos",
-        eager=True,
+        # Since factors_applied=True, it does not matter, which value eager has.
+        eager=False,
         factors_applied=True,
         scalar_value=scalar_value,
         op_idxs=op_idxs,
@@ -559,16 +623,11 @@ def elementwise_arr_scalar(
     x_dim = fa.dim("x", n=5, d_pos=0.1, pos_min=0, freq_min=0)
 
     x_arr = (
-        fa.array_from_dim(x_dim, space, xp=xp, eager=eager)
+        fa.coords_from_dim(x_dim, space, xp=xp)
+        .as_eager(eager=eager)
         .as_factors_applied(factors_applied)
+        .astype(dtype)
     )
-    if not xp.isdtype(dtype, "complex floating") and not factors_applied:
-        with pytest.raises(ValueError):
-            x_arr = x_arr.astype(dtype)
-        return
-
-    x_arr = x_arr.astype(dtype)
-
 
     dtype = getattr(xp, dtype_name)
 

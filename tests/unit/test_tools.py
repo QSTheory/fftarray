@@ -30,13 +30,12 @@ def test_shift(
     # It is important to place both spaces symmetrically around zero to prevent aliasing of the test function in
     # both spaces.
     dim = fa.dim_from_constraints(name="x", n=128, d_pos=0.01, pos_middle=0., freq_middle=0.)
-    arr = fa.array_from_dim(
+    arr = fa.coords_from_dim(
         dim=dim,
         space=space,
         xp=xp,
         dtype=init_dtype,
-        eager=eager,
-    )
+    ).as_eager(eager=eager)
 
     # Use a frequency which fits exactly into the domain to allow periodic shifts
     test_frequency = 5*2*np.pi*getattr(dim, f"d_{other_space}")

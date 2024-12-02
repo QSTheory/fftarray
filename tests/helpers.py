@@ -1,6 +1,7 @@
 from typing import Iterable, List, Literal, Union, get_args
 
 import numpy as np
+import pytest
 
 import fftarray as fa
 from fftarray.fft_array import FFTArray
@@ -21,6 +22,36 @@ DTYPE_NAME = Literal[
     "complex128",
 ]
 dtypes_names_all = get_args(DTYPE_NAME)
+dtypes_names_numeric_core = [
+    "int32",
+    "int64",
+    "uint32",
+    "uint64",
+    "float32",
+    "float64",
+    "complex64",
+    "complex128",
+]
+dtypes_names_pairs = [
+    pytest.param("bool", "bool"),
+    pytest.param("bool", None),
+    *[
+            pytest.param("uint8", x) for x in [
+            "int32",
+            "uint64",
+            None,
+        ]
+    ],
+    *[
+        pytest.param("float32", x) for x in [
+            "float32",
+            "float64",
+            "complex64",
+            "complex128",
+            None,
+        ]
+    ],
+]
 
 
 def get_dims(n: int) -> List[fa.FFTDimension]:
@@ -49,7 +80,7 @@ def get_arr_from_dims(
         space=[],
     )
     for dim, space in zip(dims, spaces_norm, strict=True):
-        arr += fa.array_from_dim(dim=dim, space=space, xp=xp)
+        arr += fa.coords_from_dim(dim=dim, space=space, xp=xp)
     return arr
 
 def assert_fa_array_exact_equal(x1: FFTArray, x2: FFTArray) -> None:

@@ -424,8 +424,8 @@ class FFTArray:
 
             Example usage:
             arr_2d = (
-                array_from_dim(x_dim, "pos")
-                + array_from_dim(y_dim, "pos")
+                coords_from_dim(x_dim, "pos")
+                + coords_from_dim(y_dim, "pos")
             )
             Four ways of retrieving an FFTArray object
             with index 3 along x and first 5 values along y:
