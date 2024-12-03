@@ -4,9 +4,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .backends.backend import Backend
-from .backends.numpy import NumpyBackend
-
+from ._utils.defaults import get_default_dtype_name
 from ._utils.formatting import fft_dim_table, format_n
 from ._utils.indexing import check_substepping, remap_index_check_int
 
@@ -339,7 +337,6 @@ class FFTDimension:
             self,
             coord: Union[float, slice],
             space: Space,
-            backend: Backend,
             method: Optional[Literal["nearest", "pad", "ffill", "backfill", "bfill"]] = None,
         ) -> Union[int, slice]:
         """Compute index from given coordinate which can be float or slice.
@@ -375,8 +372,8 @@ class FFTDimension:
 
             # Use the scalar part of this function with the methods bfill and ffill
             # to yield indices to include the respective coordinates
-            idx_min: int = self._index_from_coord(coord_start, method="bfill", space=space, backend=backend) # type: ignore
-            idx_max: int = self._index_from_coord(coord_stop, method="ffill", space=space, backend=backend) # type: ignore
+            idx_min: int = self._index_from_coord(coord_start, method="bfill", space=space) # type: ignore
+            idx_max: int = self._index_from_coord(coord_stop, method="ffill", space=space) # type: ignore
             return slice(
                 idx_min,
                 idx_max + 1 # as slice.stop is non-inclusive, add 1
@@ -500,14 +497,15 @@ class FFTDimension:
 
     def _raw_coord_array(
                 self: FFTDimension,
-                backend: Backend,
+                xp,
+                dtype,
                 space: Space,
             ):
 
-        indices = backend.numpy_ufuncs.arange(
+        indices = xp.arange(
             0,
             self.n,
-            dtype = backend.real_type,
+            dtype=dtype,
         )
 
         if space == "pos":
@@ -518,5 +516,5 @@ class FFTDimension:
             raise ValueError(f"space has to be either 'pos' or 'freq', not {space}.")
 
     def np_array(self: FFTDimension, space: Space):
-        return self._raw_coord_array(backend=NumpyBackend(), space=space)
+        return self._raw_coord_array(xp=np, dtype=getattr(np, get_default_dtype_name()), space=space)
 

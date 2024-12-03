@@ -1,4 +1,4 @@
-from typing import List, Optional, TYPE_CHECKING
+from typing import List, TYPE_CHECKING
 import numpy as np
 
 if TYPE_CHECKING:
@@ -8,7 +8,11 @@ if TYPE_CHECKING:
 def format_bytes(bytes) -> str:
     """Converts bytes to KiB, MiB, GiB and TiB."""
     step_unit = 1024
-    for x in ["bytes", "KiB", "MiB", "GiB"]:
+    if bytes < 1024:
+        return f"{bytes} bytes"
+
+    bytes /= step_unit
+    for x in ["KiB", "MiB", "GiB"]:
         if bytes < step_unit:
             return f"{bytes:3.1f} {x}"
         bytes /= step_unit
@@ -37,40 +41,34 @@ def fft_dim_table(
         dim: "FFTDimension",
         include_header=True,
         include_dim_name=False,
-        dim_index: Optional[int] = None,
         spaces: List["Space"] = ["pos", "freq"],
     ) -> str:
     """Constructs a table for FFTDimension.__str__ and FFTArrar.__str__
-    containting the grid parameters for each space.
+    containing the grid parameters for each space.
     """
     str_out = ""
     headers = ["space", "d", "min", "middle", "max", "extent"]
     if include_dim_name:
         headers.insert(0, "dimension")
     if include_header:
-        if dim_index is not None:
-            # handled separately to give it a smaller width
-            str_out += "| # "
         for header in headers:
             # give space smaller width to stay below 80 characters per line
             str_out += f"|{header:^7}" if header == "space" else f"|{header:^10}"
-        str_out += "|\n" + int(dim_index is not None)*"+---"
+        str_out += "|\n"
         for header in headers:
             str_out += "+" + (7*"-" if header == "space" else 10*"-")
         str_out += "+\n"
     dim_prop_headers = headers[int(include_dim_name)+1:]
-    for k, space in enumerate(spaces):
-        if dim_index is not None:
-            str_out += f"|{dim_index:^3}" if k==0 else f"|{'':^3}"
-        if include_dim_name:
-            dim_name = str(dim.name)
-            if len(dim_name) > 10:
-                if k == 0:
-                    str_out += f"|{dim_name[:10]}"
-                else:
-                    str_out += f"|{truncate_str(dim_name[10:], 10)}"
-            else:
-                str_out += f"|{dim_name:^10}" if k==0 else f"|{'':^10}"
+    if include_dim_name:
+        # dim name column only shown when printing an FFTArray 
+        # in this case the FFTDimension properties are only shown in the current space
+        assert len(spaces) == 1
+        dim_name = dim.name
+        if len(dim_name) > 10:
+            str_out += f"|{truncate_str(dim_name, 10)}"
+        else:
+            str_out += f"|{dim_name:^10}"
+    for space in spaces:
         str_out += f"|{space:^7}|"
         for header in dim_prop_headers:
             attr = f"d_{space}" if header == "d" else f"{space}_{header}"

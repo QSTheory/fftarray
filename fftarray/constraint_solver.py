@@ -125,7 +125,7 @@ def get_fft_dim_from_constraints(
         constraint solver when rounding up to an even or power of two `n`), by
         default None
     dynamically_traced_coords : bool, optional
-        Only relevant for JAX backend. Whether the coordinate values should be
+        Only relevant for use with JAX tracing. Whether the coordinate values should be
         dynamically traced such that the grid can be altered inside a jitted
         function, by default True
 

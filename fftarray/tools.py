@@ -6,7 +6,7 @@ from fftarray import FFTArray
 import fftarray as fa
 
 # TODO: change names of FFTArray argument here
-def shift_frequency(wf: FFTArray, offsets: Dict[str, float]) -> FFTArray:
+def shift_frequency(x: FFTArray, offsets: Dict[str, float]) -> FFTArray:
     """Shift the wavefunction in frequency space:
     :math:`k_{x,y,z} \mapsto k_{x,y,z} - \Delta k_{x,y,z}`.
     The wavefunction is transformed according to:
@@ -31,20 +31,13 @@ def shift_frequency(wf: FFTArray, offsets: Dict[str, float]) -> FFTArray:
     FFTWave
         The wavefunction with shifted frequency space.
     """
-    phase_shift = 1.
-    dim_names = [dim.name for dim in wf.dims]
+    phase_shift = fa.full([], [], 1., xp=x.xp)
     for dim_name, offset in offsets.items():
-        dim_idx = dim_names.index(dim_name)
-        x = fa.array_from_dim(
-            dim=wf.dims[dim_idx],
-            space="pos",
-            backend=wf.backend,
-            eager=wf.eager[dim_idx],
-        )
-        phase_shift *= fa.exp(1.j * 2.*np.pi * offset * x)
-    return wf.into(space="pos") * phase_shift
+        x_arr = fa.coords_array(x, dim_name=dim_name, space="pos").astype("complex")
+        phase_shift *= fa.exp(1.j * 2*np.pi * offset * x_arr)
+    return x.into(space="pos") * phase_shift
 
-def shift_position(wf: FFTArray, offsets: Dict[str, float]) -> FFTArray:
+def shift_position(x: FFTArray, offsets: Dict[str, float]) -> FFTArray:
     """Shift the wavefunction in position space:
     :math:`x \mapsto x - \Delta x`. :math:`y` and :math:`z` analogously.
     The wavefunction is transformed according to:
@@ -69,16 +62,9 @@ def shift_position(wf: FFTArray, offsets: Dict[str, float]) -> FFTArray:
     FFTWave
         The wavefunction with shifted position space.
     """
-    phase_shift = 1.
-    dim_names = [dim.name for dim in wf.dims]
+    phase_shift = fa.full([], [], 1.)
     for dim_name, offset in offsets.items():
-        dim_idx = dim_names.index(dim_name)
-        f = fa.array_from_dim(
-            dim=wf.dims[dim_idx],
-            space="freq",
-            backend=wf.backend,
-            eager=wf.eager[dim_idx],
-        )
-        phase_shift *= fa.exp(-1.j * offset * 2*np.pi * f)
-    return wf.into(space="freq") * phase_shift
+        f_arr = fa.coords_array(x, dim_name=dim_name, space="freq").astype("complex")
+        phase_shift *= fa.exp(-1.j * offset * 2*np.pi * f_arr)
+    return x.into(space="freq") * phase_shift
 

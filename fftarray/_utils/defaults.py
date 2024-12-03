@@ -1,29 +1,73 @@
-from ..backends.backend import Backend
-from ..backends.numpy import NumpyBackend
+from typing import Literal
+
+import numpy as np
+
+import array_api_compat
+
+_DEFAULT_XP = array_api_compat.array_namespace(np.asarray(0))
+
+def set_default_xp(xp) -> None:
+    global _DEFAULT_XP
+    # We want the wrapped namespace everywhere by default.
+    # If the array library fully supports the Python Array API
+    # this becomes the default namespace.
+    _DEFAULT_XP= array_api_compat.array_namespace(xp.asarray(0))
+
+def get_default_xp():
+    return _DEFAULT_XP
 
 
-_DEFAULT_BACKEND: Backend = NumpyBackend("default")
-
-def set_default_backend(backend: Backend) -> None:
-    global _DEFAULT_BACKEND
-    _DEFAULT_BACKEND= backend
-
-def get_default_backend() -> Backend:
-    return _DEFAULT_BACKEND
-
-def default_backend(backend: Backend):
-    return DefaultBackendContext(backend=backend)
-
-class DefaultBackendContext:
-    def __init__(self, backend: Backend):
-        self.override = backend
+class DefaultArrayNamespaceContext:
+    def __init__(self, xp):
+        self.override = xp
 
     def __enter__(self):
-        self.previous = get_default_backend()
-        set_default_backend(self.override)
+        self.previous = get_default_xp()
+        set_default_xp(self.override)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        set_default_backend(self.previous)
+        set_default_xp(self.previous)
+
+def default_xp(xp) -> DefaultArrayNamespaceContext:
+    return DefaultArrayNamespaceContext(xp=xp)
+
+
+
+"""
+    Only floating types are allowed as default dtypes
+    because only those make sense to initialize coordinate arrays.
+"""
+DEFAULT_DTYPE = Literal[
+    "float32",
+    "float64",
+    "complex64",
+    "complex128",
+]
+
+# stores the name of the attribute
+_DEFAULT_DTYPE_NAME: DEFAULT_DTYPE = "float64"
+
+def set_default_dtype_name(dtype: DEFAULT_DTYPE) -> None:
+    global _DEFAULT_DTYPE_NAME
+    _DEFAULT_DTYPE_NAME= dtype
+
+def get_default_dtype_name() -> DEFAULT_DTYPE:
+    return _DEFAULT_DTYPE_NAME
+
+class DefaultDTypeContext:
+    def __init__(self, dtype: DEFAULT_DTYPE):
+        self.override = dtype
+
+    def __enter__(self):
+        self.previous = get_default_dtype_name()
+        set_default_dtype_name(self.override)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        set_default_dtype_name(self.previous)
+
+def default_dtype_name(dtype: DEFAULT_DTYPE) -> DefaultDTypeContext:
+    return DefaultDTypeContext(dtype=dtype)
+
 
 _DEFAULT_EAGER: bool = False
 
@@ -33,9 +77,6 @@ def set_default_eager(eager: bool) -> None:
 
 def get_default_eager() -> bool:
     return _DEFAULT_EAGER
-
-def default_eager(eager: bool):
-    return DefaultEagerContext(eager=eager)
 
 class DefaultEagerContext:
     def __init__(self, eager: bool):
@@ -47,3 +88,6 @@ class DefaultEagerContext:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         set_default_eager(self.previous)
+
+def default_eager(eager: bool) -> DefaultEagerContext:
+    return DefaultEagerContext(eager=eager)

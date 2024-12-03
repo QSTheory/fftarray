@@ -1,6 +1,6 @@
 from typing import (
     Dict, List, Optional, Tuple, TypeVar, Union, Iterable,
-    Literal, Literal, Generic, TYPE_CHECKING
+    Literal, Generic, TYPE_CHECKING
 )
 import warnings
 
@@ -45,8 +45,8 @@ class LocFFTArrayIndexer(Generic[T]):
 
             Example usage:
             arr_2d = (
-                x_dim.fft_array(space="pos", backend=some_backend)
-                + y_dim.fft_array(space="pos", backend=some_backend)
+                x_dim.fft_array(space="pos")
+                + y_dim.fft_array(space="pos")
             )
             Four ways of retrieving an FFTArray object
             with coordinate 3 along x and coordinates values
@@ -95,7 +95,6 @@ class LocFFTArrayIndexer(Generic[T]):
                 dim._index_from_coord(
                     coord=index,
                     space=space,
-                    backend=self._arr.backend,
                     method=None,
                 )
             )
