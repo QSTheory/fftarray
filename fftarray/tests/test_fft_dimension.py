@@ -5,14 +5,13 @@ import pytest
 import jax
 
 import fftarray as fa
-from fftarray import FFTDimension
+from fftarray.tests.helpers import XPS
 
 jax.config.update("jax_enable_x64", True)
 
 def assert_scalars_almost_equal_nulp(x, y, nulp = 1):
     np.testing.assert_array_almost_equal_nulp(np.array([x]), np.array([y]), nulp = nulp)
 
-from fftarray.tests.helpers import XPS
 
 
 def test_fftdim_accessors():
@@ -40,7 +39,7 @@ def test_fftdim_jax():
     flattening and unflattening works accordingly.
     """
     @jax.jit
-    def jax_func(fftdim: FFTDimension):
+    def jax_func(fftdim: fa.FFTDimension):
         return fftdim
 
     fftdim = fa.dim("x",
@@ -119,17 +118,17 @@ def test_dynamically_traced_coords(dtc: bool) -> None:
         dynamically_traced_coords = dtc
     )
 
-    def jax_step_func_static(fftdim: FFTDimension, a):
+    def jax_step_func_static(fftdim: fa.FFTDimension, a):
         o = fftdim._n * fftdim._d_pos + a * fftdim._freq_min
         return fftdim, o
 
-    def jax_step_func_dynamic(fftdim: FFTDimension, a):
+    def jax_step_func_dynamic(fftdim: fa.FFTDimension, a):
         fftdim._pos_min = fftdim._pos_min - a
         fftdim._d_pos = a*fftdim._d_pos
         fftdim._freq_min = fftdim._freq_min/a
         return fftdim, a
 
-    def jax_step_func_forbidden(fftdim: FFTDimension, a):
+    def jax_step_func_forbidden(fftdim: fa.FFTDimension, a):
         fftdim._name = f"new{fftdim._name}"
         fftdim._n = fftdim._n + 1
         fftdim._dynamically_traced_coords = not fftdim._dynamically_traced_coords

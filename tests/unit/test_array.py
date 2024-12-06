@@ -60,7 +60,7 @@ def test_array_creation(xp, dtype_name: DTYPE_NAME, ndims: int, copy: bool) -> N
         # For array libraries with immutable arrays (e.g. jax), we assume this fails.
         # In these cases, we skip testing immutability ourself.
         values += 2
-    except:
+    except(TypeError):
         pass
 
     assert arr.xp == xp

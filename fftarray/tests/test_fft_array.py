@@ -2,14 +2,15 @@ from typing import List, Literal, Any, Callable, Union, Tuple
 
 import array_api_compat
 import pytest
+
 from hypothesis import given, strategies as st, note, settings
 import numpy as np
+import jax.numpy as jnp
 
 import fftarray as fa
 from fftarray.fft_array import FFTArray, Space
 
 from fftarray.tests.helpers import XPS
-
 from fftarray._utils.defaults import DEFAULT_DTYPE
 
 PrecisionSpec = Literal["float32", "float64"]
@@ -112,10 +113,10 @@ def test_backend_override(xp, xp_override) -> None:
         freq_min=0.,
     )
 
-    assert type(fa.array_from_dim(dim=x_dim, xp=xp, space="pos").asxp(xp=xp_override).values(space="pos")) == type(fa.array_from_dim(dim=x_dim, xp=xp_override, space="pos").values(space="pos"))
-    assert type(fa.array_from_dim(dim=x_dim, xp=xp, space="freq").asxp(xp=xp_override).values(space="freq")) == type(fa.array_from_dim(dim=x_dim, xp=xp_override, space="freq").values(space="freq"))
-    assert type(fa.array_from_dim(dim=x_dim, xp=xp, space="pos").asxp(xp=xp_override).into(space="freq").values(space="freq")) == type(fa.array_from_dim(dim=x_dim, xp=xp_override, space="freq").values(space="freq"))
-    assert type(fa.array_from_dim(dim=x_dim, xp=xp, space="freq").asxp(xp=xp_override).into(space="pos").values(space="pos")) == type(fa.array_from_dim(dim=x_dim, xp=xp_override, space="pos").values(space="pos"))
+    assert type(fa.array_from_dim(dim=x_dim, xp=xp, space="pos").asxp(xp=xp_override).values(space="pos")) is type(fa.array_from_dim(dim=x_dim, xp=xp_override, space="pos").values(space="pos"))
+    assert type(fa.array_from_dim(dim=x_dim, xp=xp, space="freq").asxp(xp=xp_override).values(space="freq")) is type(fa.array_from_dim(dim=x_dim, xp=xp_override, space="freq").values(space="freq"))
+    assert type(fa.array_from_dim(dim=x_dim, xp=xp, space="pos").asxp(xp=xp_override).into(space="freq").values(space="freq")) is type(fa.array_from_dim(dim=x_dim, xp=xp_override, space="freq").values(space="freq"))
+    assert type(fa.array_from_dim(dim=x_dim, xp=xp, space="freq").asxp(xp=xp_override).into(space="pos").values(space="pos")) is type(fa.array_from_dim(dim=x_dim, xp=xp_override, space="pos").values(space="pos"))
 
 
 def test_broadcasting() -> None:
@@ -151,9 +152,6 @@ def test_sel_order(xp, space):
     arr_selx_sely = arr_selx.sel(**{"y": getattr(ydim, f"{space}_middle")})
     arr_sely_selx = arr_sely.sel(**{"x": getattr(xdim, f"{space}_middle")})
     np.testing.assert_allclose(arr_selx_sely.values(space=space), arr_sely_selx.values(space=space))
-
-# TODO:
-import jax.numpy as jnp
 
 
 # TODO: Mark as not parallelizable
@@ -322,7 +320,7 @@ def test_immutability(xp) -> None:
         # For array libraries with immutable arrays (e.g. jax), we assume this fails.
         # In these cases, we skip testing immutability ourself.
         values[0] = 10
-    except:
+    except(TypeError):
         pass
 
     assert arr.values(space="pos")[0] == -0.2
@@ -330,7 +328,7 @@ def test_immutability(xp) -> None:
     values_2 = arr_2.values(space="pos")
     try:
         values_2[0] = 10
-    except:
+    except(TypeError):
         pass
     assert arr_2.values(space="pos")[0] == -0.2
 
@@ -361,8 +359,8 @@ def assert_basic_lazy_logic(arr, log):
     log("space='pos' -> abs(x.values(space='pos')) == abs(x._values)")
     log("space='freq' -> abs(x.values(space='freq')) == abs(x._values)/(n*d_freq)")
     scale = 1
-    for dim, space, fa in zip(arr.dims, arr.space, arr._factors_applied):
-        if space == "freq" and not fa:
+    for dim, space, factors_applied in zip(arr.dims, arr.space, arr._factors_applied):
+        if space == "freq" and not factors_applied:
             scale *= 1/(dim.n*dim.d_freq)
     rtol = 1e-6 if is_precision(arr, "float32") else 1e-12
     np.testing.assert_allclose(np.abs(arr.values(space=arr.space)), np.abs(arr._values)*scale, rtol=rtol)
@@ -432,7 +430,7 @@ def assert_equal_op(
         # TODO: Why is this necessary?
         values_op = xp.astype(values_op, values_op.dtype)
 
-    if is_inf_or_nan(values_op) or (precise==False and is_inf_or_nan(arr_op)):
+    if is_inf_or_nan(values_op) or (not precise and is_inf_or_nan(arr_op)):
         return
 
     rtol = 1e-6 if is_precision(arr, "float32") else 1e-7
@@ -649,7 +647,7 @@ try:
             # static should support coordinate selection
             # dynamic should throw an error
             xval = carry._dims[0]._pos_min + carry._dims[0]._d_pos
-            carry_sel = carry.sel(x=xval, method=sel_method)
+            carry.sel(x=xval, method=sel_method)
             return carry, None
 
         if dtc:
@@ -661,8 +659,8 @@ try:
             jax.lax.scan(jax_scan_step_fun_static, fftarr, jnp.arange(3))
             with pytest.raises(TypeError):
                 jax.lax.scan(jax_scan_step_fun_dynamic, fftarr, jnp.arange(3))
-except:
-    ImportError
+except(ImportError):
+    pass
 
 def test_different_dimension_dynamic_prop() -> None:
     """Tests tracing of an FFTArray whose dimensions have different
@@ -689,7 +687,7 @@ def test_different_dimension_dynamic_prop() -> None:
         return carry, None
 
     def jax_scan_step_fun_invalid_sel(carry, *_):
-        yval = carry._dims[1]._pos_min + carry._dims[1]._d_pos
+        carry._dims[1]._pos_min + carry._dims[1]._d_pos
         carry_sel = carry.sel(y=0, method="nearest")
         return carry, carry_sel
 

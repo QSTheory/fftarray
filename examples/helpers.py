@@ -2,7 +2,6 @@ from typing import List, Optional
 
 import numpy as np
 from bokeh.plotting import figure, row, column, show
-from bokeh.palettes import Turbo256
 from bokeh.models import LinearColorMapper
 
 from fftarray import FFTArray, Space

@@ -9,6 +9,7 @@ import fftarray as fa
 from fftarray.fft_array import FFTArray, Space
 
 from fftarray.tests.helpers import XPS
+from fftarray.tests.test_fft_array import draw_hypothesis_fft_array_values, assert_equal_op, assert_basic_lazy_logic, jnp
 
 
 PrecisionSpec = Literal["float32", "float64"]
@@ -18,8 +19,6 @@ def assert_scalars_almost_equal_nulp(x, y, nulp = 1):
 
 precisions: List[PrecisionSpec] = ["float32", "float64"]
 spaces: List[Space] = ["pos", "freq"]
-
-from fftarray.tests.test_fft_array import draw_hypothesis_fft_array_values, assert_equal_op, assert_basic_lazy_logic, jnp
 
 
 @st.composite
