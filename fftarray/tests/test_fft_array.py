@@ -537,13 +537,13 @@ def assert_fftarray_eager_factors_applied(arr: FFTArray, log):
 
     log("arr._factors_applied == (arr**2)._factors_applied")
     arr_sq = arr * arr
-    np.testing.assert_array_equal(arr_sq.eager, arr.eager) # type: ignore
-    np.testing.assert_array_equal(arr_sq._factors_applied, arr._factors_applied) # type: ignore
+    np.testing.assert_array_equal(arr_sq.eager, arr.eager)
+    np.testing.assert_array_equal(arr_sq._factors_applied, arr._factors_applied)
 
     log("abs(x)._factors_applied == True")
     arr_abs = fa.abs(arr)
-    np.testing.assert_array_equal(arr_abs.eager, arr.eager) # type: ignore
-    np.testing.assert_array_equal(arr_abs._factors_applied, True) # type: ignore
+    np.testing.assert_array_equal(arr_abs.eager, arr.eager)
+    np.testing.assert_array_equal(arr_abs._factors_applied, True)
 
     log("(x*abs(x))._factors_applied == x._factors_applied")
     # if both _factors_applied=True, the resulting FFTArray will also have it
@@ -551,12 +551,12 @@ def assert_fftarray_eager_factors_applied(arr: FFTArray, log):
     # given abs(x)._factors_applied=True, we test the patterns
     # True*True=True, False*True=False
     arr_abs_sq = arr * arr_abs
-    np.testing.assert_array_equal(arr_abs_sq.eager, arr.eager) # type: ignore
-    np.testing.assert_array_equal(arr_abs_sq._factors_applied, arr._factors_applied) # type: ignore
+    np.testing.assert_array_equal(arr_abs_sq.eager, arr.eager)
+    np.testing.assert_array_equal(arr_abs_sq._factors_applied, arr._factors_applied)
 
     log("(x+abs(x))._factors_applied == (x._factors_applied or x._eager)")
     arr_abs_sum = arr + arr_abs
-    np.testing.assert_array_equal(arr_abs_sum.eager, arr.eager) # type: ignore
+    np.testing.assert_array_equal(arr_abs_sum.eager, arr.eager)
     for ea, ifa, ffa in zip(arr_abs_sum.eager, arr._factors_applied, arr_abs_sum._factors_applied):
         # True+True=True
         # False+True=eager
