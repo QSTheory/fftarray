@@ -67,6 +67,7 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
     "pytest-xdist[psutil]",
     "pytest-split",
     "array-api-strict",
+    "ruff",
 ]
 
 "doc" = [
@@ -100,9 +101,10 @@ test_all_group = { cmd = ["python", "-m", "pytest", "--include-slow", "--splitti
 # If the timings are out of date it just makes the split a bit less optimal.
 store_test_durations = { cmd = ["python", "-m", "pytest", "--include-slow", "--store-durations"]}
 
+ruff_all = { cmd = ["ruff", "check", "examples", "tests", "fftarray"]}
 mypy_nb = { cmd = ["nbqa", "mypy", "examples"]}
 mypy = { cmd = ["mypy", "examples", "fftarray", "tests"], depends-on = ["mypy_nb"]}
-check = { depends-on = ["mypy", "test"]}
+check = { depends-on = ["mypy", "ruff_all", "test"]}
 cov_html = { cmd = ["python", "-m", "pytest", "--cov=./fftarray", "--cov=./examples", "--cov-report=html"]}
 cov_xml = { cmd = ["python", "-m", "pytest", "--cov=./fftarray", "--cov=./examples", "--cov-report=xml"]}
 doc = { cmd = ["make"], "cwd" = "docs" }

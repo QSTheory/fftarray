@@ -7,11 +7,10 @@ import xarray as xr
 
 import fftarray as fa
 from fftarray.fft_array import FFTArray, Space
-
+from fftarray.tests.helpers import XPS
 
 EllipsisType = TypeVar('EllipsisType')
 
-from fftarray.tests.helpers import XPS
 
 TEST_FFTDIM = fa.dim(
     name="x", n=8, d_pos=1, pos_min=0, freq_min=0

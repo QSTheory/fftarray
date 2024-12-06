@@ -17,7 +17,12 @@ from z3 import (
 import numpy as np
 
 from .fft_dimension import FFTDimension
-from .constraint_solver_exceptions import *
+from .constraint_solver_exceptions import (
+    NoSolutionFoundError,
+    NoUniqueSolutionError,
+    ConstraintValueError,
+    ConstraintSolverError,
+)
 
 # This dict contains all possible user constraints
 # and their optimized directions for n widening
@@ -52,7 +57,7 @@ class GridParams(TypedDict):
     freq_extent: float
     freq_middle: float
 
-def get_fft_dim_from_constraints(
+def dim_from_constraints(
         name: str,
         *,
         n: Union[int, Literal["power_of_two", "even"]] = "power_of_two",
@@ -290,11 +295,11 @@ def _z3_constraint_solver(
     ------
     NoSolutionFoundError
         An error occured while trying to find a solution.
-    NoSolutionFoundError
+    NoUniqueSolutionError
         There is no unique solution to the supplied constraints.
-    NoSolutionFoundError
+    ConstraintValueError
         The supplied constraints are not satisfiable.
-    NoSolutionFoundError
+    ConstraintSolverError
         An invalid value encountered for the supplied constraint values or in
         the solution.
     """
@@ -486,7 +491,7 @@ def _validate_args(
     """
 
     for var, val in user_constraints.items():
-        if not var in VARS_WITH_PROPS:
+        if var not in VARS_WITH_PROPS:
             raise ConstraintSolverError(f"'{var}' is not a valid argument name.")
         if hasattr(val, "shape"):
             val = np.array([val])[0]
@@ -520,7 +525,7 @@ def _validate_args(
     elif isinstance(user_constraints["n"], str):
         if user_constraints["n"] not in ["even", "power_of_two"]:
             raise ConstraintValueError(
-                f"The available rounding modes for n are: 'even', 'power_of_two'. " +
+                "The available rounding modes for n are: 'even', 'power_of_two'. " +
                 f"The supplied value '{user_constraints['n']}' is not valid."
             )
     else:
@@ -534,7 +539,7 @@ def _validate_args(
 
     loose_params = list(set(loose_params)) # remove duplicates
     for loose_param in loose_params:
-        if not loose_param in user_constraints:
+        if loose_param not in user_constraints:
             raise ConstraintSolverError(
                 "You can only define a used constraint as a loose_param."
             )
@@ -578,7 +583,7 @@ def _get_unique_model_if_exists(
         different_sol_constraints = [
             Real(var_name) != model[Real(var_name)]
             for var_name in VARS_WITH_PROPS
-            if (not var_name in user_constraints
+            if (var_name not in user_constraints
                 or isinstance(user_constraints[var_name], str))
         ]
         s.add(Or(different_sol_constraints))
@@ -825,9 +830,12 @@ def _suggest_loose_params(
                 make_suggestions=False
             )
             suggested_loose_params += [group]
-        except:
+        except(NoSolutionFoundError):
             ...
     return suggested_loose_params
+
+def at_least_two_true(a,b,c):
+    return a and (b or c) or (b and c)
 
 def _suggest_additional_params(
         user_constraints: Dict[str, Union[float, int, str]]
@@ -846,8 +854,6 @@ def _suggest_additional_params(
         ["freq_min", "freq_max", "freq_middle"],
         ["pos_min", "pos_max", "pos_middle"]
     ]
-
-    at_least_two_true = lambda a,b,c: a and (b or c) or (b and c)
 
     spaces = ["pos", "freq"]
     for i, space in enumerate(spaces):
@@ -890,6 +896,6 @@ def _suggest_removed_params(
                 make_suggestions=False
             )
             suggested_removed_params += [constraint]
-        except:
+        except(NoSolutionFoundError):
             ...
     return suggested_removed_params
