@@ -12,7 +12,7 @@ def get_transform_signs(
 
     do_return_list = False
     signs: List[Literal[-1, 1, 0]] = []
-    for input_factor_applied, target_factor_applied in zip(input_factors_applied, target_factors_applied):
+    for input_factor_applied, target_factor_applied in zip(input_factors_applied, target_factors_applied, strict=True):
         # If both are the same, we do not need to do anything
 
         if input_factor_applied == target_factor_applied:
@@ -78,7 +78,7 @@ def apply_lazy(
     # Real-numbered scale
     scale: float = 1.
     do_apply = False
-    for dim, sign, dim_space in zip(dims, signs, spaces):
+    for dim, sign, dim_space in zip(dims, signs, spaces, strict=True):
         if sign != 0 and dim_space == "freq":
             # TODO: Write as separate mul or div?
             scale = scale * (dim.d_freq*dim.n)**sign
@@ -111,7 +111,7 @@ def apply_lazy(
         values = xp.tile(values, tuple(reps))
 
     per_idx_phase_factors = xp.asarray(0., dtype=real_type(xp, values.dtype))
-    for dim_idx, (dim, sign, dim_space) in enumerate(zip(dims, signs, spaces)):
+    for dim_idx, (dim, sign, dim_space) in enumerate(zip(dims, signs, spaces, strict=True)):
         # If both are the same, we do not need to do anything
 
         if sign != 0:
@@ -164,7 +164,7 @@ def do_fft(
     #------------
     pre_fft_applied = [
         False if fft_needed else old_factors_applied
-        for fft_needed, old_factors_applied in zip(needs_fft, factors_applied_before)
+        for fft_needed, old_factors_applied in zip(needs_fft, factors_applied_before, strict=True)
     ]
     signs = get_transform_signs(
         input_factors_applied=factors_applied_before,
@@ -192,7 +192,7 @@ def do_fft(
     #------------
     fft_axes = []
     ifft_axes = []
-    for dim_idx, (old_space, new_space) in enumerate(zip(space_before, space_after)):
+    for dim_idx, (old_space, new_space) in enumerate(zip(space_before, space_after, strict=True)):
         if old_space != new_space:
             if old_space == "pos":
                 fft_axes.append(dim_idx)

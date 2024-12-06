@@ -84,6 +84,17 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
     "matplotlib",
 ]
 
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "B",
+    "E4",
+    "E7",
+    "E9",
+    "F",
+]
 
 [tool.hatch.version]
 source = "vcs"
