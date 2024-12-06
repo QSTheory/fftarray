@@ -6,17 +6,17 @@ Provided by :py:mod:`fftarray.fft_array`:
 .. currentmodule:: fftarray.fft_array
 
 .. autosummary::
-   :nosignatures:
+    :nosignatures:
 
-   FFTArray
-   FFTDimension
+    FFTArray
+    FFTDimension
 
 Provided by :py:mod:`fftarray.tools`:
 
 .. currentmodule:: fftarray.tools
 
 .. autosummary::
-   :nosignatures:
+    :nosignatures:
 
    shift_frequency
    shift_position
@@ -37,7 +37,10 @@ from ._utils.defaults import (
 
 from .space import Space
 from .fft_dimension import FFTDimension, dim
-from .fft_array import FFTArray
+from .fft_array import (
+    abs,
+    FFTArray,
+)
 
 from .creation_functions import (
    array,
@@ -51,7 +54,6 @@ from .tools import shift_frequency, shift_position
 from .jax_pytrees import jax_register_pytree_nodes
 
 from .elementwise_functions import (
-   abs,
    acos,
    acosh,
    add,

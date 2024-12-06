@@ -39,6 +39,45 @@ EllipsisType = TypeVar('EllipsisType')
 
 
 
+def abs(x: FFTArray, /) -> FFTArray:
+    """Implements abs with a special shortcut to statically eliminate the phase part
+        of potential phase factors.
+
+    Args:
+        x (FFTArray): input array
+
+    Returns:
+        FFTArray: x with elementwise abs applied.
+    """
+    assert isinstance(x, FFTArray)
+    # For abs the final result does not change if we apply the phases
+    # to the values so we can simply ignore the phases.
+    values = x.xp.abs(x._values)
+    # The scale can be applied after abs which is more efficient in the case of a complex input
+    signs = get_transform_signs(
+        # Can use input because with a single value no broadcasting happened.
+        input_factors_applied=x._factors_applied,
+        target_factors_applied=[True]*len(x._factors_applied),
+    )
+    if signs is not None:
+        values = apply_lazy(
+            values=values,
+            dims=x.dims,
+            signs=signs,
+            spaces=x.space,
+            xp=x.xp,
+            scale_only=True,
+        )
+
+    return FFTArray(
+        values=values,
+        space=x.space,
+        dims=x.dims,
+        eager=x.eager,
+        factors_applied=(True,)*len(x.dims),
+        xp=x.xp,
+    )
+
 def two_inputs_func(
             unp_inp: UnpackedValues,
             op,
@@ -267,10 +306,14 @@ class FFTArray:
     #--------------------
     # Operator Implementations
     #--------------------
-    # Implement binary operations between FFTArray and also e.g. 1+wf and wf+1
-    # This does intentionally not list all possible operators.
-    # We need to map directly to the dunder methods (as oppoesed to just reusing xp.add, etc...)
-    # in order to ensure the correct promotion rules.
+    # Implement binary operations between FFTArray and also Scalars e.g. 1+wf and wf+1
+    # We need to map directly to the dunder methods (as opposed to just reusing xp.add, etc...)
+    # in order to ensure the correct promotion rules, since those differ for scalars in the
+    # current (v2023.12) edition of the Array API standard.
+
+    # Arithemtic Operators
+    __pos__ = elementwise_one_operand("__pos__", is_on_self=True)
+    __neg__ = elementwise_one_operand("__neg__", is_on_self=True)
     __add__ = elementwise_two_operands(
         name="__add__",
         transforms_lut=add_transforms_lut,
@@ -311,28 +354,45 @@ class FFTArray:
         transforms_lut=rdiv_transforms_lut,
         is_on_self=True,
     )
-    __rfloordiv__ = elementwise_two_operands(
-        name="__rfloordiv__",
-        transforms_lut=rdiv_transforms_lut,
+    # floor div should only support real inputs, just always apply all phase factors
+    __floordiv__ = elementwise_two_operands(
+        name="__floordiv__",
+        transforms_lut=default_transforms_lut,
         is_on_self=True,
     )
+    __rfloordiv__ = elementwise_two_operands(
+        name="__rfloordiv__",
+        transforms_lut=default_transforms_lut,
+        is_on_self=True,
+    )
+    __mod__ = elementwise_two_operands("__mod__", is_on_self=True)
+    __rmod__ = elementwise_two_operands("__rmod__", is_on_self=True)
     __pow__ = elementwise_two_operands("__pow__", is_on_self=True)
     __rpow__ = elementwise_two_operands("__rpow__", is_on_self=True)
 
-    # Implement comparison operators
-    __gt__ = elementwise_two_operands("__gt__", is_on_self=True)
-    __ge__ = elementwise_two_operands("__ge__", is_on_self=True)
+    # Bitwise Operators
+    __invert__ = elementwise_one_operand("__invert__", is_on_self=True)
+    __and__ = elementwise_two_operands("__and__", is_on_self=True)
+    __rand__ = elementwise_two_operands("__rand__", is_on_self=True)
+    __or__ = elementwise_two_operands("__or__", is_on_self=True)
+    __ror__ = elementwise_two_operands("__ror__", is_on_self=True)
+    __xor__ = elementwise_two_operands("__xor__", is_on_self=True)
+    __rxor__ = elementwise_two_operands("__rxor__", is_on_self=True)
+    __lshift__ = elementwise_two_operands("__lshift__", is_on_self=True)
+    __rlshift__ = elementwise_two_operands("__rlshift__", is_on_self=True)
+    __rshift__ = elementwise_two_operands("__rshift__", is_on_self=True)
+    __rrshift__ = elementwise_two_operands("__rrshift__", is_on_self=True)
+
+    # Comparison Operators
     __lt__ = elementwise_two_operands("__lt__", is_on_self=True)
     __le__ = elementwise_two_operands("__le__", is_on_self=True)
-    __ne__ = elementwise_two_operands("__ne__", is_on_self=True)
+    __gt__ = elementwise_two_operands("__gt__", is_on_self=True)
+    __ge__ = elementwise_two_operands("__ge__", is_on_self=True)
     __eq__ = elementwise_two_operands("__eq__", is_on_self=True)
+    __ne__ = elementwise_two_operands("__ne__", is_on_self=True)
 
-
-    # Implement unary operations
-    __neg__ = elementwise_one_operand("__neg__", is_on_self=True)
-    __pos__ = elementwise_one_operand("__pos__", is_on_self=True)
-    __abs__ = elementwise_one_operand("__abs__", is_on_self=True)
-    __invert__ = elementwise_one_operand("__invert__", is_on_self=True)
+    # Other Operators
+    __abs__ = abs
 
     #--------------------
     # Selection

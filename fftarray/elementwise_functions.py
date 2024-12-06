@@ -12,38 +12,6 @@ from .op_lazy_luts import (
 from .transform_application import get_transform_signs, apply_lazy
 
 
-#------------------
-# Special Implementations
-#------------------
-def abs(x: FFTArray, /) -> FFTArray:
-    assert isinstance(x, FFTArray)
-    # For abs the final result does not change if we apply the phases
-    # to the values so we can simply ignore the phases.
-    values = x.xp.abs(x._values)
-    # The scale can be applied after abs which is more efficient in the case of a complex input
-    signs = get_transform_signs(
-        # Can use input because with a single value no broadcasting happened.
-        input_factors_applied=x._factors_applied,
-        target_factors_applied=[True]*len(x._factors_applied),
-    )
-    if signs is not None:
-        values = apply_lazy(
-            values=values,
-            dims=x.dims,
-            signs=signs,
-            spaces=x.space,
-            xp=x.xp,
-            scale_only=True,
-        )
-
-    return FFTArray(
-        values=values,
-        space=x.space,
-        dims=x.dims,
-        eager=x.eager,
-        factors_applied=(True,)*len(x.dims),
-        xp=x.xp,
-    )
 
 
 # This one is the only one with kwargs, so just done by hand.
