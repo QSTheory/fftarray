@@ -532,7 +532,7 @@ def generate_test_fftarray_xrdataset(
 
     dims = [
         fa.dim(name=dim_name, n=dim_length, d_pos=1, pos_min=0, freq_min=0)
-        for dim_name, dim_length in zip(dimension_names, dimension_length)
+        for dim_name, dim_length in zip(dimension_names, dimension_length, strict=True)
     ]
 
     fft_array = reduce(lambda x,y: x+y, [fa.array_from_dim(dim=dim, xp=xp, space="pos") for dim in dims])

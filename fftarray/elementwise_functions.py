@@ -16,8 +16,7 @@ from .op_lazy_luts import (
 # This one is the only one with kwargs, so just done by hand.
 def clip(x: FFTArray, /, *, min=None, max=None) -> FFTArray:
     assert isinstance(x, FFTArray)
-    op = getattr(x.xp, "clip")
-    values = op(x.values(space=x.space), min=min, max=max)
+    values = x.xp.clip(x.values(space=x.space), min=min, max=max)
     return FFTArray(
         values=values,
         space=x.space,

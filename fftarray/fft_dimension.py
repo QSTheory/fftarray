@@ -322,7 +322,7 @@ class FFTDimension:
             freq_min = self.freq_min + start*self.d_freq
             d_pos = 1./(self.d_freq*n)
         else:
-            assert False, "Unreachable"
+            raise ValueError(f"Passed in unsupported value {space} for space.")
 
         return FFTDimension(
             name=self.name,

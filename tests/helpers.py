@@ -48,7 +48,7 @@ def get_arr_from_dims(
         dims=[],
         space=[],
     )
-    for dim, space in zip(dims, spaces_norm):
+    for dim, space in zip(dims, spaces_norm, strict=True):
         arr += fa.array_from_dim(dim=dim, space=space, xp=xp)
     return arr
 

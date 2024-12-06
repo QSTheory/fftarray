@@ -32,7 +32,7 @@ def align_named_arrays(
     aligned_arrays = []
     for dims, arr in arrays:
         dim_names = [*dims]
-        for target_dim, target_length in target_shape.items():
+        for target_dim in target_shape.keys():
             if target_dim not in dims:
                 arr = xp.reshape(arr, (-1, *arr.shape))
                 dim_names.insert(0, target_dim)
