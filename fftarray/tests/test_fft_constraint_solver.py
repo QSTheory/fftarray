@@ -33,7 +33,7 @@ def assert_constraints_are_equal(dict1, dict2):
     assert_scalars_almost_equal_nulp(dict1['freq_max'], dict2['freq_max'])
     assert_scalars_almost_equal_nulp(dict1['freq_extent'], dict2['freq_extent'])
 
-def test_symmetric_space_even_n_with_freq_middle():
+def test_symmetric_space_even_n_with_freq_middle() -> None:
     user_constraints = dict(
         n = 4,
         pos_min = -1.5*np.pi,
