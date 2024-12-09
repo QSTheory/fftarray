@@ -63,9 +63,30 @@ def array(
     else:
         dims_tuple = tuple(dims)
 
-    xp = array_api_compat.array_namespace(values)
-    if copy:
-        values = xp.asarray(values, copy=True)
+    try:
+        xp = array_api_compat.array_namespace(values)
+        used_default_xp = False
+    except(TypeError):
+        xp = get_default_xp()
+        used_default_xp = True
+
+    try:
+        if copy:
+            values = xp.asarray(values, copy=True)
+        else:
+            values = xp.asarray(values)
+    except(Exception) as exc:
+        if used_default_xp:
+            raise type(exc)(
+                "Note: An Array API namespace could not be derived from "
+                +f"'{values}' and therefore the default '{xp}' was used. "
+                +"Calling 'asarray' on that namespace resulted in the following error: "
+                +str(exc)
+            ) from exc
+        else:
+            raise exc
+
+
     n_dims = len(dims_tuple)
     inner_values = xp.asarray(values)
     spaces_normalized: Tuple[Space, ...] = norm_param(space, n_dims, str)
