@@ -10,7 +10,7 @@ import jax.numpy as jnp
 import fftarray as fa
 from fftarray.fft_array import FFTArray, Space
 
-from fftarray.tests.helpers import XPS
+from fftarray.tests.helpers import XPS, get_other_space
 from fftarray._utils.defaults import DEFAULT_DTYPE
 
 PrecisionSpec = Literal["float32", "float64"]
@@ -514,16 +514,6 @@ def assert_dual_operand_fun_equivalence(arr: FFTArray, precise: bool, log):
         assert_equal_op(arr, values, (lambda x: x**xp.abs(x), lambda x: x**fa.abs(x)), precise, True, log)
     else:
         assert_equal_op(arr, values, lambda x: x**x, precise, True, log)
-
-def get_other_space(space: Union[Space, Tuple[Space, ...]]):
-    """Returns the other space. If input space is "pos", "freq" is returned and
-    vice versa. If space is a `Tuple[Space]`, a tuple is returned.
-    """
-    if isinstance(space, str):
-        if space == "pos":
-            return "freq"
-        return "pos"
-    return tuple(get_other_space(s) for s in space)
 
 def assert_fftarray_eager_factors_applied(arr: FFTArray, log):
     """Tests whether the factors are only applied when necessary and whether

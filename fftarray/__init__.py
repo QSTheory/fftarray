@@ -60,8 +60,8 @@ from .creation_functions import (
 )
 
 from .tools import (
-    shift_frequency as shift_frequency,
-    shift_position as shift_position,
+    shift_freq as shift_freq,
+    shift_pos as shift_pos,
 )
 
 from .jax_pytrees import jax_register_pytree_nodes as jax_register_pytree_nodes
