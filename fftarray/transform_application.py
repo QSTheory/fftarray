@@ -61,11 +61,15 @@ def apply_lazy(
         scale_only: bool,
     ):
     """
+
         values:
             if scale only:
-                floating array from the namespace of xp, will be mutated
+                floating array from the namespace of xp, might be mutated
             else:
-                complex array from the namespace of xp, will be mutated
+                complex array from the namespace of xp, might be mutated
+        Does return the modified values and only that array is guarantueed to be changed.
+
+
     """
 
     # Real-numbered scale
@@ -83,6 +87,25 @@ def apply_lazy(
 
     if scale_only:
         return values
+
+    # The array must have the length of the dimension in any dimension where a phase factor
+    # has to be applied.
+    # scale_only works for any shape.
+    reps = []
+    needs_expansion = False
+    for length, dim, sign in zip(values.shape, dims, signs, strict=True):
+        # if we do change the phase factor in a dim where the length is
+        # 1 (not broadcast yet) while the dim.n is longer we need to expand
+        # the array now in order to be able to apply the phase_factors.
+        if sign is not None and length != dim.n:
+            assert length == 1
+            reps.append(dim.n)
+            needs_expansion = True
+        else:
+            reps.append(1)
+
+    if needs_expansion:
+        values = xp.tile(values, tuple(reps))
 
     per_idx_phase_factors = xp.asarray(0., dtype=real_type(xp, values.dtype))
     for dim_idx, (dim, sign, dim_space) in enumerate(zip(dims, signs, spaces)):

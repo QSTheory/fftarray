@@ -570,6 +570,64 @@ def assert_fftarray_eager_factors_applied(arr: FFTArray, log):
 
 @pytest.mark.parametrize("xp", XPS)
 @pytest.mark.parametrize("space", spaces)
+@pytest.mark.parametrize("eager", [True, False])
+@pytest.mark.parametrize("factors_applied_1", [True, False])
+@pytest.mark.parametrize("factors_applied_2", [True, False])
+def test_transform_application(
+        xp,
+        space: Space,
+        eager: bool,
+        factors_applied_1: bool,
+        factors_applied_2: bool,
+    ):
+    """
+    Tests whether `factors_applied` is correctly handled in addition and
+    multiplication for a single dimension and for two different dimensions.
+    """
+    x_dim = fa.dim("x", n=5, d_pos=0.1, pos_min=0, freq_min=0)
+    y_dim = fa.dim("y", n=8, d_pos=0.1, pos_min=0, freq_min=0)
+
+    x_arr = fa.array_from_dim(x_dim, space, xp=xp, eager=eager).as_factors_applied(factors_applied_1)
+    x2_arr = fa.array_from_dim(x_dim, space, xp=xp, eager=eager).as_factors_applied(factors_applied_2)
+    y_arr = fa.array_from_dim(y_dim, space, xp=xp, eager=eager).as_factors_applied(factors_applied_2)
+
+    x2_add = x_arr + x2_arr
+    xy_add = x_arr + y_arr
+    if factors_applied_1 == factors_applied_2:
+        assert x2_add.factors_applied == (factors_applied_1,)
+    else:
+        assert x2_add.factors_applied == (eager,)
+
+    if eager:
+        assert xy_add.factors_applied == (True, True)
+    else:
+        assert xy_add.factors_applied == (factors_applied_1, factors_applied_2)
+
+    assert xp.all(x2_add.values(space) == x_arr.values(space) + x2_arr.values(space))
+    np.testing.assert_allclose(
+        np.array(xy_add.values(space)),
+        np.array(xp.reshape(x_arr.values(space), shape=(-1,1)) + xp.reshape(y_arr.values(space), shape=(1,-1))),
+    )
+
+    x2_mul = x_arr * x2_arr
+    xy_mul = x_arr * y_arr
+    if factors_applied_1 == True and factors_applied_2 == True:
+        assert x2_mul.factors_applied == (True,)
+    else:
+        assert x2_mul.factors_applied == (False,)
+    assert xy_mul.factors_applied == (factors_applied_1, factors_applied_2)
+    np.testing.assert_allclose(
+        np.array(x2_mul.values(space)),
+        np.array(x_arr.values(space) * x2_arr.values(space)),
+    )
+    np.testing.assert_allclose(
+        np.array(xy_mul.values(space)),
+        np.array(xp.reshape(x_arr.values(space), shape=(-1,1)) * xp.reshape(y_arr.values(space), shape=(1,-1))),
+    )
+
+
+@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("space", spaces)
 def test_fft_ifft_invariance(xp, space: Space):
     """Tests whether ifft(fft(*)) is an identity.
 
