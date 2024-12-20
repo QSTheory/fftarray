@@ -2,6 +2,7 @@ import sys
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal_nulp
+from numpy import pi
 import pytest
 from hypothesis import given, strategies as st, settings, note
 import jax.numpy as jnp
@@ -13,7 +14,6 @@ from fftarray.constraint_solver import ConstraintSolverError, NoSolutionFoundErr
 config.update("jax_enable_x64", True)
 
 """Constant of Rubidium 87"""
-from numpy import pi
 k_L: float = 2 * pi /  780 * 1e-9
 
 def assert_scalars_almost_equal_nulp(x, y, nulp = 4):

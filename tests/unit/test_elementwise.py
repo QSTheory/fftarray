@@ -1,4 +1,4 @@
-from typing import Any, List, Tuple, Literal, Type, get_args
+from typing import Any, List, Tuple, Literal, get_args
 
 import array_api_strict
 import pytest
@@ -222,7 +222,7 @@ def get_two_operand_same_dim_transform_factors(
                 return (eager,)
 
         case "multiply":
-            if factors_applied_1 == True and factors_applied_2 == True:
+            if factors_applied_1 and factors_applied_2:
                 return (True,)
             else:
                 return (False,)

@@ -8,6 +8,7 @@ from copy import copy
 from numbers import Number
 from dataclasses import dataclass
 import textwrap
+from functools import partial
 
 import numpy as np
 import numpy.typing as npt
@@ -140,6 +141,9 @@ def two_inputs_func(
         xp=unp_inp.xp,
     )
 
+def _two_elem_self(x1: FFTArray, x2: FFTArray, name: str) -> FFTArray:
+    return getattr(x1, name)(x2)
+
 def elementwise_two_operands(
         name: str,
         transforms_lut: TwoOperandTransforms = default_transforms_lut,
@@ -149,7 +153,7 @@ def elementwise_two_operands(
     def fun(x1, x2, /) -> FFTArray:
         unp_inp: UnpackedValues = unpack_fft_arrays([x1, x2])
         if is_on_self:
-            op_norm = lambda val1, val2: getattr(val1, name)(val2)
+            op_norm = partial(_two_elem_self, name=name)
         else:
             op_norm = getattr(unp_inp.xp, name)
         return two_inputs_func(
@@ -166,6 +170,9 @@ def elementwise_two_operands(
     )
     return fun
 
+def _single_elem_self(x1: FFTArray, name: str) -> FFTArray:
+    return getattr(x1, name)()
+
 def elementwise_one_operand(
         name: str,
         is_on_self: bool = False,
@@ -173,7 +180,7 @@ def elementwise_one_operand(
     def single_element_func(x: FFTArray, /) -> FFTArray:
         assert isinstance(x, FFTArray)
         if is_on_self:
-            op_norm = lambda x1: getattr(x1, name)()
+            op_norm = partial(_single_elem_self, name=name)
         else:
             op_norm = getattr(x.xp, name)
 
