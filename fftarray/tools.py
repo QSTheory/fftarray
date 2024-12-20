@@ -6,7 +6,7 @@ from fftarray import FFTArray
 import fftarray as fa
 
 # TODO: change names of FFTArray argument here
-def shift_frequency(x: FFTArray, offsets: Dict[str, float]) -> FFTArray:
+def shift_freq(x: FFTArray, offsets: Dict[str, float]) -> FFTArray:
     """Shift the wavefunction in frequency space:
     :math:`k_{x,y,z} \\mapsto k_{x,y,z} - \\Delta k_{x,y,z}`.
     The wavefunction is transformed according to:
@@ -31,13 +31,19 @@ def shift_frequency(x: FFTArray, offsets: Dict[str, float]) -> FFTArray:
     FFTWave
         The wavefunction with shifted frequency space.
     """
-    phase_shift = fa.full([], [], 1., xp=x.xp)
+    if not x.xp.isdtype(x.dtype, ("real floating", "complex floating")):
+        raise ValueError(
+            f"'shift_freq' requires an FFTArray with a float or complex dtype, but got passed array of type '{x.dtype}'. "
+            + "The float or complex dtype is required because the values are shifted by multiplication with a complex phase "
+            + "which only makes sense with float values."
+        )
+    phase_shift = fa.full([], [], 1., xp=x.xp, dtype=x.dtype)
     for dim_name, offset in offsets.items():
         x_arr = fa.coords_array(x, dim_name=dim_name, space="pos").astype("complex")
-        phase_shift *= fa.exp(1.j * 2*np.pi * offset * x_arr)
+        phase_shift = phase_shift * fa.exp(1.j * offset * 2*np.pi * x_arr)
     return x.into(space="pos") * phase_shift
 
-def shift_position(x: FFTArray, offsets: Dict[str, float]) -> FFTArray:
+def shift_pos(x: FFTArray, offsets: Dict[str, float]) -> FFTArray:
     """Shift the wavefunction in position space:
     :math:`x \\mapsto x - \\Delta x`. :math:`y` and :math:`z` analogously.
     The wavefunction is transformed according to:
@@ -62,9 +68,16 @@ def shift_position(x: FFTArray, offsets: Dict[str, float]) -> FFTArray:
     FFTWave
         The wavefunction with shifted position space.
     """
-    phase_shift = fa.full([], [], 1.)
+    if not x.xp.isdtype(x.dtype, ("real floating", "complex floating")):
+        raise ValueError(
+            f"'shift_pos' requires an FFTArray with a float or complex dtype, but got passed array of type '{x.dtype}'. "
+            + "The float or complex dtype is required because the values are shifted by multiplication with a complex phase "
+            + "which only makes sense with float values."
+        )
+
+    phase_shift = fa.full([], [], 1., xp=x.xp, dtype=x.dtype)
     for dim_name, offset in offsets.items():
         f_arr = fa.coords_array(x, dim_name=dim_name, space="freq").astype("complex")
-        phase_shift *= fa.exp(-1.j * offset * 2*np.pi * f_arr)
+        phase_shift = phase_shift * fa.exp(-1.j * offset * 2*np.pi * f_arr)
     return x.into(space="freq") * phase_shift
 
