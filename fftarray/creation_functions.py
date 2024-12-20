@@ -7,7 +7,7 @@ from .fft_array import FFTArray
 from .space import Space
 from .transform_application import real_type
 from ._utils.defaults import get_default_eager, get_default_dtype_name, get_default_xp
-from ._utils.helpers import norm_param
+from ._utils.helpers import norm_space
 
 def _get_xp(xp: Optional[Any], values) -> Tuple[Any, bool]:
     used_default_xp = False
@@ -94,7 +94,7 @@ def array(
             raise exc
 
     n_dims = len(dims_tuple)
-    spaces_normalized: Tuple[Space, ...] = norm_param(space, n_dims, str)
+    spaces_normalized: Tuple[Space, ...] = norm_space(space, n_dims)
     for sub_space in spaces_normalized:
         assert sub_space in get_args(Space)
 
@@ -278,7 +278,7 @@ def full(
     arr = FFTArray(
         values=values,
         dims=dims,
-        space=norm_param(space, n_dims, str),
+        space=norm_space(space, n_dims),
         eager=(get_default_eager(),)*n_dims,
         factors_applied=(True,)*n_dims,
         xp=xp,

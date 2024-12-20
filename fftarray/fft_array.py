@@ -24,7 +24,7 @@ from ._utils.indexing import (
     LocFFTArrayIndexer, check_missing_dim_names,
     tuple_indexers_from_dict_or_tuple, tuple_indexers_from_mapping,
 )
-from ._utils.helpers import norm_param
+from ._utils.helpers import norm_param, norm_space
 from .op_lazy_luts import (
     TwoOperandTransforms,
     default_transforms_lut,
@@ -681,7 +681,7 @@ class FFTArray:
             Use `.into(factors_applied=True)` if you want to evaluate it once and reuse it multiple times.
         """
 
-        space_norm: Tuple[Space, ...] = norm_param(space, len(self.dims), str)
+        space_norm: Tuple[Space, ...] = norm_space(space, len(self.dims))
         if space_norm != self.space or not all(self._factors_applied):
             # Setting eager before-hand allows copy-elision without the move option.
             fft_arr = self.as_eager(True).into(space=space).as_factors_applied(True)
@@ -822,7 +822,7 @@ class FFTArray:
 
         dims = self._dims
         n_dims = len(dims)
-        space_after: Tuple[Space, ...] = norm_param(space, n_dims, str)
+        space_after = norm_space(space, n_dims)
 
         needs_fft = [old != new for old, new in zip(self._spaces, space_after, strict=True)]
         if not any(needs_fft):
