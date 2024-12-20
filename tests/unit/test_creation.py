@@ -6,7 +6,7 @@ import fftarray as fa
 
 from fftarray.fft_dimension import FFTDimension
 from fftarray.tests.helpers import XPS, XPS_ROTATED_PAIRS
-from tests.helpers  import get_dims, dtypes_names_pairs, dtypes_names_numeric_core, DTYPE_NAME
+from tests.helpers import get_dims, dtypes_names_pairs, dtypes_names_numeric_core, DTYPE_NAME
 
 
 @pytest.mark.parametrize("xp_target, xp_other", XPS_ROTATED_PAIRS)

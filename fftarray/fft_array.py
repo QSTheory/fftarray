@@ -872,7 +872,7 @@ class FFTArray:
             assert len(new_dim_names) == len(self._dims)
 
         axes_transpose = get_axes_transpose(old_dim_names, new_dim_names)
-        transposed_values = self._xp.transpose(self._values, tuple(axes_transpose))
+        transposed_values = self._xp.permute_dims(self._values, tuple(axes_transpose))
 
         transposed_arr = FFTArray(
             values=transposed_values,
