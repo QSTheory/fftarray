@@ -129,7 +129,7 @@ def assert_fftarray_eager_factors_applied_int(arr: FFTArray, log):
     log("(x+abs(x))._factors_applied == (x._factors_applied or x._eager)")
     arr_abs_sum = arr + arr_abs
     np.testing.assert_array_equal(arr_abs_sum.eager, arr.eager)
-    for ea, ifa, ffa in zip(arr_abs_sum.eager, arr._factors_applied, arr_abs_sum._factors_applied):
+    for ea, ifa, ffa in zip(arr_abs_sum.eager, arr._factors_applied, arr_abs_sum._factors_applied, strict=True):
         # True+True=True
         # False+True=eager
         assert (ifa == ffa) or (ffa == ea)

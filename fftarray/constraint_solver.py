@@ -657,8 +657,8 @@ def _perform_n_widening_all(
                 raise NoSolutionFoundError(
                     original_constraints,
                     suggested_loose_params=suggested_loose_params
-                )
-            raise NoSolutionFoundError(original_constraints)
+                ) from None
+            raise NoSolutionFoundError(original_constraints) from None
     return model
 
 def _group_loose_params(
@@ -761,7 +761,7 @@ def _z3_to_float(num: Union[RatNumRef, AlgebraicNumRef]) -> float:
         raise ConstraintValueError(
             "Constraint solver results in too large value for some " +
             f"parameter: {overflow_approx:.2e}."
-        )
+        ) from None
 
 def _model_as_float_dict(model: ModelRef) -> Dict[str, float]:
     sol: Dict[str, float] = {}

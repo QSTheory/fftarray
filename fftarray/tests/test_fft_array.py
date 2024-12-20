@@ -359,7 +359,7 @@ def assert_basic_lazy_logic(arr, log):
     log("space='pos' -> abs(x.values(space='pos')) == abs(x._values)")
     log("space='freq' -> abs(x.values(space='freq')) == abs(x._values)/(n*d_freq)")
     scale = 1
-    for dim, space, factors_applied in zip(arr.dims, arr.space, arr._factors_applied):
+    for dim, space, factors_applied in zip(arr.dims, arr.space, arr._factors_applied, strict=True):
         if space == "freq" and not factors_applied:
             scale *= 1/(dim.n*dim.d_freq)
     rtol = 1e-6 if is_precision(arr, "float32") else 1e-12
@@ -378,7 +378,7 @@ def internal_and_public_values_should_differ(arr: FFTArray):
     Note that the position space needs to be treated separately as the phase
     factor for the first coordinate is 1 (and thus does not change `_values`).
     """
-    for factor, space, i, in zip(arr._factors_applied, arr.space, range(len(arr.dims))):
+    for factor, space, i, in zip(arr._factors_applied, arr.space, range(len(arr.dims)), strict=True):
         if not factor:
             # factor needs to be applied
             if space == "pos":
@@ -555,7 +555,7 @@ def assert_fftarray_eager_factors_applied(arr: FFTArray, log):
     log("(x+abs(x))._factors_applied == (x._factors_applied or x._eager)")
     arr_abs_sum = arr + arr_abs
     np.testing.assert_array_equal(arr_abs_sum.eager, arr.eager)
-    for ea, ifa, ffa in zip(arr_abs_sum.eager, arr._factors_applied, arr_abs_sum._factors_applied):
+    for ea, ifa, ffa in zip(arr_abs_sum.eager, arr._factors_applied, arr_abs_sum._factors_applied, strict=True):
         # True+True=True
         # False+True=eager
         assert (ifa == ffa) or (ffa == ea)
@@ -563,7 +563,7 @@ def assert_fftarray_eager_factors_applied(arr: FFTArray, log):
     log("fft(x)._factors_applied ...")
     arr_fft = arr.into(space=get_other_space(arr.space))
     np.testing.assert_array_equal(arr.eager, arr_fft.eager)
-    for ffapplied, feager in zip(arr_fft._factors_applied, arr_fft.eager):
+    for ffapplied, feager in zip(arr_fft._factors_applied, arr_fft.eager, strict=True):
         assert (feager and ffapplied) or (not feager and not ffapplied)
 
 

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional, Union, Literal
+from typing import Optional, Union, Literal, assert_never
 from dataclasses import dataclass
 
 import numpy as np
@@ -313,16 +313,17 @@ class FFTDimension:
         in either pos or freq space and setting variable dimension length.
         """
 
-        if space == "pos":
-            pos_min = self.pos_min + start*self.d_pos
-            freq_min = self.freq_min
-            d_pos = self.d_pos
-        elif space == "freq":
-            pos_min = self.pos_min
-            freq_min = self.freq_min + start*self.d_freq
-            d_pos = 1./(self.d_freq*n)
-        else:
-            assert False, "Unreachable"
+        match space:
+            case "pos":
+                pos_min = self.pos_min + start*self.d_pos
+                freq_min = self.freq_min
+                d_pos = self.d_pos
+            case "freq":
+                pos_min = self.pos_min
+                freq_min = self.freq_min + start*self.d_freq
+                d_pos = 1./(self.d_freq*n)
+            case _:
+                assert_never(space)
 
         return FFTDimension(
             name=self.name,
@@ -508,12 +509,13 @@ class FFTDimension:
             dtype=dtype,
         )
 
-        if space == "pos":
-            return indices * self.d_pos + self.pos_min
-        elif space == "freq":
-            return indices * self.d_freq + self.freq_min
-        else:
-            raise ValueError(f"space has to be either 'pos' or 'freq', not {space}.")
+        match space:
+            case "pos":
+                return indices * self.d_pos + self.pos_min
+            case "freq":
+                return indices * self.d_freq + self.freq_min
+            case _:
+                assert_never(space)
 
     def np_array(self: FFTDimension, space: Space):
         return self._raw_coord_array(xp=np, dtype=getattr(np, get_default_dtype_name()), space=space)

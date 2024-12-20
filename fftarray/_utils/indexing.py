@@ -89,7 +89,7 @@ class LocFFTArrayIndexer(Generic[T]):
 
         integer_indexers: List[Union[int, slice]] = []
         for index, dim, space in zip(
-            tuple_indexers, self._arr.dims, self._arr.space
+            tuple_indexers, self._arr.dims, self._arr.space, strict=True
         ):
             integer_indexers.append(
                 dim._index_from_coord(
@@ -180,7 +180,8 @@ def check_missing_dim_names(
         elif missing_dims == "warn":
             warnings.warn(
                 f"Dimensions {invalid_indexers} do not exist. "
-                + "These selections will be ignored"
+                + "These selections will be ignored",
+                stacklevel=2,
             )
 
 def tuple_indexers_from_mapping(

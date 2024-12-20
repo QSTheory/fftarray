@@ -33,7 +33,6 @@ from .op_lazy_luts import (
     div_transforms_lut,
     rdiv_transforms_lut,
 )
-
 from .transform_application import do_fft, get_transform_signs, apply_lazy, complex_type
 
 EllipsisType = TypeVar('EllipsisType')
@@ -83,7 +82,6 @@ def two_inputs_func(
             unp_inp: UnpackedValues,
             op,
             transforms_lut: TwoOperandTransforms=default_transforms_lut,
-            kwargs={}
         ) -> FFTArray:
     # Compute look-up indices by interpreting the three bits as a binary number.
     lut_indices = np.array(unp_inp.eager)*4 + np.dot(unp_inp.factors_applied,[2,1])
@@ -131,7 +129,7 @@ def two_inputs_func(
                 scale_only=False,
             )
 
-    values = op(*unp_inp.values, **kwargs)
+    values = op(*unp_inp.values)
     return FFTArray(
         values=values,
         space=unp_inp.space,
@@ -296,12 +294,12 @@ class FFTArray:
             bytes_str = format_bytes(self._values.nbytes)
             str_out += f" Size: {bytes_str}"
         str_out += "\n"
-        for i, (dim, space) in enumerate(zip(self.dims, self.space)):
+        for i, (dim, space) in enumerate(zip(self.dims, self.space, strict=True)):
             str_out += fft_dim_table(
                 dim=dim,
                 include_header=(i==0),
                 include_dim_name=True,
-                spaces=[space]
+                spaces=(space,),
             ) + "\n"
         str_out += f"Values<{self._xp.__name__}>:\n"
         str_out += f"{self.values(space=self.space)}"
@@ -468,7 +466,7 @@ class FFTArray:
         )
 
         new_dims = []
-        for index, orig_dim, space in zip(tuple_indexers, self._dims, self.space):
+        for index, orig_dim, space in zip(tuple_indexers, self._dims, self.space, strict=True):
             if index == slice(None, None, None):
                 # No selection, just keep the old dim.
                 new_dims.append(orig_dim)
@@ -485,15 +483,13 @@ class FFTArray:
                     raise NotImplementedError(
                         "FFTArray indexing does not support "
                         + "jitted indexers. Here, your index for "
-                        + f"dimension {orig_dim.name} is a traced object"
+                        + f"dimension {orig_dim.name} is a traced object."
                     ) from e
                 else:
-                    additional_msg = (
+                    raise type(e)(
                         "An error occurred when evaluating the index "
-                        + f"dimension {orig_dim.name}: "
-                    )
-                    orig_msg = str(e)
-                    raise type(e)(additional_msg + orig_msg)
+                        + f"dimension {orig_dim.name}."
+                    ) from e
 
 
         selected_values = self.values(space=self.space).__getitem__(tuple_indexers)
@@ -615,7 +611,7 @@ class FFTArray:
         # indices for the coordinate indexers by checking the respective
         # FFTDimension
         tuple_indexers_as_integer = []
-        for dim, space in zip(self.dims, self.space):
+        for dim, space in zip(self.dims, self.space, strict=True):
             if dim.name in final_indexers:
                 index = final_indexers[dim.name]
                 try:
@@ -828,12 +824,12 @@ class FFTArray:
         n_dims = len(dims)
         space_after: Tuple[Space, ...] = norm_param(space, n_dims, str)
 
-        needs_fft = [old != new for old, new in zip(self._spaces, space_after)]
+        needs_fft = [old != new for old, new in zip(self._spaces, space_after, strict=True)]
         if not any(needs_fft):
             factors_applied_after = self._factors_applied
         else:
             factors_after_list = []
-            for is_eager, fft_needed, is_applied in zip(self.eager, needs_fft, self._factors_applied):
+            for is_eager, fft_needed, is_applied in zip(self.eager, needs_fft, self._factors_applied, strict=True):
                 if fft_needed:
                     factors_after_list.append(is_eager)
                 else:
@@ -947,7 +943,7 @@ class FFTArray:
         assert len(self._factors_applied) == len(self._values.shape)
 
         dim_names: Set[str] = set()
-        for n, dim in zip(self._values.shape, self._dims):
+        for n, dim in zip(self._values.shape, self._dims, strict=True):
             assert dim.n == n, \
                 "Passed in inconsistent n from FFTDimension and values."
             assert dim.name not in dim_names, \
@@ -1045,10 +1041,10 @@ def unpack_fft_arrays(
                     dim_props.dim.set(fft_dim)
                 except ValueError:
                     raise ValueError(
-                        "Tried to call ufunc on FFTArrays with " +
+                        "Tried to combine FFTArrays with " +
                         "different dimension of name " +
                         f"{fft_dim.name}."
-                    )
+                    ) from None
 
                 try:
                     dim_props.space.set(x._spaces[dim_idx])
@@ -1059,7 +1055,7 @@ def unpack_fft_arrays(
                         f"{fft_dim.name}." +
                         "They have to be explicitly converted " +
                         "into an identical space."
-                    )
+                    ) from None
 
                 try:
                     dim_props.eager.set(x._eager[dim_idx])
@@ -1068,7 +1064,7 @@ def unpack_fft_arrays(
                         "Tried to call ufunc on FFTArrays with " +
                         "different eager settings in dimension of name " +
                         f"{fft_dim.name}."
-                    )
+                    ) from None
 
                 dim_props.factors_applied[op_idx] = x._factors_applied[dim_idx]
 
@@ -1078,7 +1074,7 @@ def unpack_fft_arrays(
 
     # Broadcasting
     dim_names, aligned_arrs = align_named_arrays(arrays_to_align, xp=xp.get())
-    for op_idx, arr in zip(array_indices, aligned_arrs):
+    for op_idx, arr in zip(array_indices, aligned_arrs, strict=True):
         unpacked_values[op_idx] = arr
 
     dims_list = [dims[dim_name].dim.get() for dim_name in dim_names]
