@@ -1,6 +1,9 @@
 from typing import Iterable, List, Literal, Union, get_args
 
+import numpy as np
+
 import fftarray as fa
+from fftarray.fft_array import FFTArray
 
 DTYPE_NAME = Literal[
     "bool",
@@ -48,3 +51,17 @@ def get_arr_from_dims(
     for dim, space in zip(dims, spaces_norm):
         arr += fa.array_from_dim(dim=dim, space=space, xp=xp)
     return arr
+
+def assert_fa_array_exact_equal(x1: FFTArray, x2: FFTArray) -> None:
+    x1._check_consistency()
+    x2._check_consistency()
+
+    assert x1._dims == x2._dims
+    assert x1._eager == x2._eager
+    assert x1._factors_applied == x2._factors_applied
+    assert x1._spaces == x2._spaces
+    assert x1._xp == x2._xp
+    np.testing.assert_equal(
+        np.array(x1._values),
+        np.array(x2._values),
+    )
