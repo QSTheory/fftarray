@@ -54,8 +54,8 @@ from .fft_array import (
 
 from .creation_functions import (
    array as array,
-   array_from_dim as array_from_dim,
-   coords_array as coords_array,
+   coords_from_dim as coords_from_dim,
+   coords_from_arr as coords_from_arr,
    full as full,
 )
 

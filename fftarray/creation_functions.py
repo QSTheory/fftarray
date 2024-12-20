@@ -9,13 +9,27 @@ from .transform_application import real_type
 from ._utils.defaults import get_default_eager, get_default_dtype_name, get_default_xp
 from ._utils.helpers import norm_param
 
+def _get_xp(xp: Optional[Any], values) -> Tuple[Any, bool]:
+    used_default_xp = False
+    if xp is None:
+        try:
+            xp = array_api_compat.array_namespace(values)
+        except(TypeError):
+            xp = get_default_xp()
+            used_default_xp = True
+    else:
+        xp = array_api_compat.array_namespace(xp.asarray(1))
+
+    return xp, used_default_xp
+
 def array(
         values,
         dims: Union[FFTDimension, Iterable[FFTDimension]],
         space: Union[Space, Iterable[Space]],
         *,
-        eager: Optional[Union[bool, Iterable[bool]]] = None,
-        factors_applied: Union[bool, Iterable[bool]] = True,
+        xp: Optional[Any] = None,
+        dtype: Optional[Any] = None,
+        defensive_copy: bool = True,
     ) -> FFTArray:
     """
         Construct a new instance of FFTArray from raw values.
@@ -25,21 +39,28 @@ def array(
         values :
             The values to initialize the `FFTArray` with.
             They can be of any Python Arrray API v2023.12 compatible library.
+            By default they are copied to make sure an external alias cannot influence the created ``FFTArray``.
         dims : Iterable[FFTDimension]
             The FFTDimensions for each dimension of the passed in values.
         space: Union[Space, Iterable[Space]]
-            Specify the space of the coordinates and in which space the returned FFTArray is intialized.
-        eager: Union[bool, Iterable[bool]]
-            The eager-mode to use for the returned FFTArray.  `None` uses default `False` which can be globally changed.
-        factors_applied: Union[bool, Iterable[bool]]
-            Whether the fft-factors are applied are already applied for the various dimensions.
-            For external values this is usually `True` since `False` assumes the internal (and unstable)
-            factors-format.
+            Specify the space of the values with which the returned FFTArray is intialized.
+        xp: Optional[Any]
+            The Array API namespace to use for the created ``FFTArray``.
+            If it is None, ``array_api_compat.array_namespace(values)`` is used.
+            If that fails the default namespace from ``get_default_xp()`` is used.
+        dtype: Optional[Any]
+            Directly passed on to the ``xp.asarray`` of the determined xp.
+            If None the ``dtype`` of values or the defaults for the passed in scalar of the underlying
+            array library are used.
+        defensive_copy:  bool
+            If ``True`` the values array is always copied in order to ensure no external alias to it exists.
+            This ensures the immutability of the created ``FFTArray``.
+            If this is unnecessary, this defensive copy can be prevented by setting this argument to ``False``.
+            In this case it has to be ensured that the passed in array is not used externally after creation.
 
         Returns
         -------
         FFTArray
-            The grid coordinates of the chosen space packed into an FFTArray with self as only dimension.
 
         See Also
         --------
@@ -47,47 +68,57 @@ def array(
         fft_array
     """
 
-
-    if eager is None:
-        eager = get_default_eager()
-
     if isinstance(dims, FFTDimension):
         dims_tuple: Tuple[FFTDimension, ...] = (dims,)
     else:
         dims_tuple = tuple(dims)
 
-    xp = array_api_compat.array_namespace(values)
+    xp, used_default_xp = _get_xp(xp, values)
+
+    if defensive_copy:
+        copy = True
+    else:
+        copy = None
+
+    try:
+        values = xp.asarray(values, copy=copy, dtype=dtype)
+    except(Exception) as exc:
+        if used_default_xp:
+            raise type(exc)(
+                "An Array API namespace could not be derived from "
+                +f"'{values}' and therefore the default '{xp}' was used. "
+                +"Calling 'asarray' on that namespace resulted in the following error: "
+                +str(exc)
+            ) from exc
+        else:
+            raise exc
+
     n_dims = len(dims_tuple)
-    inner_values = xp.asarray(values)
     spaces_normalized: Tuple[Space, ...] = norm_param(space, n_dims, str)
     for sub_space in spaces_normalized:
         assert sub_space in get_args(Space)
 
-    factors_applied_norm = norm_param(factors_applied, n_dims, bool)
-    if not all(factors_applied_norm) and not xp.isdtype(inner_values.dtype, "complex floating"):
-        raise ValueError(
-            "If any `factors_applied' is False, the values have to be of dtype 'complex floating'"
-            + " since the not applied phase factor implies a complex value."
-        )
+    for i, (length, dim) in enumerate(zip(values.shape, dims_tuple, strict=True)):
+        if length != dim.n:
+            raise ValueError(f"The dimension `{dim.name}' has length {dim.n} but axis {i} of the passed in `values` array has length {length}.")
 
     arr = FFTArray(
         dims=dims_tuple,
-        values=inner_values,
+        values=values,
         space=spaces_normalized,
-        eager=norm_param(eager, n_dims, bool),
-        factors_applied=factors_applied_norm,
+        eager=(get_default_eager(),)*n_dims,
+        factors_applied=(True,)*n_dims,
         xp=xp,
     )
     arr._check_consistency()
     return arr
 
-def array_from_dim(
+def coords_from_dim(
         dim: FFTDimension,
         space: Space,
         *,
         xp: Optional[Any] = None,
         dtype: Optional[Any] = None,
-        eager: Optional[bool] = None,
     ) -> FFTArray:
     """..
 
@@ -98,11 +129,9 @@ def array_from_dim(
     space : Space
         Specify the space of the coordinates and in which space the returned FFTArray is intialized.
     xp : Optional[Any]
-        The array namespace to use for the returned FFTArray. `None` uses default `numpy` which can be globally changed.
+        The array namespace to use for the returned FFTArray. `None` uses default ``numpy`` which can be globally changed.
     dtype : Optional[Any]
-        The dtype to use for the returned FFTArray. `None` uses default `numpy.float64` which can be globally changed.
-    eager :  Optional[bool]
-        The eager-mode to use for the returned FFTArray. `None` uses default `False` which can be globally changed.
+        The dtype to use for the returned FFTArray. `None` uses default ``float64`` which can be globally changed.
 
     Returns
     -------
@@ -122,8 +151,8 @@ def array_from_dim(
     if dtype is None:
         dtype = getattr(xp, get_default_dtype_name())
 
-    if eager is None:
-        eager = get_default_eager()
+    if not xp.isdtype(dtype, ("real floating", "complex floating")):
+        raise ValueError(f"Coordinates can only be initialized as real or complex numbers but got passed dtype '{dtype}'")
 
     values = dim._raw_coord_array(
         xp=xp,
@@ -134,17 +163,20 @@ def array_from_dim(
     return FFTArray(
         values=values,
         dims=(dim,),
-        eager=(eager,),
+        eager=(get_default_eager(),),
         factors_applied=(True,),
         space=(space,),
         xp=xp,
     )
 
 
-def coords_array(
+def coords_from_arr(
         x: FFTArray,
         dim_name: str,
         space: Union[Space],
+        *,
+        xp: Optional[Any] = None,
+        dtype: Optional[Any] = None,
 	) -> FFTArray:
     """
 
@@ -160,35 +192,47 @@ def coords_array(
         Specify the space of the returned FFTArray is intialized.
     dim_name : str
         The name of the dimension from which to construct the coordinate array.
+    xp : Optional[Any]
+        The array namespace to use for the returned FFTArray. ``None`` uses the array namespace of ``x``.
+    dtype : Optional[Any]
+        The dtype to use for the created coordinate array.
+        ``None`` uses a real floating point type with the same precision as ``x``.
 
     Returns
     -------
     FFTArray
-        The grid coordinates of the chosen space packed into an FFTArray with self as only dimension.
+        The grid coordinates of the chosen space packed into an FFTArray with the dimension of name ``dim_name``.
+        ``eager`` of the created array is the same as eager in the selected dimension of ``x``.
 
     See Also
     --------
     """
 
+    if dtype is None:
+        dtype = real_type(x.xp, x.dtype)
+
     for dim_idx, dim in enumerate(x.dims):
         if dim.name == dim_name:
-            return array_from_dim(
+            if xp is None:
+                xp_norm = x.xp
+            else:
+                xp_norm = array_api_compat.array_namespace(xp.array(1.))
+
+            return coords_from_dim(
                 dim=dim,
                 space=space,
-                xp=x.xp,
-                eager=x.eager[dim_idx],
-                dtype=real_type(x.xp, x.dtype),
-            )
+                xp=xp_norm,
+                dtype=dtype,
+            ).as_eager(eager=x.eager[dim_idx])
     raise ValueError("Specified dim_name not part of the FFTArray's dimensions.")
 
 def full(
         dim: Union[FFTDimension, Iterable[FFTDimension]],
         space: Union[Space, Iterable[Space]],
-        fill_value: Union[bool, int, float, complex],
+        fill_value: Union[bool, int, float, complex, Any],
         *,
         xp: Optional[Any] = None,
         dtype: Optional[Any] = None,
-        eager: Optional[bool] = None,
     ) -> FFTArray:
     """..
 
@@ -198,12 +242,15 @@ def full(
         The dimensions of the created array. They also imply the shape.
     space : Space
         Specify the space of the returned FFTArray is intialized.
-    xp : Optional[Any]
-        The array namespace to use for the returned FFTArray. `None` uses default `numpy` which can be globally changed.
+    xp:
+        The Array API namespace to use for the created ``FFTArray``.
+        If it is None, ``array_api_compat.array_namespace(fill_value)`` is used.
+        If that fails the default namespace from ``get_default_xp()`` is used.
     dtype : Optional[Any]
-        The dtype to use for the returned FFTArray. `None` uses default `numpy.float64` which can be globally changed.
-    eager :  Optional[bool]
-        The eager-mode to use for the returned FFTArray. `None` uses default `False` which can be globally changed.
+        The dtype to use for the returned FFTArray.
+        If the value is `None`, the dtype is inferred from ``fill_value``
+        according to the rules of the underlying Array API.
+
 
     Returns
     -------
@@ -215,16 +262,7 @@ def full(
         set_default_eager, get_default_eager
     """
 
-    if xp is None:
-        xp = get_default_xp()
-    else:
-        xp = array_api_compat.array_namespace(xp.asarray(0))
-
-    if dtype is None:
-        dtype = getattr(xp, get_default_dtype_name())
-
-    if eager is None:
-        eager = get_default_eager()
+    xp, _ = _get_xp(xp, fill_value)
 
     if isinstance(dim, FFTDimension):
         dims: Tuple[FFTDimension, ...] = (dim,)
@@ -233,13 +271,15 @@ def full(
 
     n_dims = len(dims)
     shape = tuple(dim.n for dim in dims)
-    values = xp.full(shape, fill_value, dtype=dtype)
+    # Convert the fill_value from a potentially different array API implementation.
+    fill_value = xp.asarray(fill_value, dtype=dtype)
+    values = xp.full(shape, fill_value)
 
     arr = FFTArray(
         values=values,
         dims=dims,
         space=norm_param(space, n_dims, str),
-        eager=norm_param(eager, n_dims, bool),
+        eager=(get_default_eager(),)*n_dims,
         factors_applied=(True,)*n_dims,
         xp=xp,
     )

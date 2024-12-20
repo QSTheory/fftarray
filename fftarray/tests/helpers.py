@@ -3,6 +3,7 @@ from typing import Union, Tuple
 import numpy as np
 import array_api_strict
 import array_api_compat
+import pytest
 
 import fftarray as fa
 
@@ -17,6 +18,10 @@ try:
 except ImportError:
     pass
 
+# This is helpful for tests where we need an xp which is not the currently tested one.
+XPS_ROTATED_PAIRS = [
+    pytest.param(xp1, xp2) for xp1, xp2 in zip(XPS, [*XPS[1:],XPS[0]], strict=True)
+]
 
 def get_other_space(space: Union[fa.Space, Tuple[fa.Space, ...]]):
     """Returns the other space. If input space is "pos", "freq" is returned and

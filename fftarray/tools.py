@@ -39,7 +39,7 @@ def shift_freq(x: FFTArray, offsets: Dict[str, float]) -> FFTArray:
         )
     phase_shift = fa.full([], [], 1., xp=x.xp, dtype=x.dtype)
     for dim_name, offset in offsets.items():
-        x_arr = fa.coords_array(x, dim_name=dim_name, space="pos").astype("complex")
+        x_arr = fa.coords_from_arr(x, dim_name=dim_name, space="pos").astype("complex")
         phase_shift = phase_shift * fa.exp(1.j * offset * 2*np.pi * x_arr)
     return x.into(space="pos") * phase_shift
 
@@ -77,7 +77,7 @@ def shift_pos(x: FFTArray, offsets: Dict[str, float]) -> FFTArray:
 
     phase_shift = fa.full([], [], 1., xp=x.xp, dtype=x.dtype)
     for dim_name, offset in offsets.items():
-        f_arr = fa.coords_array(x, dim_name=dim_name, space="freq").astype("complex")
+        f_arr = fa.coords_from_arr(x, dim_name=dim_name, space="freq").astype("complex")
         phase_shift = phase_shift * fa.exp(-1.j * offset * 2*np.pi * f_arr)
     return x.into(space="freq") * phase_shift
 
