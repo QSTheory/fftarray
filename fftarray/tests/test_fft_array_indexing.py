@@ -325,15 +325,15 @@ def test_3d_fft_array_label_indexing(
     )
 
     try:
-        fft_array_result = fft_array.into(space=space).sel(indexers, method=method) # type: ignore
+        fft_array_result = fft_array.into(space=space).sel(indexers, method=method)
     except Exception as e:
         fft_array_result = type(e) # type: ignore
 
     try:
         xr_indexer = make_xr_indexer(indexers, space)
-        xr_result = xr_dataset[space].sel(xr_indexer, method=method).data # type: ignore
+        xr_result = xr_dataset[space].sel(xr_indexer, method=method).data
     except Exception as e:
-        xr_result = type(e) # type: ignore
+        xr_result = type(e)
         if xr_result in [KeyError, ValueError]:
             xr_result = (KeyError, ValueError)
         else:
@@ -602,8 +602,8 @@ try:
         isel_indexer = 3
         sq_brackets_indexer = (1,4)
 
-        fft_array_result_isel = test_function_isel(isel_indexer) # type: ignore
-        fft_array_result_square_brackets = test_function_square_brackets(sq_brackets_indexer) # type: ignore
+        fft_array_result_isel = test_function_isel(isel_indexer)
+        fft_array_result_square_brackets = test_function_square_brackets(sq_brackets_indexer)
 
         xr_result_isel = xr_dataset["pos"].isel(x_pos=isel_indexer).data
         xr_result_square_brackets = xr_dataset["pos"][slice(*sq_brackets_indexer)].data

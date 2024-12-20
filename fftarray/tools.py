@@ -8,12 +8,12 @@ import fftarray as fa
 # TODO: change names of FFTArray argument here
 def shift_frequency(x: FFTArray, offsets: Dict[str, float]) -> FFTArray:
     """Shift the wavefunction in frequency space:
-    :math:`k_{x,y,z} \mapsto k_{x,y,z} - \Delta k_{x,y,z}`.
+    :math:`k_{x,y,z} \\mapsto k_{x,y,z} - \\Delta k_{x,y,z}`.
     The wavefunction is transformed according to:
 
     .. math::
 
-        \Psi \\mapsto \Psi e^{i (x*\Delta k_x + y*\Delta k_y + z*\Delta k_z)}
+        \\Psi \\mapsto \\Psi e^{i (x*\\Delta k_x + y*\\Delta k_y + z*\\Delta k_z)}
 
     Parameters
     ----------
@@ -39,12 +39,12 @@ def shift_frequency(x: FFTArray, offsets: Dict[str, float]) -> FFTArray:
 
 def shift_position(x: FFTArray, offsets: Dict[str, float]) -> FFTArray:
     """Shift the wavefunction in position space:
-    :math:`x \mapsto x - \Delta x`. :math:`y` and :math:`z` analogously.
+    :math:`x \\mapsto x - \\Delta x`. :math:`y` and :math:`z` analogously.
     The wavefunction is transformed according to:
 
     .. math::
 
-        \Psi \\mapsto e^{-i (k_x*\Delta x + k_y*\Delta y + k_z*\Delta z)} \Psi
+        \\Psi \\mapsto e^{-i (k_x*\\Delta x + k_y*\\Delta y + k_z*\\Delta z)} \\Psi
 
     Parameters
     ----------

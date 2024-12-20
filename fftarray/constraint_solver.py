@@ -6,7 +6,7 @@ of the FFTWave. It contains functions that are out of scope for the average
 FFTWave user. Please visit the development area to toggle their visibility.
 """
 
-from typing import Any, Optional, Union, List, Dict, Literal, TypedDict
+from typing import Any, Optional, Union, List, Dict, Literal, TypedDict, Mapping
 import sys
 import decimal
 
@@ -257,7 +257,7 @@ def get_fft_grid_params_from_constraints(
 
 def _z3_constraint_solver(
         *, # prohibit use of positional arguments
-        constraints: Dict[str, Union[int, float, str, None]],
+        constraints: Mapping[str, Union[int, float, str, None]],
         loose_params: List[str],
         make_suggestions: bool,
     ) -> GridParams:
@@ -690,8 +690,8 @@ def _make_constraint_for_loose_param_group(
         loose_param_group: List[str],
         user_constraints: Dict[str, Union[float, int, str]]
     ) -> Optional[BoolRef]:
-    """Within the loose param groups ["\*_min", "\*_max", "\*_extent"] with
-    \*=pos/freq we want to widen "\*_min" and "\*_max" symmetrically if both are
+    """Within the loose param groups [``*_min``, ``*_max``, ``*_extent``] with
+    ``*=pos/freq`` we want to widen ``*_min`` and ``*_max`` symmetrically if both are
     named as loose params. Therefore we create an additional constraint ensuring
     that here.
     """
