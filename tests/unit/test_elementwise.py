@@ -676,7 +676,7 @@ def elementwise_arr_scalar(
 def test_clip(xp) -> None:
     dim1 = fa.dim("x", 4, 0.1, 0., 0.)
     vals = xp.asarray([1,2,3,4])
-    arr1 = fa.array(vals, dims=[dim1], space="pos")
+    arr1 = fa.array(vals, [dim1], "pos")
     assert xp.all(fa.clip(arr1, min=2, max=3).values("pos") == xp.clip(vals, min=2, max=3))
     assert xp.all(fa.clip(arr1, min=None, max=3).values("pos") == xp.clip(vals, min=None, max=3))
     assert xp.all(fa.clip(arr1).values("pos") == xp.clip(vals))

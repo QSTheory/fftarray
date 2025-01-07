@@ -14,9 +14,10 @@ from tests.helpers  import get_dims, dtypes_names_all
 def test_astype(xp, init_dtype_name, target_dtype_name) -> None:
     dim = fa.dim("x", 4, 0.1, 0., 0.)
     arr1 = fa.array(
-        xp.asarray([0, 1,2,3], dtype=getattr(xp, init_dtype_name)),
-        dims=[dim],
-        space="pos",
+        xp.asarray([0, 1,2,3]),
+        [dim],
+        "pos",
+        dtype=getattr(xp, init_dtype_name),
     )
     arr2 = arr1.into_dtype(getattr(xp, target_dtype_name))
     assert arr2.dtype == getattr(xp, target_dtype_name)
@@ -38,11 +39,7 @@ def test_transpose(xp, ndims: int, permutation: List[int], space: fa.Space) -> N
     size = int(xp.prod(xp.asarray(shape)))
     input_values = xp.reshape(xp.arange(size), shape=shape)
 
-    arr = fa.array(
-        values=input_values,
-        dims=dims,
-        space=space,
-    )
+    arr = fa.array(input_values, dims, space)
 
     ref_res = xp.permute_dims(input_values, axes=tuple(permutation))
 

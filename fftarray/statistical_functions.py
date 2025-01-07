@@ -16,7 +16,7 @@ class SplitArrayMeta:
     space: Tuple[Space, ...]
     fft_dims: Tuple[Dimension, ...]
 
-def _named_dims_to_axis(x: Array, dim_name: Optional[Union[str, Iterable[str]]]) -> SplitArrayMeta:
+def _named_dims_to_axis(x: Array, dim_name: Optional[Union[str, Iterable[str]]], /) -> SplitArrayMeta:
     """
         Transform dimension names into axis indices and extract
         all metadata that is kept after the reduction operation.
@@ -59,6 +59,7 @@ def _named_dims_to_axis(x: Array, dim_name: Optional[Union[str, Iterable[str]]])
 
 def sum(
         x: Array,
+        /,
         *,
         dim_name: Optional[Union[str, Iterable[str]]] = None,
         dtype = None,
@@ -79,6 +80,7 @@ def sum(
 
 def max(
         x: Array,
+        /,
         *,
         dim_name: Optional[Union[str, Iterable[str]]] = None,
     ) -> Array:
@@ -98,6 +100,7 @@ def max(
 
 def integrate(
         x: Array,
+        /,
         *,
         dim_name: Optional[Union[str, Iterable[str]]] = None,
         dtype = None,

@@ -32,7 +32,7 @@ def test_comparison(xp, space) -> None:
         pos_min=0.5,
         freq_min=0.,
     )
-    x = fa.coords_from_dim(dim=x_dim, xp=xp, space=space)
+    x = fa.coords_from_dim(x_dim, space, xp=xp)
     x_sq = x**2
 
     x = x.np_array(space)
@@ -79,27 +79,27 @@ def test_dtype(xp, init, override) -> None:
     )
 
     if override is None:
-        assert fa.coords_from_dim(dim=x_dim, space="pos", dtype=init_dtype_real, xp=xp).values("pos").dtype == init_dtype_real
+        assert fa.coords_from_dim(x_dim, "pos", dtype=init_dtype_real, xp=xp).values("pos").dtype == init_dtype_real
     else:
-        assert fa.coords_from_dim(dim=x_dim, dtype=override_dtype_real, xp=xp, space="pos").values("pos").dtype == override_dtype_real
-        assert fa.coords_from_dim(dim=x_dim, dtype=init_dtype_real, xp=xp, space="pos").into_dtype(override_dtype_real).values("pos").dtype == override_dtype_real
+        assert fa.coords_from_dim(x_dim, "pos", dtype=override_dtype_real, xp=xp).values("pos").dtype == override_dtype_real
+        assert fa.coords_from_dim(x_dim, "pos", dtype=init_dtype_real, xp=xp).into_dtype(override_dtype_real).values("pos").dtype == override_dtype_real
 
 
     if override is None:
-        assert fa.coords_from_dim(dim=x_dim, dtype=init_dtype_real, xp=xp, space="freq").values("freq").dtype == init_dtype_real
+        assert fa.coords_from_dim(x_dim, "freq", dtype=init_dtype_real, xp=xp).values("freq").dtype == init_dtype_real
     else:
-        assert fa.coords_from_dim(dim=x_dim, dtype=override_dtype_real, xp=xp, space="freq").values("freq").dtype == override_dtype_real
-        assert fa.coords_from_dim(dim=x_dim, dtype=init_dtype_real, xp=xp, space="freq").into_dtype(override_dtype_real).values("freq").dtype == override_dtype_real
+        assert fa.coords_from_dim(x_dim, "freq", dtype=override_dtype_real, xp=xp).values("freq").dtype == override_dtype_real
+        assert fa.coords_from_dim(x_dim, "freq", dtype=init_dtype_real, xp=xp).into_dtype(override_dtype_real).values("freq").dtype == override_dtype_real
 
-    assert fa.coords_from_dim(dim=x_dim, dtype=init_dtype_real, xp=xp, space="pos").into_space("freq").values("freq").dtype == init_dtype_complex
-    assert fa.coords_from_dim(dim=x_dim, dtype=init_dtype_real, xp=xp, space="freq").into_space("pos").values("pos").dtype == init_dtype_complex
+    assert fa.coords_from_dim(x_dim, "pos", dtype=init_dtype_real, xp=xp).into_space("freq").values("freq").dtype == init_dtype_complex
+    assert fa.coords_from_dim(x_dim, "freq", dtype=init_dtype_real, xp=xp).into_space("pos").values("pos").dtype == init_dtype_complex
 
-    assert fa.abs(fa.coords_from_dim(dim=x_dim, dtype=init_dtype_real, xp=xp, space="pos").into_space("freq")).values("freq").dtype == init_dtype_real # type: ignore
-    assert fa.abs(fa.coords_from_dim(dim=x_dim, dtype=init_dtype_real, xp=xp, space="freq").into_space("pos")).values("pos").dtype == init_dtype_real # type: ignore
+    assert fa.abs(fa.coords_from_dim(x_dim, "pos", dtype=init_dtype_real, xp=xp).into_space("freq")).values("freq").dtype == init_dtype_real # type: ignore
+    assert fa.abs(fa.coords_from_dim(x_dim, "freq", dtype=init_dtype_real, xp=xp).into_space("pos")).values("pos").dtype == init_dtype_real # type: ignore
 
     if override is not None:
-        assert fa.coords_from_dim(dim=x_dim, dtype=init_dtype_real, xp=xp, space="pos").into_dtype(override_dtype_real).into_space("freq").values("freq").dtype == override_dtype_complex
-        assert fa.coords_from_dim(dim=x_dim, dtype=init_dtype_real, xp=xp, space="freq").into_dtype(override_dtype_real).into_space("pos").values("pos").dtype == override_dtype_complex
+        assert fa.coords_from_dim(x_dim, "pos", dtype=init_dtype_real, xp=xp).into_dtype(override_dtype_real).into_space("freq").values("freq").dtype == override_dtype_complex
+        assert fa.coords_from_dim(x_dim, "freq", dtype=init_dtype_real, xp=xp).into_dtype(override_dtype_real).into_space("pos").values("pos").dtype == override_dtype_complex
 
 
 @pytest.mark.parametrize("xp", XPS)
@@ -112,10 +112,10 @@ def test_backend_override(xp, xp_override) -> None:
         freq_min=0.,
     )
 
-    assert type(fa.coords_from_dim(dim=x_dim, xp=xp, space="pos").into_xp(xp_override).values("pos")) is type(fa.coords_from_dim(dim=x_dim, xp=xp_override, space="pos").values("pos"))
-    assert type(fa.coords_from_dim(dim=x_dim, xp=xp, space="freq").into_xp(xp_override).values("freq")) is type(fa.coords_from_dim(dim=x_dim, xp=xp_override, space="freq").values("freq"))
-    assert type(fa.coords_from_dim(dim=x_dim, xp=xp, space="pos").into_xp(xp_override).into_space("freq").values("freq")) is type(fa.coords_from_dim(dim=x_dim, xp=xp_override, space="freq").values("freq"))
-    assert type(fa.coords_from_dim(dim=x_dim, xp=xp, space="freq").into_xp(xp_override).into_space("pos").values("pos")) is type(fa.coords_from_dim(dim=x_dim, xp=xp_override, space="pos").values("pos"))
+    assert type(fa.coords_from_dim(x_dim, "pos", xp=xp).into_xp(xp_override).values("pos")) is type(fa.coords_from_dim(x_dim, "pos", xp=xp_override).values("pos"))
+    assert type(fa.coords_from_dim(x_dim, "freq", xp=xp).into_xp(xp_override).values("freq")) is type(fa.coords_from_dim(x_dim, "freq", xp=xp_override).values("freq"))
+    assert type(fa.coords_from_dim(x_dim, "pos", xp=xp).into_xp(xp_override).into_space("freq").values("freq")) is type(fa.coords_from_dim(x_dim, "freq", xp=xp_override).values("freq"))
+    assert type(fa.coords_from_dim(x_dim, "freq", xp=xp).into_xp(xp_override).into_space("pos").values("pos")) is type(fa.coords_from_dim(x_dim, "pos", xp=xp_override).values("pos"))
 
 
 def test_broadcasting() -> None:
@@ -124,18 +124,18 @@ def test_broadcasting() -> None:
 
     x_ref = np.arange(0., 4.)
     y_ref = np.arange(0., 8.)
-    np.testing.assert_array_almost_equal_nulp(fa.coords_from_dim(dim=x_dim, xp=np, space="pos").np_array("pos"), x_ref, nulp = 0)
-    np.testing.assert_array_almost_equal_nulp(fa.coords_from_dim(dim=y_dim, xp=np, space="pos").np_array("pos"), y_ref, nulp = 0)
+    np.testing.assert_array_almost_equal_nulp(fa.coords_from_dim(x_dim, "pos", xp=np).np_array("pos"), x_ref, nulp = 0)
+    np.testing.assert_array_almost_equal_nulp(fa.coords_from_dim(y_dim, "pos", xp=np).np_array("pos"), y_ref, nulp = 0)
 
     x_ref_broadcast = x_ref.reshape(1,-1)
     y_ref_broadcast = y_ref.reshape(-1,1)
-    np.testing.assert_array_almost_equal_nulp((fa.coords_from_dim(dim=x_dim, xp=np, space="pos") + fa.coords_from_dim(dim=y_dim, xp=np, space="pos")).transpose("x", "y").values("pos"), (x_ref_broadcast+y_ref_broadcast).transpose(), nulp = 0)
-    np.testing.assert_array_almost_equal_nulp((fa.coords_from_dim(dim=x_dim, xp=np, space="pos") + fa.coords_from_dim(dim=y_dim, xp=np, space="pos")).transpose("y", "x").values("pos"), x_ref_broadcast+y_ref_broadcast, nulp = 0)
+    np.testing.assert_array_almost_equal_nulp((fa.coords_from_dim(x_dim, "pos", xp=np) + fa.coords_from_dim(y_dim, "pos", xp=np)).transpose("x", "y").values("pos"), (x_ref_broadcast+y_ref_broadcast).transpose(), nulp = 0)
+    np.testing.assert_array_almost_equal_nulp((fa.coords_from_dim(x_dim, "pos", xp=np) + fa.coords_from_dim(y_dim, "pos", xp=np)).transpose("y", "x").values("pos"), x_ref_broadcast+y_ref_broadcast, nulp = 0)
 
 
 @pytest.mark.parametrize("xp", XPS)
 @pytest.mark.parametrize("space", spaces)
-def test_sel_order(xp, space):
+def test_sel_order(xp, space) -> None:
     """Tests whether the selection order matters. Assuming an input Array of
     dimensions A and B. Then
 
@@ -145,7 +145,7 @@ def test_sel_order(xp, space):
     """
     xdim = fa.dim("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
     ydim = fa.dim("y", n=8, d_pos=0.03, pos_min=-0.5, freq_min=-4.7)
-    arr = fa.coords_from_dim(dim=xdim, xp=xp, space=space) + fa.coords_from_dim(dim=ydim, xp=xp, space=space)
+    arr = fa.coords_from_dim(xdim, space, xp=xp) + fa.coords_from_dim(ydim, space, xp=xp)
     arr_selx = arr.sel(**{"x": getattr(xdim, f"{space}_middle")})
     arr_sely = arr.sel(**{"y": getattr(ydim, f"{space}_middle")})
     arr_selx_sely = arr_selx.sel(**{"y": getattr(ydim, f"{space}_middle")})
@@ -194,8 +194,8 @@ def test_defaults_context() -> None:
 def check_defaults(dim: fa.Dimension, xp, dtype_name: DEFAULT_DTYPE, eager: bool) -> None:
     xp_compat = array_api_compat.array_namespace(xp.asarray(0))
     values = 0.1*xp.arange(4, dtype=dtype_name)
-    arr_from_dim = fa.coords_from_dim(dim=dim, space="pos")
-    arr_direct = fa.array(dims=dim, space="pos", values=values)
+    arr_from_dim = fa.coords_from_dim(dim, "pos")
+    arr_direct = fa.array(values, dim, "pos")
     manual_arr = Array(
         values=values,
         dims=(dim,),
@@ -218,7 +218,7 @@ def check_defaults(dim: fa.Dimension, xp, dtype_name: DEFAULT_DTYPE, eager: bool
 
 def test_bool() -> None:
     xdim = fa.dim("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
-    arr = fa.coords_from_dim(dim=xdim, xp=np, space="pos")
+    arr = fa.coords_from_dim(xdim, "pos", xp=np)
     with pytest.raises(ValueError):
         bool(arr)
 
@@ -260,11 +260,7 @@ def fftarray_strategy(draw) -> Array:
     if not all(factors_applied):
         fftarr_values = xp.astype(fftarr_values, xp.complex128)
     return (
-        fa.array(
-            values=fftarr_values,
-            dims=dims,
-            space=init_space,
-        )
+        fa.array(fftarr_values, dims, init_space)
         .into_factors_applied(factors_applied)
         .into_eager(eager)
     )
@@ -294,7 +290,7 @@ def test_fftarray_lazyness(fftarr):
 @pytest.mark.parametrize("space", spaces)
 @pytest.mark.parametrize("eager", [True, False])
 @pytest.mark.parametrize("factors_applied", [True, False])
-def test_fftarray_lazyness_reduced(xp, precision, space, eager, factors_applied):
+def test_fftarray_lazyness_reduced(xp, precision, space, eager, factors_applied) -> None:
     """Tests the lazyness of an Array, i.e., the correct behavior of
     factors_applied and eager. This is the reduced/faster version of the test
     using hypothesis.
@@ -302,7 +298,7 @@ def test_fftarray_lazyness_reduced(xp, precision, space, eager, factors_applied)
     xdim = fa.dim("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
     ydim = fa.dim("y", n=8, d_pos=0.03, pos_min=-0.5, freq_min=-4.7)
     dtype = getattr(xp, precision)
-    fftarr = fa.coords_from_dim(dim=xdim, xp=xp, dtype=dtype, space=space).into_eager(eager) + fa.coords_from_dim(dim=ydim, xp=xp, dtype=dtype, space=space).into_eager(eager)
+    fftarr = fa.coords_from_dim(xdim, space, xp=xp, dtype=dtype).into_eager(eager) + fa.coords_from_dim(ydim, space, xp=xp, dtype=dtype).into_eager(eager)
     # TODO: This tests either float without factors or complex with factors.
     if factors_applied:
         fftarr=fftarr.into_factors_applied(factors_applied)
@@ -314,7 +310,7 @@ def test_fftarray_lazyness_reduced(xp, precision, space, eager, factors_applied)
 @pytest.mark.parametrize("xp", XPS)
 def test_immutability(xp) -> None:
     xdim = fa.dim("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
-    arr = fa.coords_from_dim(dim=xdim, xp=xp, dtype=xp.float64, space="pos")
+    arr = fa.coords_from_dim(xdim, "pos", xp=xp, dtype=xp.float64)
     values = arr.values("pos")
     assert arr.values("pos")[0] == -0.2
     try:
@@ -568,7 +564,7 @@ def test_fft_ifft_invariance(xp, space: Space):
     """
     xdim = fa.dim("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
     ydim = fa.dim("y", n=8, d_pos=0.03, pos_min=-0.4, freq_min=-4.2)
-    arr = fa.coords_from_dim(dim=xdim, xp=xp, space=space) + fa.coords_from_dim(dim=ydim, xp=xp, space=space)
+    arr = fa.coords_from_dim(xdim, space, xp=xp) + fa.coords_from_dim(ydim, space, xp=xp)
     other_space = get_other_space(space)
     arr_fft = arr.into_space(other_space)
     arr_fft_ifft = arr_fft.into_space(space)
@@ -586,7 +582,7 @@ def test_np_array(xp, spaces: Tuple[Space, Space], precision: PrecisionSpec):
     """Tests if `Array.np_array` returns the values as a NumPy array and if it has the correct precision.
     """
     xdim = fa.dim("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
-    arr = fa.coords_from_dim(dim=xdim, xp=xp, dtype=getattr(xp, precision), space=spaces[0])
+    arr = fa.coords_from_dim(xdim, spaces[0], xp=xp, dtype=getattr(xp, precision))
 
     np_arr_same = arr.np_array(spaces[0])
     assert isinstance(np_arr_same, np.ndarray)
@@ -622,7 +618,7 @@ try:
 
         xdim = fa.dim("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1, dynamically_traced_coords=dtc)
         ydim = fa.dim("y", n=8, d_pos=0.03, pos_min=-0.4, freq_min=-4.2, dynamically_traced_coords=dtc)
-        fftarr = fa.coords_from_dim(dim=xdim, xp=jnp, space=space) + fa.coords_from_dim(dim=ydim, xp=jnp, space=space)
+        fftarr = fa.coords_from_dim(xdim, space, xp=jnp) + fa.coords_from_dim(ydim, space, xp=jnp)
 
         def jax_scan_step_fun_dynamic(carry, *_):
             # dynamic should support resizing and shifting of the grid
@@ -659,7 +655,7 @@ def test_different_dimension_dynamic_prop() -> None:
     """
     x_dim = fa.dim(name="x", pos_min=0, freq_min=0, d_pos=1, n=8, dynamically_traced_coords=False)
     y_dim = fa.dim(name="y", pos_min=0, freq_min=0, d_pos=1, n=4, dynamically_traced_coords=True)
-    fftarr = fa.coords_from_dim(dim=x_dim, xp=jnp, space="pos") + fa.coords_from_dim(dim=y_dim, xp=jnp, space="pos")
+    fftarr = fa.coords_from_dim(x_dim, "pos", xp=jnp) + fa.coords_from_dim(y_dim, "pos", xp=jnp)
 
     def jax_scan_step_fun_valid(carry, *_):
         xval = carry._dims[0]._pos_min + carry._dims[0]._d_pos # static dimension

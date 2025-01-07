@@ -115,7 +115,7 @@ def test_errors_fftarray_index_substepping(
     as_dict: bool,
 ) -> None:
 
-    fft_arr = fa.coords_from_dim(dim=TEST_FFTDIM, xp=xp, space=space)
+    fft_arr = fa.coords_from_dim(TEST_FFTDIM, space, xp=xp)
 
     if as_dict:
         invalid_slice = {"x": invalid_slice} # type: ignore
@@ -450,7 +450,7 @@ def test_fftarray_state_management(
         for dim_name in space_combination
     }
     fft_arrays = {
-        dim_name: fa.coords_from_dim(dim=dims[dim_name], space=space, xp=xp).into_eager(False)
+        dim_name: fa.coords_from_dim(dims[dim_name], space, xp=xp).into_eager(False)
         for dim_name, space in space_combination.items()
     }
 
@@ -535,7 +535,7 @@ def generate_test_fftarray_xrdataset(
         for dim_name, dim_length in zip(dimension_names, dimension_length, strict=True)
     ]
 
-    fft_array = reduce(lambda x,y: x+y, [fa.coords_from_dim(dim=dim, xp=xp, space="pos") for dim in dims])
+    fft_array = reduce(lambda x,y: x+y, [fa.coords_from_dim(dim, "pos", xp=xp) for dim in dims])
 
     pos_coords = {
         f"{dim.name}_pos": dim.np_array("pos")
@@ -573,7 +573,7 @@ try:
         return obj.sel(idx)
 
     def test_invalid_tracer_index() -> None:
-        fft_arr = fa.coords_from_dim(dim=TEST_FFTDIM, xp=jnp, space="pos")
+        fft_arr = fa.coords_from_dim(TEST_FFTDIM, "pos", xp=jnp)
         tracer_index = jax.numpy.array(3)
 
         with pytest.raises(NotImplementedError):

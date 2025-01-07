@@ -44,11 +44,7 @@ def fftarray_strategy_int(draw) -> Array:
     note(fftarr_values.dtype)
     note(fftarr_values)
 
-    return fa.array(
-        values=fftarr_values,
-        dims=dims,
-        space=init_space,
-    ).into_eager(eager)
+    return fa.array(fftarr_values, dims, init_space).into_eager(eager)
 
 
 @pytest.mark.slow

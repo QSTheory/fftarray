@@ -73,15 +73,15 @@ def get_arr_from_dims(
     else:
         spaces_norm = spaces
     arr = fa.array(
-        values=xp.asarray(
+        xp.asarray(
             1.,
             dtype=dtype,
         ),
-        dims=[],
-        space=[],
+        [],
+        [],
     )
     for dim, space in zip(dims, spaces_norm, strict=True):
-        arr += fa.coords_from_dim(dim=dim, space=space, xp=xp).into_dtype(dtype)
+        arr += fa.coords_from_dim(dim, space, xp=xp).into_dtype(dtype)
     return arr
 
 def assert_fa_array_exact_equal(x1: Array, x2: Array) -> None:

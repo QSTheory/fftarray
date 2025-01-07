@@ -26,6 +26,7 @@ def array(
         values,
         dims: Union[Dimension, Iterable[Dimension]],
         space: Union[Space, Iterable[Space]],
+        /,
         *,
         xp: Optional[Any] = None,
         dtype: Optional[Any] = None,
@@ -116,6 +117,7 @@ def array(
 def coords_from_dim(
         dim: Dimension,
         space: Space,
+        /,
         *,
         xp: Optional[Any] = None,
         dtype: Optional[Any] = None,
@@ -174,6 +176,7 @@ def coords_from_arr(
         x: Array,
         dim_name: str,
         space: Union[Space],
+        /,
         *,
         xp: Optional[Any] = None,
         dtype: Optional[Any] = None,
@@ -219,10 +222,7 @@ def coords_from_arr(
                 xp_norm = array_api_compat.array_namespace(xp.array(1.))
 
             return coords_from_dim(
-                dim=dim,
-                space=space,
-                xp=xp_norm,
-                dtype=dtype,
+                dim, space, xp=xp_norm, dtype=dtype
             ).into_eager(x.eager[dim_idx])
     raise ValueError("Specified dim_name not part of the Array's dimensions.")
 
@@ -230,6 +230,7 @@ def full(
         dim: Union[Dimension, Iterable[Dimension]],
         space: Union[Space, Iterable[Space]],
         fill_value: Union[bool, int, float, complex, Any],
+        /,
         *,
         xp: Optional[Any] = None,
         dtype: Optional[Any] = None,
