@@ -35,7 +35,7 @@ def test_shift(
         space=space,
         xp=xp,
         dtype=init_dtype,
-    ).into_eager(eager=eager)
+    ).into_eager(eager)
 
     # Use a frequency which fits exactly into the domain to allow periodic shifts
     test_frequency = 5*2*np.pi*getattr(dim, f"d_{other_space}")

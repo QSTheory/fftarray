@@ -223,7 +223,7 @@ def coords_from_arr(
                 space=space,
                 xp=xp_norm,
                 dtype=dtype,
-            ).into_eager(eager=x.eager[dim_idx])
+            ).into_eager(x.eager[dim_idx])
     raise ValueError("Specified dim_name not part of the Array's dimensions.")
 
 def full(

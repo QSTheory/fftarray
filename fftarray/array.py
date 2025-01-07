@@ -684,7 +684,7 @@ class Array:
         space_norm: Tuple[Space, ...] = norm_space(space, len(self.dims))
         if space_norm != self.space or not all(self._factors_applied):
             # Setting eager before-hand allows copy-elision without the move option.
-            fft_arr = self.into_eager(True).into_space(space=space).into_factors_applied(True)
+            fft_arr = self.into_eager(True).into_space(space).into_factors_applied(True)
             return fft_arr._values
         return self.xp.asarray(self._values, copy=True)
 
@@ -692,7 +692,7 @@ class Array:
     def xp(self):
         return self._xp
 
-    def into_xp(self, xp):
+    def into_xp(self, xp, /):
         # Since Array is immutable, this does not necessarily need to copy.
         values = xp.asarray(self._values, copy=None)
         return Array(
@@ -708,7 +708,7 @@ class Array:
     def dtype(self):
         return self._values.dtype
 
-    def into_dtype(self, dtype):
+    def into_dtype(self, dtype, /):
         # Hard-code this special case (which also exists in numpy)
         # in order to give an Array API compatible way to upcast
         # to complex without explicitly handling precision in user code.
@@ -737,7 +737,7 @@ class Array:
     def factors_applied(self):
         return self._factors_applied
 
-    def into_factors_applied(self, factors_applied: Union[bool, Iterable[bool]]) -> Array:
+    def into_factors_applied(self, factors_applied: Union[bool, Iterable[bool]], /) -> Array:
         factors_applied_norm = norm_param(factors_applied, len(self._dims), bool)
 
         signs = get_transform_signs(
@@ -779,7 +779,7 @@ class Array:
         """
         return self._eager
 
-    def into_eager(self, eager: Union[bool, Iterable[bool]]) -> Array:
+    def into_eager(self, eager: Union[bool, Iterable[bool]], /) -> Array:
         eager_norm = norm_param(eager, len(self.dims), bool)
 
         # Can just reuse everything since all attributes are immutable.
@@ -799,10 +799,7 @@ class Array:
         """
         return self._spaces
 
-    def into_space(
-            self,
-            space: Union[Space, Iterable[Space]],
-        ) -> Array:
+    def into_space(self, space: Union[Space, Iterable[Space]], /) -> Array:
         """
             values must be real floating or complex floating.
             Always upcasts to complex floating even if no transform is done.

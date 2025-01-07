@@ -48,7 +48,7 @@ def fftarray_strategy_int(draw) -> Array:
         values=fftarr_values,
         dims=dims,
         space=init_space,
-    ).into_eager(eager=eager)
+    ).into_eager(eager)
 
 
 @pytest.mark.slow
@@ -133,7 +133,7 @@ def assert_fftarray_eager_factors_applied_int(arr: Array, log):
         assert (ifa == ffa) or (ffa == ea)
 
     log("fft(x)._factors_applied ...")
-    # arr_fft = arr.into_space(space=get_other_space(arr.space))
+    # arr_fft = arr.into_space(get_other_space(arr.space))
     # np.testing.assert_array_equal(arr.eager, arr_fft.eager)
     # for ffapplied, feager in zip(arr_fft._factors_applied, arr_fft.eager):
     #     assert (feager and ffapplied) or (not feager and not ffapplied)

@@ -303,7 +303,7 @@ def elementwise_single_arg(
 
     arr1 = (
         fa.coords_from_dim(x_dim, space, xp=xp)
-        .into_eager(eager=eager)
+        .into_eager(eager)
         .into_factors_applied(factors_applied)
     )
 
@@ -431,21 +431,21 @@ def elementwise_two_arrs(
 
     x_arr = (
         fa.coords_from_dim(x_dim, space, xp=xp)
-        .into_eager(eager=eager)
+        .into_eager(eager)
         .into_factors_applied(factors_applied_1)
         .into_dtype(dtype)
 
     )
     x2_arr = (
         fa.coords_from_dim(x_dim, space, xp=xp)
-        .into_eager(eager=eager)
+        .into_eager(eager)
         .into_factors_applied(factors_applied_2)
         .into_dtype(dtype)
     )
 
     y_arr = (
         fa.coords_from_dim(y_dim, space, xp=xp)
-        .into_eager(eager=eager)
+        .into_eager(eager)
         .into_factors_applied(factors_applied_2)
         .into_dtype(dtype)
     )
@@ -624,7 +624,7 @@ def elementwise_arr_scalar(
 
     x_arr = (
         fa.coords_from_dim(x_dim, space, xp=xp)
-        .into_eager(eager=eager)
+        .into_eager(eager)
         .into_factors_applied(factors_applied)
         .into_dtype(dtype)
     )

@@ -40,7 +40,7 @@ def shift_freq(x: Array, offsets: Dict[str, float]) -> Array:
     for dim_name, offset in offsets.items():
         x_arr = fa.coords_from_arr(x, dim_name=dim_name, space="pos").into_dtype("complex")
         phase_shift = phase_shift * fa.exp(1.j * offset * 2*np.pi * x_arr)
-    return x.into_space(space="pos") * phase_shift
+    return x.into_space("pos") * phase_shift
 
 def shift_pos(x: Array, offsets: Dict[str, float]) -> Array:
     """Shift the wavefunction in position space:
@@ -78,5 +78,5 @@ def shift_pos(x: Array, offsets: Dict[str, float]) -> Array:
     for dim_name, offset in offsets.items():
         f_arr = fa.coords_from_arr(x, dim_name=dim_name, space="freq").into_dtype("complex")
         phase_shift = phase_shift * fa.exp(-1.j * offset * 2*np.pi * f_arr)
-    return x.into_space(space="freq") * phase_shift
+    return x.into_space("freq") * phase_shift
 
