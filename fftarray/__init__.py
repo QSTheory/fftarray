@@ -58,6 +58,12 @@ from .creation_functions import (
    coords_from_arr as coords_from_arr,
    full as full,
 )
+from .statistical_functions import (
+    integrate as integrate,
+    max as max,
+    sum as sum,
+)
+
 
 from .tools import (
     shift_freq as shift_freq,

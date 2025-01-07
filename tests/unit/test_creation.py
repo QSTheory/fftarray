@@ -6,7 +6,7 @@ import fftarray as fa
 
 from fftarray.fft_dimension import FFTDimension
 from fftarray.tests.helpers import XPS, XPS_ROTATED_PAIRS
-from tests.helpers import get_dims, dtypes_names_pairs, dtypes_names_numeric_core, DTYPE_NAME
+from tests.helpers import get_dims, dtypes_names_pairs, dtype_names_numeric_core, DTYPE_NAME
 
 
 @pytest.mark.parametrize("xp_target, xp_other", XPS_ROTATED_PAIRS)
@@ -111,7 +111,7 @@ def test_from_array_object(
 @pytest.mark.parametrize("xp_target, xp_other", XPS_ROTATED_PAIRS)
 @pytest.mark.parametrize("xp_source", ["default", "direct"])
 @pytest.mark.parametrize("defensive_copy", [False, True])
-@pytest.mark.parametrize("dtype_name", dtypes_names_numeric_core)
+@pytest.mark.parametrize("dtype_name", dtype_names_numeric_core)
 @pytest.mark.parametrize("eager", [False, True])
 def test_from_list(
         xp_target,
