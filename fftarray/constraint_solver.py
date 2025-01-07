@@ -16,7 +16,7 @@ from z3 import (
 )
 import numpy as np
 
-from .fft_dimension import FFTDimension
+from .dimension import Dimension
 from .constraint_solver_exceptions import (
     NoSolutionFoundError,
     NoUniqueSolutionError,
@@ -73,8 +73,8 @@ def dim_from_constraints(
         freq_middle: Optional[float] = None,
         loose_params: Optional[Union[str, List[str]]] = None,
         dynamically_traced_coords: bool = True,
-    ) -> FFTDimension:
-    """Creates an FFTDimension from an arbitrary subset of all possible grid
+    ) -> Dimension:
+    """Creates an Dimension from an arbitrary subset of all possible grid
     parameters using the z3 constraint solver. Note that the specified grid
     parameters must lead to a unique solution that fulfill the following
     constraints:
@@ -136,8 +136,8 @@ def dim_from_constraints(
 
     Returns
     -------
-    FFTDimension
-        FFTDimension initialized using the constraints solved via the z3
+    Dimension
+        Dimension initialized using the constraints solved via the z3
         constraint solver.
 
     See Also
@@ -160,7 +160,7 @@ def dim_from_constraints(
         loose_params=loose_params
     )
 
-    return FFTDimension(
+    return Dimension(
         name=name,
         n=params["n"],
         d_pos=params["d_pos"],
@@ -266,11 +266,11 @@ def _z3_constraint_solver(
         loose_params: List[str],
         make_suggestions: bool,
     ) -> GridParams:
-    """Solves the constraints for an FFTDimension.
+    """Solves the constraints for an Dimension.
 
     This method solves the linear system of equations to correctly match
     the mathematics of the Fourier transform for a given set of constraints.
-    For examples, please refer to the documentation of FFTDimension.
+    For examples, please refer to the documentation of Dimension.
 
     Parameters
     ----------
@@ -289,7 +289,7 @@ def _z3_constraint_solver(
     Returns
     -------
     Dict[str, Union[int, float]]
-        Numerical values for all constraints defining an FFTDimension.
+        Numerical values for all constraints defining an Dimension.
 
     Raises
     ------

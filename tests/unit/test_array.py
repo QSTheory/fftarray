@@ -18,7 +18,7 @@ def test_astype(xp, init_dtype_name, target_dtype_name) -> None:
         dims=[dim],
         space="pos",
     )
-    arr2 = arr1.astype(getattr(xp, target_dtype_name))
+    arr2 = arr1.into_dtype(getattr(xp, target_dtype_name))
     assert arr2.dtype == getattr(xp, target_dtype_name)
 
 

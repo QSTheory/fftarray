@@ -2,8 +2,8 @@ from typing import Tuple, TYPE_CHECKING
 import numpy as np
 
 if TYPE_CHECKING:
-    from ..fft_dimension import FFTDimension
-    from ..fft_array import Space
+    from ..dimension import Dimension
+    from ..array import Space
 
 def format_bytes(bytes) -> str:
     """Converts bytes to KiB, MiB, GiB and TiB."""
@@ -38,12 +38,12 @@ def truncate_str(string: str, width: int) -> str:
     return string
 
 def fft_dim_table(
-        dim: "FFTDimension",
+        dim: "Dimension",
         include_header=True,
         include_dim_name=False,
         spaces: Tuple["Space", ...] = ("pos", "freq"),
     ) -> str:
-    """Constructs a table for FFTDimension.__str__ and FFTArrar.__str__
+    """Constructs a table for Dimension.__str__ and FFTArrar.__str__
     containing the grid parameters for each space.
     """
     str_out = ""
@@ -60,8 +60,8 @@ def fft_dim_table(
         str_out += "+\n"
     dim_prop_headers = headers[int(include_dim_name)+1:]
     if include_dim_name:
-        # dim name column only shown when printing an FFTArray
-        # in this case the FFTDimension properties are only shown in the current space
+        # dim name column only shown when printing an Array
+        # in this case the Dimension properties are only shown in the current space
         assert len(spaces) == 1
         dim_name = dim.name
         if len(dim_name) > 10:

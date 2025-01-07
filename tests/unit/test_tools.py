@@ -35,14 +35,14 @@ def test_shift(
         space=space,
         xp=xp,
         dtype=init_dtype,
-    ).as_eager(eager=eager)
+    ).into_eager(eager=eager)
 
     # Use a frequency which fits exactly into the domain to allow periodic shifts
     test_frequency = 5*2*np.pi*getattr(dim, f"d_{other_space}")
     orig = fa.sin(test_frequency*arr)
     shift_amount = 8.1*getattr(dim, f"d_{space}")
 
-    ref_shifted = fa.sin(test_frequency*(arr-shift_amount)).astype("complex")
+    ref_shifted = fa.sin(test_frequency*(arr-shift_amount)).into_dtype("complex")
 
     shift_fun = getattr(fa, f"shift_{space}")
     fft_shifted = shift_fun(orig, {"x": shift_amount})

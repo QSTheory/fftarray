@@ -79,13 +79,13 @@ def test_sum(
     else:
         acc_dtype = getattr(xp, acc_dtype_name)
     dims = get_dims(ndims)
-    arr = get_arr_from_dims(xp, dims, spaces="pos").astype(source_dtype)
+    arr = get_arr_from_dims(xp, dims, spaces="pos").into_dtype(source_dtype)
 
     # Just set alternating attributes in order to save on iterations.
     arr_attributes = [((i%2)==0)^attribute_inversion for i in range(ndims)]
-    arr = arr.as_eager(arr_attributes)
+    arr = arr.into_eager(arr_attributes)
     if xp.isdtype(source_dtype, "complex floating"):
-        arr = arr.as_factors_applied(arr_attributes)
+        arr = arr.into_factors_applied(arr_attributes)
     arr = arr.transpose(*[dim.name for dim in dims])
 
     if should_raise is not None:
@@ -132,12 +132,12 @@ def test_max(
     ) -> None:
     dtype = getattr(xp, dtype_name)
     dims = get_dims(ndims)
-    arr = get_arr_from_dims(xp, dims, spaces="pos").astype(dtype)
+    arr = get_arr_from_dims(xp, dims, spaces="pos").into_dtype(dtype)
     # Just set alternating attributes in order to save on iterations.
     arr_attributes = [((i%2)==0)^attribute_inversion for i in range(ndims)]
-    arr = arr.as_eager(arr_attributes)
+    arr = arr.into_eager(arr_attributes)
     if xp.isdtype(dtype, "complex floating"):
-        arr = arr.as_factors_applied(arr_attributes)
+        arr = arr.into_factors_applied(arr_attributes)
     arr = arr.transpose(*[dim.name for dim in dims])
 
     if not xp.isdtype(dtype, function_dtypes[op_name]):
@@ -250,12 +250,12 @@ def check_integrate(
     else:
         acc_dtype = getattr(xp, acc_dtype_name)
     dims = get_dims(ndims)
-    arr = get_arr_from_dims(xp, dims, spaces=space_norm).astype(source_dtype)
+    arr = get_arr_from_dims(xp, dims, spaces=space_norm).into_dtype(source_dtype)
     # Just set alternating attributes in order to save on iterations.
     arr_attributes = [((i%2)==0)^attribute_inversion for i in range(ndims)]
-    arr = arr.as_eager(arr_attributes)
+    arr = arr.into_eager(arr_attributes)
     if xp.isdtype(source_dtype, "complex floating"):
-        arr = arr.as_factors_applied(arr_attributes)
+        arr = arr.into_factors_applied(arr_attributes)
     arr = arr.transpose(*[dim.name for dim in dims])
 
     if should_raise is not None:

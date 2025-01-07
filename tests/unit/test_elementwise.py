@@ -303,16 +303,16 @@ def elementwise_single_arg(
 
     arr1 = (
         fa.coords_from_dim(x_dim, space, xp=xp)
-        .as_eager(eager=eager)
-        .as_factors_applied(factors_applied)
+        .into_eager(eager=eager)
+        .into_factors_applied(factors_applied)
     )
 
     if not xp.isdtype(dtype, "complex floating") and not factors_applied:
         with pytest.raises(ValueError):
-                arr1.astype(dtype)
+                arr1.into_dtype(dtype)
         return
 
-    arr1 = arr1.astype(dtype)
+    arr1 = arr1.into_dtype(dtype)
     arr1_xp = arr1.values(space=space)
 
     if not xp.isdtype(dtype, elementwise_ops_single_arg[op_name]):
@@ -431,23 +431,23 @@ def elementwise_two_arrs(
 
     x_arr = (
         fa.coords_from_dim(x_dim, space, xp=xp)
-        .as_eager(eager=eager)
-        .as_factors_applied(factors_applied_1)
-        .astype(dtype)
+        .into_eager(eager=eager)
+        .into_factors_applied(factors_applied_1)
+        .into_dtype(dtype)
 
     )
     x2_arr = (
         fa.coords_from_dim(x_dim, space, xp=xp)
-        .as_eager(eager=eager)
-        .as_factors_applied(factors_applied_2)
-        .astype(dtype)
+        .into_eager(eager=eager)
+        .into_factors_applied(factors_applied_2)
+        .into_dtype(dtype)
     )
 
     y_arr = (
         fa.coords_from_dim(y_dim, space, xp=xp)
-        .as_eager(eager=eager)
-        .as_factors_applied(factors_applied_2)
-        .astype(dtype)
+        .into_eager(eager=eager)
+        .into_factors_applied(factors_applied_2)
+        .into_dtype(dtype)
     )
 
     if not is_op_valid_for_dtype:
@@ -624,9 +624,9 @@ def elementwise_arr_scalar(
 
     x_arr = (
         fa.coords_from_dim(x_dim, space, xp=xp)
-        .as_eager(eager=eager)
-        .as_factors_applied(factors_applied)
-        .astype(dtype)
+        .into_eager(eager=eager)
+        .into_factors_applied(factors_applied)
+        .into_dtype(dtype)
     )
 
     dtype = getattr(xp, dtype_name)

@@ -2,9 +2,8 @@ from dataclasses import dataclass
 from typing import Iterable, Optional, Union, List, Tuple
 from typing_extensions import assert_never
 
-from fftarray.fft_dimension import FFTDimension
-
-from .fft_array import FFTArray
+from .dimension import Dimension
+from .array import Array
 from .space import Space
 
 @dataclass
@@ -15,9 +14,9 @@ class SplitArrayMeta:
     axis: List[int]
     eager: Tuple[bool, ...]
     space: Tuple[Space, ...]
-    fft_dims: Tuple[FFTDimension, ...]
+    fft_dims: Tuple[Dimension, ...]
 
-def _named_dims_to_axis(x: FFTArray, dim_name: Optional[Union[str, Iterable[str]]]) -> SplitArrayMeta:
+def _named_dims_to_axis(x: Array, dim_name: Optional[Union[str, Iterable[str]]]) -> SplitArrayMeta:
     """
         Transform dimension names into axis indices and extract
         all metadata that is kept after the reduction operation.
@@ -59,17 +58,17 @@ def _named_dims_to_axis(x: FFTArray, dim_name: Optional[Union[str, Iterable[str]
     )
 
 def sum(
-        x: FFTArray,
+        x: Array,
         *,
         dim_name: Optional[Union[str, Iterable[str]]] = None,
         dtype = None,
-    ) -> FFTArray:
+    ) -> Array:
 
     res_meta = _named_dims_to_axis(x, dim_name)
 
     reduced_values = x.xp.sum(x.values(space=x.space), axis=tuple(res_meta.axis), dtype=dtype)
 
-    return FFTArray(
+    return Array(
         values=reduced_values,
         space=res_meta.space,
         dims=res_meta.fft_dims,
@@ -79,16 +78,16 @@ def sum(
     )
 
 def max(
-        x: FFTArray,
+        x: Array,
         *,
         dim_name: Optional[Union[str, Iterable[str]]] = None,
-    ) -> FFTArray:
+    ) -> Array:
 
     res_meta = _named_dims_to_axis(x, dim_name)
 
     reduced_values = x.xp.max(x.values(space=x.space), axis=tuple(res_meta.axis))
 
-    return FFTArray(
+    return Array(
         values=reduced_values,
         space=res_meta.space,
         dims=res_meta.fft_dims,
@@ -98,11 +97,11 @@ def max(
     )
 
 def integrate(
-        x: FFTArray,
+        x: Array,
         *,
         dim_name: Optional[Union[str, Iterable[str]]] = None,
         dtype = None,
-    ) -> FFTArray:
+    ) -> Array:
     """
         Does a simple rectangle rule integration.
         Automatically uses the `d_pos` or `d_freq` of the integrated dimension
@@ -124,7 +123,7 @@ def integrate(
     reduced_values = x.xp.sum(x.values(space=x.space), axis=tuple(res_meta.axis), dtype=dtype)
     reduced_values *= integration_element
 
-    return FFTArray(
+    return Array(
         values=reduced_values,
         space=res_meta.space,
         dims=res_meta.fft_dims,

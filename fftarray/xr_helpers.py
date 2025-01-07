@@ -1,12 +1,12 @@
 import xarray as xr
 
-from .fft_array import FFTArray
+from .array import Array
 
 #--------------------
 # XArray interoperability
 #--------------------
 
-def as_xr_pos(arr: FFTArray) -> xr.DataArray:
+def as_xr_pos(arr: Array) -> xr.DataArray:
     return xr.DataArray(
         arr.np_array(space="pos"),
         coords = {dim.name: dim.np_array(space="pos") for dim in arr.dims},
@@ -14,14 +14,14 @@ def as_xr_pos(arr: FFTArray) -> xr.DataArray:
         # attrs = _xr_attribs(arr),
     )
 
-def as_xr_freq(arr: FFTArray) -> xr.DataArray:
+def as_xr_freq(arr: Array) -> xr.DataArray:
     return xr.DataArray(
         arr.np_array(space="freq"),
         coords = {dim.name: dim.np_array(space="freq") for dim in arr.dims},
         # attrs = _xr_attribs(arr),
     )
 
-def as_xr_dataset(arr: FFTArray) -> xr.Dataset:
+def as_xr_dataset(arr: Array) -> xr.Dataset:
     return xr.Dataset({
             "pos": xr.DataArray(
                 arr.np_array(space="pos"),

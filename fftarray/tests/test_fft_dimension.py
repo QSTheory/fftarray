@@ -16,7 +16,7 @@ def assert_scalars_almost_equal_nulp(x, y, nulp = 1):
 
 def test_fftdim_accessors():
     """
-    Test if the accessors of FFTDimension are defined and do not result in a
+    Test if the accessors of Dimension are defined and do not result in a
     contradiction.
     """
     sol = fa.dim("x",
@@ -35,11 +35,11 @@ def test_fftdim_accessors():
 
 def test_fftdim_jax():
     """
-    Test if the pytree of FFTDimension is correctly defined, i.e., if the
+    Test if the pytree of Dimension is correctly defined, i.e., if the
     flattening and unflattening works accordingly.
     """
     @jax.jit
-    def jax_func(fftdim: fa.FFTDimension):
+    def jax_func(fftdim: fa.Dimension):
         return fftdim
 
     fftdim = fa.dim("x",
@@ -99,14 +99,14 @@ def test_equality() -> None:
 @pytest.mark.parametrize("dtc", [True, False])
 def test_dynamically_traced_coords(dtc: bool) -> None:
     """
-    Test the tracing of an FFTDimension. The tracing behavior (dynamic/static)
+    Test the tracing of an Dimension. The tracing behavior (dynamic/static)
     is determined by its property `dynamically_traced_coords` (False/True).
 
     If `dynamically_traced_coords=True`, `d_pos`, `pos_min` and `freq_min`
     should be jax-leaves.
     If `dynamically_traced_coords=False`, all properties should be static.
 
-    Here, only the basics are tested, whether the FFTDimension properties can be
+    Here, only the basics are tested, whether the Dimension properties can be
     changed within a jax.lax.scan step function.
     """
 
@@ -118,17 +118,17 @@ def test_dynamically_traced_coords(dtc: bool) -> None:
         dynamically_traced_coords = dtc
     )
 
-    def jax_step_func_static(fftdim: fa.FFTDimension, a):
+    def jax_step_func_static(fftdim: fa.Dimension, a):
         o = fftdim._n * fftdim._d_pos + a * fftdim._freq_min
         return fftdim, o
 
-    def jax_step_func_dynamic(fftdim: fa.FFTDimension, a):
+    def jax_step_func_dynamic(fftdim: fa.Dimension, a):
         fftdim._pos_min = fftdim._pos_min - a
         fftdim._d_pos = a*fftdim._d_pos
         fftdim._freq_min = fftdim._freq_min/a
         return fftdim, a
 
-    def jax_step_func_forbidden(fftdim: fa.FFTDimension, a):
+    def jax_step_func_forbidden(fftdim: fa.Dimension, a):
         fftdim._name = f"new{fftdim._name}"
         fftdim._n = fftdim._n + 1
         fftdim._dynamically_traced_coords = not fftdim._dynamically_traced_coords

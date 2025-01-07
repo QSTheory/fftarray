@@ -6,7 +6,7 @@ from hypothesis import given, strategies as st, note, settings
 import numpy as np
 
 import fftarray as fa
-from fftarray.fft_array import FFTArray, Space
+from fftarray.array import Array, Space
 
 from fftarray.tests.helpers import XPS
 from fftarray.tests.test_fft_array import draw_hypothesis_fft_array_values, assert_equal_op, assert_basic_lazy_logic, jnp
@@ -22,14 +22,14 @@ spaces: List[Space] = ["pos", "freq"]
 
 
 @st.composite
-def fftarray_strategy_int(draw) -> FFTArray:
-    """Initializes an FFTArray using hypothesis."""
+def fftarray_strategy_int(draw) -> Array:
+    """Initializes an Array using hypothesis."""
     ndims = draw(st.integers(min_value=1, max_value=4))
     value = st.integers(min_value=np.iinfo(np.int32).min, max_value=np.iinfo(np.int32).max)
     eager = draw(st.lists(st.booleans(), min_size=ndims, max_size=ndims))
-    note(f"eager={eager}") # TODO: remove when FFTArray.__repr__ is implemented
+    note(f"eager={eager}") # TODO: remove when Array.__repr__ is implemented
     init_space = draw(st.sampled_from(["pos", "freq"]))
-    note(f"space={init_space}") # TODO: remove when FFTArray.__repr__ is implemented
+    note(f"space={init_space}") # TODO: remove when Array.__repr__ is implemented
     # xp = draw(st.sampled_from(XPS))
     xp = XPS[0] # this is array_api_strict
     dtype = getattr(xp, draw(st.sampled_from(precisions)))
@@ -48,14 +48,14 @@ def fftarray_strategy_int(draw) -> FFTArray:
         values=fftarr_values,
         dims=dims,
         space=init_space,
-    ).as_eager(eager=eager)
+    ).into_eager(eager=eager)
 
 
 @pytest.mark.slow
 @settings(max_examples=1000, deadline=None, print_blob=True)
 @given(fftarray_strategy_int())
 def test_fftarray_lazyness_int(fftarr):
-    """Tests the lazyness of an FFTArray, i.e., the correct behavior of
+    """Tests the lazyness of an Array, i.e., the correct behavior of
     factors_applied and eager.
     """
     note(fftarr)
@@ -71,12 +71,12 @@ def test_fftarray_lazyness_int(fftarr):
         # -- test eager, factors_applied logic
         assert_fftarray_eager_factors_applied_int(fftarr, note)
 
-def assert_dual_operand_fun_equivalence_int(arr: FFTArray, precise: bool, log):
-    """Test whether a dual operation on an FFTArray, e.g., the
+def assert_dual_operand_fun_equivalence_int(arr: Array, precise: bool, log):
+    """Test whether a dual operation on an Array, e.g., the
     sum/multiplication of two, is equivalent to applying this operand to its
     values.
 
-        operand(FFTArray, FFTArray).values() = operand(FFTArray.values(), FFTArray.values())
+        operand(Array, Array).values() = operand(Array.values(), Array.values())
 
     """
     values = arr.values(space=arr.space)
@@ -97,12 +97,12 @@ def assert_dual_operand_fun_equivalence_int(arr: FFTArray, precise: bool, log):
     else:
         assert_equal_op(arr, values, lambda x: x**x, precise, True, log)
 
-def assert_fftarray_eager_factors_applied_int(arr: FFTArray, log):
+def assert_fftarray_eager_factors_applied_int(arr: Array, log):
     """Tests whether the factors are only applied when necessary and whether
-    the FFTArray after performing an FFT has the correct properties. If the
-    initial FFTArray was eager, then the final FFTArray also must be eager and
-    have _factors_applied=True. If the initial FFTArray was not eager, then the
-    final FFTArray should have eager=False and _factors_applied=False.
+    the Array after performing an FFT has the correct properties. If the
+    initial Array was eager, then the final Array also must be eager and
+    have _factors_applied=True. If the initial Array was not eager, then the
+    final Array should have eager=False and _factors_applied=False.
     """
 
     log("arr._factors_applied == (arr**2)._factors_applied")
@@ -116,7 +116,7 @@ def assert_fftarray_eager_factors_applied_int(arr: FFTArray, log):
     np.testing.assert_array_equal(arr_abs._factors_applied, True)
 
     log("(x*abs(x))._factors_applied == x._factors_applied")
-    # if both _factors_applied=True, the resulting FFTArray will also have it
+    # if both _factors_applied=True, the resulting Array will also have it
     # True, otherwise False
     # given abs(x)._factors_applied=True, we test the patterns
     # True*True=True, False*True=False
@@ -133,16 +133,16 @@ def assert_fftarray_eager_factors_applied_int(arr: FFTArray, log):
         assert (ifa == ffa) or (ffa == ea)
 
     log("fft(x)._factors_applied ...")
-    # arr_fft = arr.into(space=get_other_space(arr.space))
+    # arr_fft = arr.into_space(space=get_other_space(arr.space))
     # np.testing.assert_array_equal(arr.eager, arr_fft.eager)
     # for ffapplied, feager in zip(arr_fft._factors_applied, arr_fft.eager):
     #     assert (feager and ffapplied) or (not feager and not ffapplied)
 
-def assert_single_operand_fun_equivalence_int(arr: FFTArray, precise: bool, log):
-    """Test whether applying operands to the FFTArray (and then getting the
+def assert_single_operand_fun_equivalence_int(arr: Array, precise: bool, log):
+    """Test whether applying operands to the Array (and then getting the
     values) is equivalent to applying the same operands to the values array:
 
-        operand(FFTArray).values() == operand(FFTArray.values())
+        operand(Array).values() == operand(Array.values())
 
     """
     values = arr.values(space=arr.space)

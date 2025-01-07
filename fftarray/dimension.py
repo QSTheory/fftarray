@@ -19,10 +19,10 @@ def dim(
         freq_min: float,
         *,
         dynamically_traced_coords: bool = True,
-    ) -> FFTDimension:
-    # TODO: How to duplicate the doc-string between function and FFTDimension
+    ) -> Dimension:
+    # TODO: How to duplicate the doc-string between function and Dimension
 
-    return FFTDimension(
+    return Dimension(
         name=name,
         n=n,
         d_pos=d_pos,
@@ -32,7 +32,7 @@ def dim(
     )
 
 @dataclass
-class FFTDimension:
+class Dimension:
     """Properties of an FFTWave grid for one dimension.
 
     This class encapsulates all the properties of the position and frequency
@@ -177,22 +177,22 @@ class FFTDimension:
         self._freq_min = freq_min
         self._dynamically_traced_coords = dynamically_traced_coords
 
-    def __repr__(self: FFTDimension) -> str:
+    def __repr__(self: Dimension) -> str:
         arg_str = ", ".join(
             [f"{name[1:]}={repr(value)}"
                 for name, value in self.__dict__.items()]
         )
-        return f"FFTDimension({arg_str})"
+        return f"Dimension({arg_str})"
 
-    def __str__(self: FFTDimension) -> str:
+    def __str__(self: Dimension) -> str:
         n_str = format_n(self.n)
-        str_out = f"<fftarray.FFTDimension (name={repr(self.name)})>\n"
+        str_out = f"<fftarray.Dimension (name={repr(self.name)})>\n"
         str_out += f"n={n_str}\n"
         str_out += fft_dim_table(self)
         return str_out
 
     @property
-    def n(self: FFTDimension) -> int:
+    def n(self: Dimension) -> int:
         """..
 
         Returns
@@ -203,20 +203,20 @@ class FFTDimension:
         return self._n
 
     @property
-    def name(self: FFTDimension) -> str:
+    def name(self: Dimension) -> str:
         """..
 
         Returns
         -------
         float
-            The name of his FFTDimension.
+            The name of his Dimension.
         """
         return self._name
 
     # ---------------------------- Position Space ---------------------------- #
 
     @property
-    def d_pos(self: FFTDimension) -> float:
+    def d_pos(self: Dimension) -> float:
         """..
 
         Returns
@@ -227,7 +227,7 @@ class FFTDimension:
         return self._d_pos
 
     @property
-    def pos_min(self: FFTDimension) -> float:
+    def pos_min(self: Dimension) -> float:
         """..
 
         Returns
@@ -238,7 +238,7 @@ class FFTDimension:
         return self._pos_min
 
     @property
-    def pos_max(self: FFTDimension) -> float:
+    def pos_max(self: Dimension) -> float:
         """..
 
         Returns
@@ -249,7 +249,7 @@ class FFTDimension:
         return (self.n - 1) * self.d_pos + self.pos_min
 
     @property
-    def pos_middle(self: FFTDimension) -> float:
+    def pos_middle(self: Dimension) -> float:
         """..
 
         Returns
@@ -261,7 +261,7 @@ class FFTDimension:
         return self.pos_min + self.n//2 * self.d_pos
 
     @property
-    def pos_extent(self: FFTDimension) -> float:
+    def pos_extent(self: Dimension) -> float:
         """..
 
         Returns
@@ -276,14 +276,14 @@ class FFTDimension:
             self,
             range: slice,
             space: Space,
-        ) -> FFTDimension:
+        ) -> Dimension:
         """
-            Get a new FFTDimension for a interval selection in a given space.
+            Get a new Dimension for a interval selection in a given space.
             Does not support steps!=1.
 
             Indexing behaviour is the same as for a numpy array with the
             difference that we raise an IndexError if the resulting size
-            is not at least 1. We require n>=1 to create a valid FFTDimension.
+            is not at least 1. We require n>=1 to create a valid Dimension.
         """
 
         # Catch invalid slice objects with range.step != 1
@@ -298,7 +298,7 @@ class FFTDimension:
         if n < 1:
             raise IndexError(
                 f"Your indexing {range} is not valid. To create a valid "
-                + "FFTDimension, the stop index must be bigger than the start "
+                + "Dimension, the stop index must be bigger than the start "
                 + "index in order to keep at least one sample (n>=1)."
             )
 
@@ -309,8 +309,8 @@ class FFTDimension:
             start: int,
             n: int,
             space: Space,
-        ) -> FFTDimension:
-        """Returns new FFTDimension instance starting at a specific value
+        ) -> Dimension:
+        """Returns new Dimension instance starting at a specific value
         in either pos or freq space and setting variable dimension length.
         """
 
@@ -326,7 +326,7 @@ class FFTDimension:
             case _:
                 assert_never(space)
 
-        return FFTDimension(
+        return Dimension(
             name=self.name,
             n=n,
             pos_min=pos_min,
@@ -355,14 +355,14 @@ class FFTDimension:
         if isinstance(coord, slice):
             check_substepping(coord)
             if method is not None:
-                # This catches slices supplied to FFTArray.sel or isel with
+                # This catches slices supplied to Array.sel or isel with
                 # a method != None (e.g. nearest) which is not supported
                 raise NotImplementedError(
                     f"cannot use method: `{method}` if the coord argument "
                     + f"is not scalar, here: {coord}."
                 )
             # Handle slice objects with start or end being None whereas
-            # we substitute those with the FFTDimension bounds
+            # we substitute those with the Dimension bounds
             if coord.start is None:
                 coord_start = getattr(self, f"{space}_min")
             else:
@@ -381,7 +381,7 @@ class FFTDimension:
                 idx_max + 1 # as slice.stop is non-inclusive, add 1
             )
         else:
-            # Calculate the float index regarding the FFTDimension as
+            # Calculate the float index regarding the Dimension as
             # an infinite grid
             if space == "pos":
                 raw_idx = (coord - self.pos_min) / self.d_pos
@@ -440,7 +440,7 @@ class FFTDimension:
     # ---------------------------- Frequency Space --------------------------- #
 
     @property
-    def d_freq(self: FFTDimension) -> float:
+    def d_freq(self: Dimension) -> float:
         """..
 
         Returns
@@ -451,7 +451,7 @@ class FFTDimension:
         return 1./(self.n*self.d_pos)
 
     @property
-    def freq_min(self: FFTDimension) -> float:
+    def freq_min(self: Dimension) -> float:
         """..
 
         Returns
@@ -463,7 +463,7 @@ class FFTDimension:
         return self._freq_min
 
     @property
-    def freq_middle(self: FFTDimension) -> float:
+    def freq_middle(self: Dimension) -> float:
         """..
 
         Returns
@@ -475,7 +475,7 @@ class FFTDimension:
         return self.freq_min + self.n//2 * self.d_freq
 
     @property
-    def freq_max(self: FFTDimension) -> float:
+    def freq_max(self: Dimension) -> float:
         """..
 
         Returns
@@ -486,7 +486,7 @@ class FFTDimension:
         return (self.n - 1) * self.d_freq + self.freq_min
 
     @property
-    def freq_extent(self: FFTDimension) -> float:
+    def freq_extent(self: Dimension) -> float:
         """..
 
         Returns
@@ -498,7 +498,7 @@ class FFTDimension:
         return (self.n - 1) * self.d_freq
 
     def _raw_coord_array(
-                self: FFTDimension,
+                self: Dimension,
                 xp,
                 dtype,
                 space: Space,
@@ -518,6 +518,6 @@ class FFTDimension:
             case _:
                 assert_never(space)
 
-    def np_array(self: FFTDimension, space: Space):
+    def np_array(self: Dimension, space: Space):
         return self._raw_coord_array(xp=np, dtype=getattr(np, get_default_dtype_name()), space=space)
 

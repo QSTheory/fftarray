@@ -1,6 +1,6 @@
 import pytest
 
-from fftarray.fft_dimension import FFTDimension
+from fftarray.dimension import Dimension
 from fftarray._utils.formatting import format_bytes, format_n
 from fftarray.tests.helpers import XPS
 from tests.helpers import get_dims, get_arr_from_dims
@@ -8,11 +8,11 @@ from tests.helpers import get_dims, get_arr_from_dims
 @pytest.mark.parametrize("xp", XPS)
 def test_format(xp) -> None:
     """
-        Tests that `__str__` and `__repr__` of `FFTDimension`
-        and `FFTArray` at least do not crash and return a string.
+        Tests that `__str__` and `__repr__` of `Dimension`
+        and `Array` at least do not crash and return a string.
     """
     dims = get_dims(1)
-    dim1 = FFTDimension(
+    dim1 = Dimension(
         name="veryLongName",
         n=1024,
         d_pos=0.1,

@@ -15,13 +15,13 @@ import numpy.typing as npt
 import array_api_compat
 
 from .space import Space
-from .fft_dimension import FFTDimension
+from .dimension import Dimension
 from .named_array import get_axes_transpose, align_named_arrays
 from ._utils.uniform_value import UniformValue
 
 from ._utils.formatting import fft_dim_table, format_bytes, format_n
 from ._utils.indexing import (
-    LocFFTArrayIndexer, check_missing_dim_names,
+    LocArrayIndexer, check_missing_dim_names,
     tuple_indexers_from_dict_or_tuple, tuple_indexers_from_mapping,
 )
 from ._utils.helpers import norm_param, norm_space
@@ -39,17 +39,17 @@ EllipsisType = TypeVar('EllipsisType')
 
 
 
-def abs(x: FFTArray, /) -> FFTArray:
+def abs(x: Array, /) -> Array:
     """Implements abs with a special shortcut to statically eliminate the phase part
         of potential phase factors.
 
     Args:
-        x (FFTArray): input array
+        x (Array): input array
 
     Returns:
-        FFTArray: x with elementwise abs applied.
+        Array: x with elementwise abs applied.
     """
-    assert isinstance(x, FFTArray)
+    assert isinstance(x, Array)
     # For abs the final result does not change if we apply the phases
     # to the values so we can simply ignore the phases.
     values = x.xp.abs(x._values)
@@ -69,7 +69,7 @@ def abs(x: FFTArray, /) -> FFTArray:
             scale_only=True,
         )
 
-    return FFTArray(
+    return Array(
         values=values,
         space=x.space,
         dims=x.dims,
@@ -82,7 +82,7 @@ def two_inputs_func(
             unp_inp: UnpackedValues,
             op,
             transforms_lut: TwoOperandTransforms=default_transforms_lut,
-        ) -> FFTArray:
+        ) -> Array:
     # Compute look-up indices by interpreting the three bits as a binary number.
     lut_indices = np.array(unp_inp.eager)*4 + np.dot(unp_inp.factors_applied,[2,1])
     # Compute the required phase applications for each operand per dimension
@@ -99,7 +99,7 @@ def two_inputs_func(
         if not np.all(signs==0):
             sub_values: Any = unp_inp.values[op_idx]
             if isinstance(sub_values, Number):
-                # This function is only called if at least one of the operands is an FFTArray.
+                # This function is only called if at least one of the operands is an Array.
                 # But the transform-signs LUTs may also coerce an operand from factors_applied=True
                 # to factors_applied=False.
                 # And this operand may be a scalar which is not supported by apply_lazy.
@@ -130,7 +130,7 @@ def two_inputs_func(
             )
 
     values = op(*unp_inp.values)
-    return FFTArray(
+    return Array(
         values=values,
         space=unp_inp.space,
         dims=unp_inp.dims,
@@ -139,16 +139,16 @@ def two_inputs_func(
         xp=unp_inp.xp,
     )
 
-def _two_elem_self(x1: FFTArray, x2: FFTArray, name: str) -> FFTArray:
+def _two_elem_self(x1: Array, x2: Array, name: str) -> Array:
     return getattr(x1, name)(x2)
 
 def elementwise_two_operands(
         name: str,
         transforms_lut: TwoOperandTransforms = default_transforms_lut,
         is_on_self: bool = False,
-    ): # This type makes problem for the dunder methods -> Callable[[Any, Any], FFTArray]:
+    ): # This type makes problem for the dunder methods -> Callable[[Any, Any], Array]:
 
-    def fun(x1, x2, /) -> FFTArray:
+    def fun(x1, x2, /) -> Array:
         unp_inp: UnpackedValues = unpack_fft_arrays([x1, x2])
         if is_on_self:
             op_norm = partial(_two_elem_self, name=name)
@@ -168,22 +168,22 @@ def elementwise_two_operands(
     )
     return fun
 
-def _single_elem_self(x1: FFTArray, name: str) -> FFTArray:
+def _single_elem_self(x1: Array, name: str) -> Array:
     return getattr(x1, name)()
 
 def elementwise_one_operand(
         name: str,
         is_on_self: bool = False,
-    ) -> Callable[[FFTArray], FFTArray]:
-    def single_element_func(x: FFTArray, /) -> FFTArray:
-        assert isinstance(x, FFTArray)
+    ) -> Callable[[Array], Array]:
+    def single_element_func(x: Array, /) -> Array:
+        assert isinstance(x, Array)
         if is_on_self:
             op_norm = partial(_single_elem_self, name=name)
         else:
             op_norm = getattr(x.xp, name)
 
         values = op_norm(x.values(space=x.space))
-        return FFTArray(
+        return Array(
             values=values,
             space=x.space,
             dims=x.dims,
@@ -202,12 +202,12 @@ def elementwise_one_operand(
     return single_element_func
 
 
-class FFTArray:
+class Array:
     """A single class implementing FFTs."""
 
     # _dims are stored as a sequence and not by name because their oder needs
     # to match the order of dimensions in _values.
-    _dims: Tuple[FFTDimension, ...]
+    _dims: Tuple[Dimension, ...]
     # Contains an array instance of _xp.
     _values: Any
     # Marks each dimension whether it is in position or frequency space
@@ -228,14 +228,14 @@ class FFTArray:
     def __init__(
             self,
             values,
-            dims: Tuple[FFTDimension, ...],
+            dims: Tuple[Dimension, ...],
             space: Tuple[Space, ...],
             eager: Tuple[bool, ...],
             factors_applied: Tuple[bool, ...],
             xp,
         ):
         """
-        Construct a new instance of FFTArray from raw values.
+        Construct a new instance of Array from raw values.
         For normal usage it is recommended to construct
         new instances via the `array` function of `fftarray`
         since this ensures that all values match and are valid.
@@ -243,24 +243,24 @@ class FFTArray:
         Parameters
         ----------
         values :
-            The values to initialize the `FFTArray` with.
+            The values to initialize the `Array` with.
             For performance reasons they are assumed to not be aliased (or immutable)
             and therefore do not get copied during construction.
             If any 'factors_applied' is 'False', the dtype has to be of kind 'complex floating',
             because the factor which needs to be multiplied onto the values is also a complex number.
-        dims : Tuple[FFTDimension, ...]
-            The FFTDimensions for each dimension of the passed in values.
+        dims : Tuple[Dimension, ...]
+            The Dimensions for each dimension of the passed in values.
         space: Tuple[Space, ...]
-            Specify the space of the coordinates and in which space the returned FFTArray is intialized.
+            Specify the space of the coordinates and in which space the returned Array is intialized.
         eager: Tuple[bool, ...]
-            The eager-mode to use for the returned FFTArray.
+            The eager-mode to use for the returned Array.
         factors_applied: Tuple[bool, ...]
             Whether the fft-factors are applied are already applied for the various dimensions.
 
         Returns
         -------
-        FFTArray
-            The grid coordinates of the chosen space packed into an FFTArray with self as only dimension.
+        Array
+            The grid coordinates of the chosen space packed into an Array with self as only dimension.
 
         See Also
         --------
@@ -275,20 +275,20 @@ class FFTArray:
         self._xp = xp
 
 
-    def __repr__(self: FFTArray) -> str:
+    def __repr__(self: Array) -> str:
         arg_str = ", ".join(
             [f"{name[1:] if name != '_spaces' else 'space'}={repr(value)}"
                 for name, value in self.__dict__.items()]
         )
-        return f"FFTArray({arg_str})"
+        return f"Array({arg_str})"
 
-    def __str__(self: FFTArray) -> str:
+    def __str__(self: Array) -> str:
         shape_str = ""
         for i, dim in enumerate(self.dims):
             shape_str += f"{dim.name}: {format_n(dim.n)}"
             if i < len(self.dims)-1:
                 shape_str += ", "
-        str_out = f"<fftarray.FFTArray ({shape_str})>"
+        str_out = f"<fftarray.Array ({shape_str})>"
         # Array API does not guarantuee existence of this attribute.
         if hasattr(self._values, "nbytes"):
             bytes_str = format_bytes(self._values.nbytes)
@@ -305,13 +305,13 @@ class FFTArray:
         str_out += f"{self.values(space=self.space)}"
         return str_out
 
-    def __bool__(self: FFTArray):
+    def __bool__(self: Array):
         raise ValueError("The truth value of an array is ambiguous.")
 
     #--------------------
     # Operator Implementations
     #--------------------
-    # Implement binary operations between FFTArray and also Scalars e.g. 1+wf and wf+1
+    # Implement binary operations between Array and also Scalars e.g. 1+wf and wf+1
     # We need to map directly to the dunder methods (as opposed to just reusing xp.add, etc...)
     # in order to ensure the correct promotion rules, since those differ for scalars in the
     # current (v2023.12) edition of the Array API standard.
@@ -410,16 +410,16 @@ class FFTArray:
                 Tuple[Union[int, slice, EllipsisType],...],
                 Mapping[str, Union[int, slice]],
             ]
-        ) -> FFTArray:
-        """This method is called when indexing an FFTArray instance by integer index,
-            i.e., by using the index value via FFTArray[].
+        ) -> Array:
+        """This method is called when indexing an Array instance by integer index,
+            i.e., by using the index value via Array[].
             It supports dimensional lookup via position and name.
             The indexing behaviour is mainly defined to match the one of
             xarray.DataArray with the major difference that we always keep
             all dimensions.
-            The indexing is performed in the current state of the FFTArray,
+            The indexing is performed in the current state of the Array,
             i.e., each dimension is indexed in its respective state (pos or freq).
-            When the returned FFTArray object is effectively indexed,
+            When the returned Array object is effectively indexed,
             its internal state will always have all fft factors applied.
 
             Example usage:
@@ -427,7 +427,7 @@ class FFTArray:
                 coords_from_dim(x_dim, "pos")
                 + coords_from_dim(y_dim, "pos")
             )
-            Four ways of retrieving an FFTArray object
+            Four ways of retrieving an Array object
             with index 3 along x and first 5 values along y:
 
             arr_2d[{"x": 3, "y": slice(0, 5)}]
@@ -440,18 +440,18 @@ class FFTArray:
         item : Union[ int, slice, EllipsisType, Tuple[Union[int, slice, EllipsisType],...], Mapping[str, Union[int, slice]], ]
             An indexer object with either dimension lookup method either
             via position or name. When using positional lookup, the order
-            of the dimensions in the FFTArray object is applied (FFTArray.dims).
+            of the dimensions in the Array object is applied (Array.dims).
             Per dimension, each indexer can be supplied as an integer or a slice.
             Array-like indexers are not supported as in the general case,
-            the resulting coordinates can not be supported with a valid FFTDimension.
-        FFTArray
-            A new FFTArray with the same dimensionality as this FFTArray,
-            except each dimension and the FFTArray values are indexed.
-            The resulting FFTArray still fully supports FFTs.
+            the resulting coordinates can not be supported with a valid Dimension.
+        Array
+            A new Arrayth the same dimensionality as this Array,
+            except each dimension and the Array values are indexed.
+            The resulting Array still fully supports FFTs.
         """
 
         # Catch special case where effectively no indexing happens,
-        # i.e., just return FFTArray object as is (without changing internal state)
+        # i.e., just return Array object as is (without changing internal state)
         if item is Ellipsis:
             return self
         if isinstance(item, abc.Mapping) and len(item) == 0:
@@ -481,7 +481,7 @@ class FFTArray:
                 # This condition is fullfilled when the index is a traced object
                 if "Trace" in str(index):
                     raise NotImplementedError(
-                        "FFTArray indexing does not support "
+                        "Array indexing does not support "
                         + "jitted indexers. Here, your index for "
                         + f"dimension {orig_dim.name} is a traced object."
                     ) from e
@@ -498,7 +498,7 @@ class FFTArray:
         # So we have to reintroduce those dropped dimensions via reshape.
         selected_values = self._xp.reshape(selected_values, tuple(dim.n for dim in new_dims))
 
-        return FFTArray(
+        return Array(
             values=selected_values,
             dims=tuple(new_dims),
             space=self.space,
@@ -509,14 +509,14 @@ class FFTArray:
 
     @property
     def loc(self):
-        return LocFFTArrayIndexer(self)
+        return LocArrayIndexer(self)
 
     def isel(
             self,
             indexers: Optional[Mapping[str, Union[int, slice]]] = None,
             missing_dims: Literal["raise", "warn", "ignore"] = 'raise',
             **indexers_kwargs: Union[int, slice],
-        ) -> FFTArray:
+        ) -> Array:
         """
         Inspired by xarray.DataArray.isel
         """
@@ -526,7 +526,7 @@ class FFTArray:
         if indexers is not None and indexers_kwargs:
             raise ValueError(
                 "cannot specify both keyword arguments and "
-                + "positional arguments to FFTArray.isel"
+                + "positional arguments to Array.isel"
             )
 
         # Handle two ways of supplying indexers, either via positional
@@ -546,7 +546,7 @@ class FFTArray:
         if len(final_indexers) == 0:
             return self
 
-        # Check for indexer names that are not present in FFTArray and
+        # Check for indexer names that are not present in Array and
         # according to user choice, raise Error, throw warning or ignore
         check_missing_dim_names(
             indexer_names=final_indexers.keys(),
@@ -568,7 +568,7 @@ class FFTArray:
             missing_dims: Literal["raise", "warn", "ignore"] = 'raise',
             method: Optional[Literal["nearest", "pad", "ffill", "backfill", "bfill"]] = None,
             **indexers_kwargs: Union[float, slice],
-        ) -> FFTArray:
+        ) -> Array:
         """Inspired by xarray.DataArray.sel
         In comparison to itx xarray implementation, there is an add-on:
         - Implements missing_dims arg and accordingly raises errors
@@ -579,7 +579,7 @@ class FFTArray:
         if indexers is not None and indexers_kwargs:
             raise ValueError(
                 "cannot specify both keyword arguments and "
-                + "positional arguments to FFTArray.sel"
+                + "positional arguments to Array.sel"
             )
 
         # Handle two ways of supplying indexers, either via positional
@@ -599,7 +599,7 @@ class FFTArray:
         if len(final_indexers) == 0:
             return self
 
-        # Check for indexer names that are not present in FFTArray and
+        # Check for indexer names that are not present in Array and
         # according to user choice, raise Error, throw warning or ignore
         check_missing_dim_names(
             indexer_names=final_indexers.keys(),
@@ -607,9 +607,9 @@ class FFTArray:
             missing_dims=missing_dims
         )
 
-        # As opposed to FFTArray.isel, here we have to find the appropriate
+        # As opposed to Array.isel, here we have to find the appropriate
         # indices for the coordinate indexers by checking the respective
-        # FFTDimension
+        # Dimension
         tuple_indexers_as_integer = []
         for dim, space in zip(self.dims, self.space, strict=True):
             if dim.name in final_indexers:
@@ -624,12 +624,12 @@ class FFTArray:
                     )
                 except Exception as e:
                     # Here, we check for traced indexer values or
-                    # traced FFTDimension and throw a helpful error message
+                    # traced Dimension and throw a helpful error message
                     # in addition to the original error raised when trying
                     # to map the coord to an index
                     if "Trace" in str(index):
                         raise NotImplementedError(
-                            "FFTArray indexing does not support "
+                            "Array indexing does not support "
                             + "jitted indexers. Here, your index for "
                             + f"dimension {dim.name} is a traced object"
                         ) from e
@@ -649,7 +649,7 @@ class FFTArray:
         return self.__getitem__(tuple(tuple_indexers_as_integer))
 
     @property
-    def dims_dict(self) -> Dict[str, FFTDimension]:
+    def dims_dict(self) -> Dict[str, Dimension]:
         # TODO Ordered Mapping?
         return {dim.name: dim for dim in self._dims}
 
@@ -659,11 +659,11 @@ class FFTArray:
         return {dim.name: dim.n for dim in self._dims}
 
     @property
-    def dims(self) -> Tuple[FFTDimension, ...]:
+    def dims(self) -> Tuple[Dimension, ...]:
         return tuple(self._dims)
 
     @property
-    def shape(self: FFTArray) -> Tuple[int, ...]:
+    def shape(self: Array) -> Tuple[int, ...]:
         """..
 
         Returns
@@ -678,13 +678,13 @@ class FFTArray:
             Return the values with all lazy state applied.
             Does not mutate self.
             Therefore each call evaluates its lazy state again.
-            Use `.into(factors_applied=True)` if you want to evaluate it once and reuse it multiple times.
+            Use `.into_space(factors_applied=True)` if you want to evaluate it once and reuse it multiple times.
         """
 
         space_norm: Tuple[Space, ...] = norm_space(space, len(self.dims))
         if space_norm != self.space or not all(self._factors_applied):
             # Setting eager before-hand allows copy-elision without the move option.
-            fft_arr = self.as_eager(True).into(space=space).as_factors_applied(True)
+            fft_arr = self.into_eager(True).into_space(space=space).into_factors_applied(True)
             return fft_arr._values
         return self.xp.asarray(self._values, copy=True)
 
@@ -692,10 +692,10 @@ class FFTArray:
     def xp(self):
         return self._xp
 
-    def asxp(self, xp):
-        # Since FFTArray is immutable, this does not necessarily need to copy.
+    def into_xp(self, xp):
+        # Since Array is immutable, this does not necessarily need to copy.
         values = xp.asarray(self._values, copy=None)
-        return FFTArray(
+        return Array(
             dims=self._dims,
             values=values,
             space=self._spaces,
@@ -708,7 +708,7 @@ class FFTArray:
     def dtype(self):
         return self._values.dtype
 
-    def astype(self, dtype):
+    def into_dtype(self, dtype):
         # Hard-code this special case (which also exists in numpy)
         # in order to give an Array API compatible way to upcast
         # to complex without explicitly handling precision in user code.
@@ -721,10 +721,10 @@ class FFTArray:
                 + " since the not applied phase factor implies a complex value."
             )
 
-        # Since FFTArray is immutable, this does not need to copy.
+        # Since Array is immutable, this does not need to copy.
         # copy=False never raises an error but just avoids the copy if possible.
         values = self._xp.astype(self._values, dtype, copy=False)
-        return FFTArray(
+        return Array(
             dims=self._dims,
             values=values,
             space=self._spaces,
@@ -737,7 +737,7 @@ class FFTArray:
     def factors_applied(self):
         return self._factors_applied
 
-    def as_factors_applied(self, factors_applied: Union[bool, Iterable[bool]]) -> FFTArray:
+    def into_factors_applied(self, factors_applied: Union[bool, Iterable[bool]]) -> Array:
         factors_applied_norm = norm_param(factors_applied, len(self._dims), bool)
 
         signs = get_transform_signs(
@@ -746,7 +746,7 @@ class FFTArray:
         )
 
         if not self.xp.isdtype(self.dtype, ("real floating", "complex floating")):
-            raise ValueError(f"'as_factors_applied' requires an FFTArray with a float or complex dtype, but got passed array of type '{self.dtype}'")
+            raise ValueError(f"'as_factors_applied' requires an Array with a float or complex dtype, but got passed array of type '{self.dtype}'")
 
         values = self.xp.astype(self._values, complex_type(self.xp, self._values.dtype), copy=True)
 
@@ -761,7 +761,7 @@ class FFTArray:
             )
 
 
-        return FFTArray(
+        return Array(
             dims=self._dims,
             values=values,
             space=self._spaces,
@@ -779,11 +779,11 @@ class FFTArray:
         """
         return self._eager
 
-    def as_eager(self, eager: Union[bool, Iterable[bool]]) -> FFTArray:
+    def into_eager(self, eager: Union[bool, Iterable[bool]]) -> Array:
         eager_norm = norm_param(eager, len(self.dims), bool)
 
         # Can just reuse everything since all attributes are immutable.
-        return FFTArray(
+        return Array(
             dims=self._dims,
             values=self._values,
             space=self.space,
@@ -795,14 +795,14 @@ class FFTArray:
     @property
     def space(self) -> Tuple[Space, ...]:
         """
-            Enables automatically and easily detecting in which space a generic FFTArray curently is.
+            Enables automatically and easily detecting in which space a generic Array curently is.
         """
         return self._spaces
 
-    def into(
+    def into_space(
             self,
             space: Union[Space, Iterable[Space]],
-        ) -> FFTArray:
+        ) -> Array:
         """
             values must be real floating or complex floating.
             Always upcasts to complex floating even if no transform is done.
@@ -812,7 +812,7 @@ class FFTArray:
         are_values_owned = False
 
         if not self.xp.isdtype(values.dtype, ("real floating", "complex floating")):
-            raise ValueError(f"'into' requires an FFTArray with a float dtype, but got passed array of type '{values.dtype}'")
+            raise ValueError(f"'into' requires an Array with a float dtype, but got passed array of type '{values.dtype}'")
 
         # At this point we need to do either an FFT and/or apply phase factors
         # both require complex numbers.
@@ -849,7 +849,7 @@ class FFTArray:
                 are_values_owned=are_values_owned,
             )
 
-        return FFTArray(
+        return Array(
             dims=dims,
             values=values,
             space=space_after,
@@ -859,7 +859,7 @@ class FFTArray:
         )
 
 
-    def transpose(self: FFTArray, *dims: str) -> FFTArray:
+    def transpose(self: Array, *dims: str) -> Array:
         """
             Transpose with dimension names.
         """
@@ -874,7 +874,7 @@ class FFTArray:
         axes_transpose = get_axes_transpose(old_dim_names, new_dim_names)
         transposed_values = self._xp.permute_dims(self._values, tuple(axes_transpose))
 
-        transposed_arr = FFTArray(
+        transposed_arr = Array(
             values=transposed_values,
             dims=tuple(self._dims[idx] for idx in axes_transpose),
             space=tuple(self._spaces[idx] for idx in axes_transpose),
@@ -885,13 +885,13 @@ class FFTArray:
         return transposed_arr
 
 
-    def np_array(self: FFTArray, space: Union[Space, Iterable[Space]], dtype = None):
+    def np_array(self: Array, space: Union[Space, Iterable[Space]], dtype = None):
         """..
 
         Returns
         -------
         NDArray
-            The values of this FFTArray in the specified space as a bare numpy array.
+            The values of this Array in the specified space as a bare numpy array.
         """
 
         values = self.values(space=space)
@@ -899,7 +899,7 @@ class FFTArray:
 
     def _check_consistency(self) -> None:
         """
-            Check some invariants of FFTArray.
+            Check some invariants of Array.
         """
 
         assert isinstance(self._dims, tuple)
@@ -915,12 +915,12 @@ class FFTArray:
         dim_names: Set[str] = set()
         for n, dim in zip(self._values.shape, self._dims, strict=True):
             assert dim.n == n, \
-                "Passed in inconsistent n from FFTDimension and values."
+                "Passed in inconsistent n from Dimension and values."
             assert dim.name not in dim_names, \
-                f"Passed in FFTDimension of name {dim.name} twice!"
+                f"Passed in Dimension of name {dim.name} twice!"
             dim_names.add(dim.name)
 
-        assert all([isinstance(dim, FFTDimension) for dim in self._dims])
+        assert all([isinstance(dim, Dimension) for dim in self._dims])
         assert all([dim_space in get_args(Space) for dim_space in self._spaces])
         assert all([isinstance(dim_eager, bool) for dim_eager in self._eager])
         assert all([isinstance(factor_applied, bool) for factor_applied in self._factors_applied])
@@ -938,8 +938,8 @@ class FFTArray:
 
 @dataclass
 class UnpackedValues:
-    # FFTDimensions in the order in which they appear in each non-scalar value.
-    dims: Tuple[FFTDimension, ...]
+    # Dimensions in the order in which they appear in each non-scalar value.
+    dims: Tuple[Dimension, ...]
     # Values without any dimensions, etc.
     values: List[Union[Number, Any]]
     # Shared array namespace between all values.
@@ -954,7 +954,7 @@ class UnpackedValues:
 
 @dataclass
 class UnpackedDimProperties:
-    dim: UniformValue[FFTDimension]
+    dim: UniformValue[Dimension]
     factors_applied: List[bool]
     eager: UniformValue[bool]
     space: UniformValue[Space]
@@ -970,7 +970,7 @@ class UnpackedDimProperties:
         self.space = UniformValue()
 
 def unpack_fft_arrays(
-        values: List[Union[Number, FFTArray, Any]],
+        values: List[Union[Number, Array, Any]],
     ) -> UnpackedValues:
     """
         This handles all "alignment" of input values.
@@ -985,16 +985,16 @@ def unpack_fft_arrays(
     for op_idx, x in enumerate(values):
         if isinstance(x, Number):
             unpacked_values[op_idx] = x
-        elif hasattr(x, "shape") and not isinstance(x, FFTArray):
+        elif hasattr(x, "shape") and not isinstance(x, Array):
             if x.shape == ():
                 unpacked_values[op_idx] = x
             else:
                 raise ValueError(
-                    "Cannot combine coordinate-less arrays with an FFTArray."
+                    "Cannot combine coordinate-less arrays with an Array."
                 )
         else:
             array_indices.append(op_idx)
-            assert isinstance(x, FFTArray)
+            assert isinstance(x, Array)
 
             xp.set(x.xp)
             # input_factors_applied = x._factors_applied
@@ -1011,7 +1011,7 @@ def unpack_fft_arrays(
                     dim_props.dim.set(fft_dim)
                 except ValueError:
                     raise ValueError(
-                        "Tried to combine FFTArrays with " +
+                        "Tried to combine Arrays with " +
                         "different dimension of name " +
                         f"{fft_dim.name}."
                     ) from None
@@ -1020,7 +1020,7 @@ def unpack_fft_arrays(
                     dim_props.space.set(x._spaces[dim_idx])
                 except ValueError:
                     raise ValueError(
-                        "Tried to call ufunc on FFTArrays with " +
+                        "Tried to call ufunc on Arrays with " +
                         "different spaces in dimension of name " +
                         f"{fft_dim.name}." +
                         "They have to be explicitly converted " +
@@ -1031,7 +1031,7 @@ def unpack_fft_arrays(
                     dim_props.eager.set(x._eager[dim_idx])
                 except ValueError:
                     raise ValueError(
-                        "Tried to call ufunc on FFTArrays with " +
+                        "Tried to call ufunc on Arrays with " +
                         "different eager settings in dimension of name " +
                         f"{fft_dim.name}."
                     ) from None

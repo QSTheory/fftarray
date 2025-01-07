@@ -6,7 +6,7 @@ import numpy as np
 import xarray as xr
 
 import fftarray as fa
-from fftarray.fft_array import FFTArray, Space
+from fftarray.array import Array, Space
 from fftarray.tests.helpers import XPS
 
 EllipsisType = TypeVar('EllipsisType')
@@ -37,14 +37,14 @@ STANDARD_TEST_DATASET = xr.Dataset(
 
 """
 Relevant functions/classes for indexing
-- class LocFFTArrayIndexer
-- method FFTArray.__getitem__
-- property FFTArray.loc = LocFFTArrayIndexer(self)
-- method FFTArray.sel
-- method FFTArray.isel
-- method FFTDimension._index_from_coord
-- method FFTDimension._dim_from_slice
-- method FFTDimension._dim_from_start_and_n
+- class LocArrayIndexer
+- method Array.__getitem__
+- property Array.loc = LocArrayIndexer(self)
+- method Array.sel
+- method Array.isel
+- method Dimension._index_from_coord
+- method Dimension._dim_from_slice
+- method Dimension._dim_from_start_and_n
 """
 def test_fftdim_single_element_indexing() -> None:
     dim = fa.dim("x",
@@ -157,7 +157,7 @@ def test_errors_fftarray_invalid_indexes(
         dimension_length=8,
         xp=xp
     )
-    fft_arr = fft_arr.into(space=space)
+    fft_arr = fft_arr.into_space(space=space)
 
     with pytest.raises(IndexError):
         fft_arr[invalid_tuple]
@@ -223,10 +223,10 @@ def test_3d_fft_array_indexing_by_integer(
         xp=xp
     )
 
-    def test_function_isel(_indexers) -> FFTArray:
-        return fft_array.into(space=space).isel(_indexers)
-    def test_function_square_brackets(_indexers) -> FFTArray:
-        return fft_array.into(space=space)[_indexers]
+    def test_function_isel(_indexers) -> Array:
+        return fft_array.into_space(space=space).isel(_indexers)
+    def test_function_square_brackets(_indexers) -> Array:
+        return fft_array.into_space(space=space)[_indexers]
 
     try:
         fft_array_result_isel = test_function_isel(indexers) # type: ignore
@@ -279,10 +279,10 @@ def test_3d_fft_array_positional_indexing(
         xp=xp
     )
 
-    def test_function_loc_square_brackets(_indexers) -> FFTArray:
-        return fft_array.into(space=space).loc[_indexers]
-    def test_function_square_brackets(_indexers) -> FFTArray:
-        return fft_array.into(space=space)[_indexers]
+    def test_function_loc_square_brackets(_indexers) -> Array:
+        return fft_array.into_space(space=space).loc[_indexers]
+    def test_function_square_brackets(_indexers) -> Array:
+        return fft_array.into_space(space=space)[_indexers]
 
     fft_array_result_square_brackets = test_function_square_brackets(indexers) # type: ignore
     xr_result_square_bracket = xr_dataset[space][indexers].data
@@ -324,7 +324,7 @@ def test_3d_fft_array_label_indexing(
     )
 
     try:
-        fft_array_result = fft_array.into(space=space).sel(indexers, method=method)
+        fft_array_result = fft_array.into_space(space=space).sel(indexers, method=method)
     except Exception as e:
         fft_array_result = type(e) # type: ignore
 
@@ -363,17 +363,17 @@ def test_3d_fft_array_indexing(
         xp=xp,
     )
 
-    def test_function_sel(_indexers) -> FFTArray:
+    def test_function_sel(_indexers) -> Array:
         if index_by == "label":
-            return fft_array.into(space=space).sel(_indexers)
+            return fft_array.into_space(space=space).sel(_indexers)
         else:
-            return fft_array.into(space=space).isel(_indexers)
+            return fft_array.into_space(space=space).isel(_indexers)
 
-    def test_function_square_brackets(_indexers) -> FFTArray:
+    def test_function_square_brackets(_indexers) -> Array:
         if index_by == "label":
-            return fft_array.into(space=space).loc[_indexers]
+            return fft_array.into_space(space=space).loc[_indexers]
         else:
-            return fft_array.into(space=space)[_indexers]
+            return fft_array.into_space(space=space)[_indexers]
 
     fft_error = False
     try:
@@ -438,11 +438,11 @@ def test_fftarray_state_management(
     indexers: Mapping[str, Union[int, slice]],
 ) -> None:
     """
-    Tests if the indexed FFTArray has the correct internal properties,
+    Tests if the indexed Array has the correct internal properties,
     especially if _factors_applied is True afterwards.
     Also checks, that the values correspond to _factors_applied True.
     For the special case of empty indexing, it checks that _factors_applied is
-    the same as the original FFTArray.
+    the same as the original Array.
     """
 
     dims = {
@@ -450,7 +450,7 @@ def test_fftarray_state_management(
         for dim_name in space_combination
     }
     fft_arrays = {
-        dim_name: fa.coords_from_dim(dim=dims[dim_name], space=space, xp=xp).as_eager(eager=False)
+        dim_name: fa.coords_from_dim(dim=dims[dim_name], space=space, xp=xp).into_eager(eager=False)
         for dim_name, space in space_combination.items()
     }
 
@@ -463,9 +463,9 @@ def test_fftarray_state_management(
     ]
 
     try:
-        # Test FFTArray[]
+        # Test Array[]
         fft_raw_values = fft_array_2d[indexers].values(space=fft_array_2d.space)
-        fft_different_internal = fft_array_2d.into(space=diff_space_comb).into(space=space_comb_list)
+        fft_different_internal = fft_array_2d.into_space(space=diff_space_comb).into_space(space=space_comb_list)
         fft_indexed = fft_different_internal[indexers]
         fft_indexed_values = fft_indexed.values(space=fft_indexed.space)
 
@@ -477,9 +477,9 @@ def test_fftarray_state_management(
         assert fft_array_2d.eager == fft_indexed.eager
         assert fft_different_internal.space == fft_indexed.space
 
-        # Test FFTArray.isel()
+        # Test Array.isel()
         fft_raw_values = fft_array_2d.isel(indexers).values(space=fft_array_2d.space)
-        fft_different_internal = fft_array_2d.into(space=diff_space_comb).into(space=space_comb_list)
+        fft_different_internal = fft_array_2d.into_space(space=diff_space_comb).into_space(space=space_comb_list)
         fft_indexed = fft_different_internal.isel(indexers)
         fft_indexed_values = fft_indexed.values(space=fft_indexed.space)
 
@@ -491,9 +491,9 @@ def test_fftarray_state_management(
         assert fft_array_2d.eager == fft_indexed.eager
         assert fft_different_internal.space == fft_indexed.space
 
-        # Test FFTArray.loc[]
+        # Test Array.loc[]
         fft_raw_values = fft_array_2d.loc[indexers].values(space=fft_array_2d.space)
-        fft_different_internal = fft_array_2d.into(space=diff_space_comb).into(space=space_comb_list)
+        fft_different_internal = fft_array_2d.into_space(space=diff_space_comb).into_space(space=space_comb_list)
         fft_indexed = fft_different_internal.loc[indexers]
         fft_indexed_values = fft_indexed.values(space=fft_indexed.space)
 
@@ -505,9 +505,9 @@ def test_fftarray_state_management(
         assert fft_array_2d.eager == fft_indexed.eager
         assert fft_different_internal.space == fft_indexed.space
 
-        # Test FFTArray.sel()
+        # Test Array.sel()
         fft_raw_values = fft_array_2d.sel(indexers, method="nearest").values(space=fft_array_2d.space)
-        fft_different_internal = fft_array_2d.into(space=diff_space_comb).into(space=space_comb_list)
+        fft_different_internal = fft_array_2d.into_space(space=diff_space_comb).into_space(space=space_comb_list)
         fft_indexed = fft_different_internal.sel(indexers)
         fft_indexed_values = fft_indexed.values(space=fft_indexed.space)
 
@@ -525,7 +525,7 @@ def generate_test_fftarray_xrdataset(
     dimension_names: List[str],
     dimension_length: Union[int, List[int]],
     xp,
-) -> Tuple[FFTArray, xr.Dataset]:
+) -> Tuple[Array, xr.Dataset]:
 
     if isinstance(dimension_length, int):
         dimension_length = [dimension_length]*len(dimension_names)
@@ -589,10 +589,10 @@ try:
 
         fft_arr, xr_dataset = generate_test_fftarray_xrdataset(["x"], dimension_length=8, xp=jnp)
 
-        def test_function_isel(_indexers) -> FFTArray:
+        def test_function_isel(_indexers) -> Array:
             return fft_arr.isel(x=_indexers)
 
-        def test_function_square_brackets(_indexers) -> FFTArray:
+        def test_function_square_brackets(_indexers) -> Array:
             return fft_arr[slice(*_indexers)]
 
         test_function_isel = jax.jit(test_function_isel, static_argnums=(0,))

@@ -8,7 +8,7 @@ import numpy as np
 import jax.numpy as jnp
 
 import fftarray as fa
-from fftarray.fft_array import FFTArray, Space
+from fftarray.array import Array, Space
 
 from fftarray.tests.helpers import XPS, get_other_space
 from fftarray._utils.defaults import DEFAULT_DTYPE
@@ -82,24 +82,24 @@ def test_dtype(xp, init, override) -> None:
         assert fa.coords_from_dim(dim=x_dim, space="pos", dtype=init_dtype_real, xp=xp).values(space="pos").dtype == init_dtype_real
     else:
         assert fa.coords_from_dim(dim=x_dim, dtype=override_dtype_real, xp=xp, space="pos").values(space="pos").dtype == override_dtype_real
-        assert fa.coords_from_dim(dim=x_dim, dtype=init_dtype_real, xp=xp, space="pos").astype(dtype=override_dtype_real).values(space="pos").dtype == override_dtype_real
+        assert fa.coords_from_dim(dim=x_dim, dtype=init_dtype_real, xp=xp, space="pos").into_dtype(dtype=override_dtype_real).values(space="pos").dtype == override_dtype_real
 
 
     if override is None:
         assert fa.coords_from_dim(dim=x_dim, dtype=init_dtype_real, xp=xp, space="freq").values(space="freq").dtype == init_dtype_real
     else:
         assert fa.coords_from_dim(dim=x_dim, dtype=override_dtype_real, xp=xp, space="freq").values(space="freq").dtype == override_dtype_real
-        assert fa.coords_from_dim(dim=x_dim, dtype=init_dtype_real, xp=xp, space="freq").astype(dtype=override_dtype_real).values(space="freq").dtype == override_dtype_real
+        assert fa.coords_from_dim(dim=x_dim, dtype=init_dtype_real, xp=xp, space="freq").into_dtype(dtype=override_dtype_real).values(space="freq").dtype == override_dtype_real
 
-    assert fa.coords_from_dim(dim=x_dim, dtype=init_dtype_real, xp=xp, space="pos").into(space="freq").values(space="freq").dtype == init_dtype_complex
-    assert fa.coords_from_dim(dim=x_dim, dtype=init_dtype_real, xp=xp, space="freq").into(space="pos").values(space="pos").dtype == init_dtype_complex
+    assert fa.coords_from_dim(dim=x_dim, dtype=init_dtype_real, xp=xp, space="pos").into_space(space="freq").values(space="freq").dtype == init_dtype_complex
+    assert fa.coords_from_dim(dim=x_dim, dtype=init_dtype_real, xp=xp, space="freq").into_space(space="pos").values(space="pos").dtype == init_dtype_complex
 
-    assert fa.abs(fa.coords_from_dim(dim=x_dim, dtype=init_dtype_real, xp=xp, space="pos").into(space="freq")).values(space="freq").dtype == init_dtype_real # type: ignore
-    assert fa.abs(fa.coords_from_dim(dim=x_dim, dtype=init_dtype_real, xp=xp, space="freq").into(space="pos")).values(space="pos").dtype == init_dtype_real # type: ignore
+    assert fa.abs(fa.coords_from_dim(dim=x_dim, dtype=init_dtype_real, xp=xp, space="pos").into_space(space="freq")).values(space="freq").dtype == init_dtype_real # type: ignore
+    assert fa.abs(fa.coords_from_dim(dim=x_dim, dtype=init_dtype_real, xp=xp, space="freq").into_space(space="pos")).values(space="pos").dtype == init_dtype_real # type: ignore
 
     if override is not None:
-        assert fa.coords_from_dim(dim=x_dim, dtype=init_dtype_real, xp=xp, space="pos").astype(dtype=override_dtype_real).into(space="freq").values(space="freq").dtype == override_dtype_complex
-        assert fa.coords_from_dim(dim=x_dim, dtype=init_dtype_real, xp=xp, space="freq").astype(dtype=override_dtype_real).into(space="pos").values(space="pos").dtype == override_dtype_complex
+        assert fa.coords_from_dim(dim=x_dim, dtype=init_dtype_real, xp=xp, space="pos").into_dtype(dtype=override_dtype_real).into_space(space="freq").values(space="freq").dtype == override_dtype_complex
+        assert fa.coords_from_dim(dim=x_dim, dtype=init_dtype_real, xp=xp, space="freq").into_dtype(dtype=override_dtype_real).into_space(space="pos").values(space="pos").dtype == override_dtype_complex
 
 
 @pytest.mark.parametrize("xp", XPS)
@@ -112,10 +112,10 @@ def test_backend_override(xp, xp_override) -> None:
         freq_min=0.,
     )
 
-    assert type(fa.coords_from_dim(dim=x_dim, xp=xp, space="pos").asxp(xp=xp_override).values(space="pos")) is type(fa.coords_from_dim(dim=x_dim, xp=xp_override, space="pos").values(space="pos"))
-    assert type(fa.coords_from_dim(dim=x_dim, xp=xp, space="freq").asxp(xp=xp_override).values(space="freq")) is type(fa.coords_from_dim(dim=x_dim, xp=xp_override, space="freq").values(space="freq"))
-    assert type(fa.coords_from_dim(dim=x_dim, xp=xp, space="pos").asxp(xp=xp_override).into(space="freq").values(space="freq")) is type(fa.coords_from_dim(dim=x_dim, xp=xp_override, space="freq").values(space="freq"))
-    assert type(fa.coords_from_dim(dim=x_dim, xp=xp, space="freq").asxp(xp=xp_override).into(space="pos").values(space="pos")) is type(fa.coords_from_dim(dim=x_dim, xp=xp_override, space="pos").values(space="pos"))
+    assert type(fa.coords_from_dim(dim=x_dim, xp=xp, space="pos").into_xp(xp=xp_override).values(space="pos")) is type(fa.coords_from_dim(dim=x_dim, xp=xp_override, space="pos").values(space="pos"))
+    assert type(fa.coords_from_dim(dim=x_dim, xp=xp, space="freq").into_xp(xp=xp_override).values(space="freq")) is type(fa.coords_from_dim(dim=x_dim, xp=xp_override, space="freq").values(space="freq"))
+    assert type(fa.coords_from_dim(dim=x_dim, xp=xp, space="pos").into_xp(xp=xp_override).into_space(space="freq").values(space="freq")) is type(fa.coords_from_dim(dim=x_dim, xp=xp_override, space="freq").values(space="freq"))
+    assert type(fa.coords_from_dim(dim=x_dim, xp=xp, space="freq").into_xp(xp=xp_override).into_space(space="pos").values(space="pos")) is type(fa.coords_from_dim(dim=x_dim, xp=xp_override, space="pos").values(space="pos"))
 
 
 def test_broadcasting() -> None:
@@ -136,10 +136,10 @@ def test_broadcasting() -> None:
 @pytest.mark.parametrize("xp", XPS)
 @pytest.mark.parametrize("space", spaces)
 def test_sel_order(xp, space):
-    """Tests whether the selection order matters. Assuming an input FFTArray of
+    """Tests whether the selection order matters. Assuming an input Array of
     dimensions A and B. Then
 
-        FFTArray.sel(A==a).sel(B==b) == FFTArray.sel(B==b).sel(A==a)
+        Array.sel(A==a).sel(B==b) == Array.sel(B==b).sel(A==a)
 
     should be true.
     """
@@ -191,12 +191,12 @@ def test_defaults_context() -> None:
             check_defaults(xdim, xp=jnp, dtype_name="float32", eager=False)
 
 
-def check_defaults(dim: fa.FFTDimension, xp, dtype_name: DEFAULT_DTYPE, eager: bool) -> None:
+def check_defaults(dim: fa.Dimension, xp, dtype_name: DEFAULT_DTYPE, eager: bool) -> None:
     xp_compat = array_api_compat.array_namespace(xp.asarray(0))
     values = 0.1*xp.arange(4, dtype=dtype_name)
     arr_from_dim = fa.coords_from_dim(dim=dim, space="pos")
     arr_direct = fa.array(dims=dim, space="pos", values=values)
-    manual_arr = FFTArray(
+    manual_arr = Array(
         values=values,
         dims=(dim,),
         space=("pos",),
@@ -230,8 +230,8 @@ def draw_hypothesis_fft_array_values(draw, st_type, shape):
     return draw(st.lists(st_type, min_size=shape[0], max_size=shape[0]))
 
 @st.composite
-def fftarray_strategy(draw) -> FFTArray:
-    """Initializes an FFTArray using hypothesis."""
+def fftarray_strategy(draw) -> Array:
+    """Initializes an Array using hypothesis."""
     ndims = draw(st.integers(min_value=1, max_value=4))
     value = st.one_of([
         # st.integers(min_value=np.iinfo(np.int32).min, max_value=np.iinfo(np.int32).max),
@@ -239,11 +239,11 @@ def fftarray_strategy(draw) -> FFTArray:
         st.floats(allow_infinity=False, allow_nan=False, allow_subnormal=False, width=32)
     ])
     factors_applied = draw(st.lists(st.booleans(), min_size=ndims, max_size=ndims))
-    note(f"factors_applied={factors_applied}") # TODO: remove when FFTArray.__repr__ is implemented
+    note(f"factors_applied={factors_applied}") # TODO: remove when Array.__repr__ is implemented
     eager = draw(st.lists(st.booleans(), min_size=ndims, max_size=ndims))
-    note(f"eager={eager}") # TODO: remove when FFTArray.__repr__ is implemented
+    note(f"eager={eager}") # TODO: remove when Array.__repr__ is implemented
     init_space = draw(st.sampled_from(["pos", "freq"]))
-    note(f"space={init_space}") # TODO: remove when FFTArray.__repr__ is implemented
+    note(f"space={init_space}") # TODO: remove when Array.__repr__ is implemented
     xp = draw(st.sampled_from(XPS))
     dtype = getattr(xp, draw(st.sampled_from(precisions)))
 
@@ -265,15 +265,15 @@ def fftarray_strategy(draw) -> FFTArray:
             dims=dims,
             space=init_space,
         )
-        .as_factors_applied(factors_applied=factors_applied)
-        .as_eager(eager=eager)
+        .into_factors_applied(factors_applied=factors_applied)
+        .into_eager(eager=eager)
     )
 
 @pytest.mark.slow
 @settings(max_examples=1000, deadline=None, print_blob=True)
 @given(fftarray_strategy())
 def test_fftarray_lazyness(fftarr):
-    """Tests the lazyness of an FFTArray, i.e., the correct behavior of
+    """Tests the lazyness of an Array, i.e., the correct behavior of
     factors_applied and eager.
     """
     note(fftarr)
@@ -295,17 +295,17 @@ def test_fftarray_lazyness(fftarr):
 @pytest.mark.parametrize("eager", [True, False])
 @pytest.mark.parametrize("factors_applied", [True, False])
 def test_fftarray_lazyness_reduced(xp, precision, space, eager, factors_applied):
-    """Tests the lazyness of an FFTArray, i.e., the correct behavior of
+    """Tests the lazyness of an Array, i.e., the correct behavior of
     factors_applied and eager. This is the reduced/faster version of the test
     using hypothesis.
     """
     xdim = fa.dim("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
     ydim = fa.dim("y", n=8, d_pos=0.03, pos_min=-0.5, freq_min=-4.7)
     dtype = getattr(xp, precision)
-    fftarr = fa.coords_from_dim(dim=xdim, xp=xp, dtype=dtype, space=space).as_eager(eager=eager) + fa.coords_from_dim(dim=ydim, xp=xp, dtype=dtype, space=space).as_eager(eager=eager)
+    fftarr = fa.coords_from_dim(dim=xdim, xp=xp, dtype=dtype, space=space).into_eager(eager=eager) + fa.coords_from_dim(dim=ydim, xp=xp, dtype=dtype, space=space).into_eager(eager=eager)
     # TODO: This tests either float without factors or complex with factors.
     if factors_applied:
-        fftarr=fftarr.as_factors_applied(factors_applied)
+        fftarr=fftarr.into_factors_applied(factors_applied)
     # assert_basic_lazy_logic(fftarr, print)
     assert_basic_lazy_logic(fftarr, print)
     assert_dual_operand_fun_equivalence(fftarr, all(fftarr._factors_applied), print)
@@ -325,7 +325,7 @@ def test_immutability(xp) -> None:
         pass
 
     assert arr.values(space="pos")[0] == -0.2
-    arr_2 = arr.into("freq").into("pos")
+    arr_2 = arr.into_space("freq").into_space("pos")
     values_2 = arr_2.values(space="pos")
     try:
         values_2[0] = 10
@@ -334,7 +334,7 @@ def test_immutability(xp) -> None:
     assert arr_2.values(space="pos")[0] == -0.2
 
 def is_precision(arr, precision: Literal["float32", "float64"]) -> bool:
-    if isinstance(arr, FFTArray):
+    if isinstance(arr, Array):
         arr = arr._values
     xp = array_api_compat.array_namespace(arr)
     dtype = arr.dtype
@@ -347,7 +347,7 @@ def is_precision(arr, precision: Literal["float32", "float64"]) -> bool:
             raise ValueError("Passed unsupported precision '{precision}'.")
 
 def assert_basic_lazy_logic(arr, log):
-    """Tests whether FFTArray.values() is equal to the internal _values for the
+    """Tests whether Array.values() is equal to the internal _values for the
     special cases where factors_applied=True, space="pos" and comparing the
     absolute values, and where space="freq" and comparing values to
     _values/(n*d_freq).
@@ -371,7 +371,7 @@ def is_inf_or_nan(x):
     xp = array_api_compat.array_namespace(x)
     return (xp.any(xp.isinf(x)) or xp.any(xp.isnan(x)))
 
-def internal_and_public_values_should_differ(arr: FFTArray):
+def internal_and_public_values_should_differ(arr: Array):
     """Returns boolean, whether `arr.values(arr.space)` should differ from
     `arr._values`.
     This is the case if `factors_applied=False` and the values are non-zero
@@ -396,21 +396,21 @@ def internal_and_public_values_should_differ(arr: FFTArray):
     return False
 
 def assert_equal_op(
-        arr: FFTArray,
+        arr: Array,
         values: Any,
         ops: Union[Callable[[Any],Any], Tuple[Callable[[Any],Any], Callable[[Any],Any]]],
         precise: bool,
         op_forces_factors_applied: bool,
         log
     ):
-    """Helper function to test equality between an FFTArray and a values array.
-    `op` denotes the operation acting on the FFTArray and on the values before
+    """Helper function to test equality between an Array and a values array.
+    `op` denotes the operation acting on the Array and on the values before
     comparison.
     `precise` denotes whether the comparison is performed using nulp (number of
     unit in the last place for tolerance) or using the less stringent
     `numpy.testing.allclose`.
     If `op_forces_factors_applied` is False, it will be tested whether
-    op(FFTArray)._values deviates from op(FFTArray).values() (which is the case
+    op(Array)._values deviates from op(Array).values() (which is the case
     if the factors have not been applied after operation and if the values are
     non-zero). If it is True, it is tested if they are equal.
     """
@@ -466,11 +466,11 @@ def assert_array_almost_equal_nulp_complex(x: Any, y: Any, nulp: int):
     np.testing.assert_array_almost_equal_nulp(xp.real(x), xp.real(y), nulp)
     np.testing.assert_array_almost_equal_nulp(xp.imag(x), xp.imag(y), nulp)
 
-def assert_single_operand_fun_equivalence(arr: FFTArray, precise: bool, log):
-    """Test whether applying operands to the FFTArray (and then getting the
+def assert_single_operand_fun_equivalence(arr: Array, precise: bool, log):
+    """Test whether applying operands to the Array (and then getting the
     values) is equivalent to applying the same operands to the values array:
 
-        operand(FFTArray).values() == operand(FFTArray.values())
+        operand(Array).values() == operand(Array.values())
 
     """
     values = arr.values(space=arr.space)
@@ -490,12 +490,12 @@ def assert_single_operand_fun_equivalence(arr: FFTArray, precise: bool, log):
     log("f(x) = sqrt(x)")
     assert_equal_op(arr, values, (xp.sqrt, fa.sqrt), False, True, log) # precise comparison fails
 
-def assert_dual_operand_fun_equivalence(arr: FFTArray, precise: bool, log):
-    """Test whether a dual operation on an FFTArray, e.g., the
+def assert_dual_operand_fun_equivalence(arr: Array, precise: bool, log):
+    """Test whether a dual operation on an Array, e.g., the
     sum/multiplication of two, is equivalent to applying this operand to its
     values.
 
-        operand(FFTArray, FFTArray).values() = operand(FFTArray.values(), FFTArray.values())
+        operand(Array, Array).values() = operand(Array.values(), Array.values())
 
     """
     values = arr.values(space=arr.space)
@@ -516,12 +516,12 @@ def assert_dual_operand_fun_equivalence(arr: FFTArray, precise: bool, log):
     else:
         assert_equal_op(arr, values, lambda x: x**x, precise, True, log)
 
-def assert_fftarray_eager_factors_applied(arr: FFTArray, log):
+def assert_fftarray_eager_factors_applied(arr: Array, log):
     """Tests whether the factors are only applied when necessary and whether
-    the FFTArray after performing an FFT has the correct properties. If the
-    initial FFTArray was eager, then the final FFTArray also must be eager and
-    have _factors_applied=True. If the initial FFTArray was not eager, then the
-    final FFTArray should have eager=False and _factors_applied=False.
+    the Array after performing an FFT has the correct properties. If the
+    initial Array was eager, then the final Array also must be eager and
+    have _factors_applied=True. If the initial Array was not eager, then the
+    final Array should have eager=False and _factors_applied=False.
     """
 
     log("arr._factors_applied == (arr**2)._factors_applied")
@@ -535,7 +535,7 @@ def assert_fftarray_eager_factors_applied(arr: FFTArray, log):
     np.testing.assert_array_equal(arr_abs._factors_applied, True)
 
     log("(x*abs(x))._factors_applied == x._factors_applied")
-    # if both _factors_applied=True, the resulting FFTArray will also have it
+    # if both _factors_applied=True, the resulting Array will also have it
     # True, otherwise False
     # given abs(x)._factors_applied=True, we test the patterns
     # True*True=True, False*True=False
@@ -552,7 +552,7 @@ def assert_fftarray_eager_factors_applied(arr: FFTArray, log):
         assert (ifa == ffa) or (ffa == ea)
 
     log("fft(x)._factors_applied ...")
-    arr_fft = arr.into(space=get_other_space(arr.space))
+    arr_fft = arr.into_space(space=get_other_space(arr.space))
     np.testing.assert_array_equal(arr.eager, arr_fft.eager)
     for ffapplied, feager in zip(arr_fft._factors_applied, arr_fft.eager, strict=True):
         assert (feager and ffapplied) or (not feager and not ffapplied)
@@ -563,15 +563,15 @@ def assert_fftarray_eager_factors_applied(arr: FFTArray, log):
 def test_fft_ifft_invariance(xp, space: Space):
     """Tests whether ifft(fft(*)) is an identity.
 
-       ifft(fft(FFTArray)) == FFTArray
+       ifft(fft(Array)) == Array
 
     """
     xdim = fa.dim("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
     ydim = fa.dim("y", n=8, d_pos=0.03, pos_min=-0.4, freq_min=-4.2)
     arr = fa.coords_from_dim(dim=xdim, xp=xp, space=space) + fa.coords_from_dim(dim=ydim, xp=xp, space=space)
     other_space = get_other_space(space)
-    arr_fft = arr.into(space=other_space)
-    arr_fft_ifft = arr_fft.into(space=space)
+    arr_fft = arr.into_space(space=other_space)
+    arr_fft_ifft = arr_fft.into_space(space=space)
     if is_inf_or_nan(arr_fft_ifft.values(space=arr_fft_ifft.space)):
         # edge cases (very large numbers) result in inf after fft
         return
@@ -583,7 +583,7 @@ def test_fft_ifft_invariance(xp, space: Space):
 @pytest.mark.parametrize("spaces", [("pos", "freq"), ("freq", "pos")])
 @pytest.mark.parametrize("precision", ("float32", "float64"))
 def test_np_array(xp, spaces: Tuple[Space, Space], precision: PrecisionSpec):
-    """Tests if `FFTArray.np_array` returns the values as a NumPy array and if it has the correct precision.
+    """Tests if `Array.np_array` returns the values as a NumPy array and if it has the correct precision.
     """
     xdim = fa.dim("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
     arr = fa.coords_from_dim(dim=xdim, xp=xp, dtype=getattr(xp, precision), space=spaces[0])
@@ -609,11 +609,11 @@ try:
     @pytest.mark.parametrize("dtc", [True, False])
     @pytest.mark.parametrize("sel_method", ["nearest", "pad", "ffill", "backfill", "bfill"])
     def test_grid_manipulation_in_jax_scan(space: Space, dtc: bool, sel_method: str) -> None:
-        """Tests FFTDimension's `dynamically_traced_coords` property on the level of
-        an `FFTArray`.
+        """Tests Dimension's `dynamically_traced_coords` property on the level of
+        an `Array`.
 
         Allowed by dynamic, error for static:
-        - change FFTDimension properties of an FFTArray inside a `jax.lax.scan` step
+        - change Dimension properties of an Array inside a `jax.lax.scan` step
         function
 
         Allowed by static, error for dynamic:
@@ -654,7 +654,7 @@ except(ImportError):
     pass
 
 def test_different_dimension_dynamic_prop() -> None:
-    """Tests tracing of an FFTArray whose dimensions have different
+    """Tests tracing of an Array whose dimensions have different
     `dynamically_traced_coords`.
     """
     x_dim = fa.dim(name="x", pos_min=0, freq_min=0, d_pos=1, n=8, dynamically_traced_coords=False)

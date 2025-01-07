@@ -8,8 +8,8 @@ Provided by :py:mod:`fftarray.fft_array`:
 .. autosummary::
     :nosignatures:
 
-    FFTArray
-    FFTDimension
+    Array
+    Dimension
 
 Provided by :py:mod:`fftarray.tools`:
 
@@ -25,7 +25,7 @@ Example:
 
 .. code-block:: python
 
-   >>> from fftarray import FFTArray, FFTDimension
+   >>> from fftarray import Array, Dimension
 
 """
 
@@ -42,14 +42,14 @@ from ._utils.defaults import (
 )
 
 from .space import Space as Space
-from .fft_dimension import (
-    FFTDimension as FFTDimension,
+from .dimension import (
+    Dimension as Dimension,
     dim as dim,
 )
 
-from .fft_array import (
+from .array import (
     abs as abs,
-    FFTArray as FFTArray,
+    Array as Array,
 )
 
 from .creation_functions import (
@@ -159,7 +159,7 @@ except ModuleNotFoundError:
          freq_middle: Optional[float] = None,
          loose_params: Optional[Union[str, List[str]]] = None,
          dynamically_traced_coords: bool = True,
-    ) -> FFTDimension:
+    ) -> Dimension:
       raise ModuleNotFoundError("You need to install `fftarray[helpers]` to use the constraint solver.")
 
 

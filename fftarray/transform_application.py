@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Literal, Iterable, List, Optional, Tuple
 
 from .space import Space
-from .fft_dimension import FFTDimension
+from .dimension import Dimension
 import numpy as np
 
 def get_transform_signs(
@@ -55,7 +55,7 @@ def real_type(xp, dtype):
 def apply_lazy(
         xp,
         values,
-        dims: Tuple[FFTDimension, ...],
+        dims: Tuple[Dimension, ...],
         signs: List[Literal[1,-1,0]],
         spaces: Iterable[Space],
         scale_only: bool,
@@ -145,7 +145,7 @@ def do_fft(
     xp,
     values,
     are_values_owned: bool,
-    dims: Tuple[FFTDimension, ...],
+    dims: Tuple[Dimension, ...],
     needs_fft: List[bool],
     space_before: Tuple[Space, ...],
     space_after: Tuple[Space, ...],

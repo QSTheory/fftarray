@@ -5,23 +5,23 @@ from typing import (
 import warnings
 
 if TYPE_CHECKING:
-    from ..fft_array import FFTArray
+    from ..array import Array
 
 # there is no EllipsisType unfortunately, but this helps the reader at least
 EllipsisType = TypeVar('EllipsisType')
 T = TypeVar("T")
 
-class LocFFTArrayIndexer(Generic[T]):
+class LocArrayIndexer(Generic[T]):
     """
-        `FFTArray.loc` allows indexing by coordinate position.
+        `Array.loc` allows indexing by coordinate position.
         It supports both positional and name look up (via dict).
         In order to support the indexing operator `__getitem__` for coordinate (label)
         instead of integer (index) look up (e.g. `arr.loc[1:3]`), we need this indexable helper
         class to be returned by the property `loc`.
     """
-    _arr: "FFTArray"
+    _arr: "Array"
 
-    def __init__(self, arr: "FFTArray") -> None:
+    def __init__(self, arr: "Array") -> None:
         self._arr = arr
 
     def __getitem__(
@@ -31,16 +31,16 @@ class LocFFTArrayIndexer(Generic[T]):
                 Tuple[Union[int, slice, EllipsisType],...],
                 Dict[str, Union[int, slice]],
             ]
-        ) -> "FFTArray":
-        """This method is called when indexing an FFTArray instance by label,
-            i.e., by using the coordinate value via FFTArray.loc[].
+        ) -> "Array":
+        """This method is called when indexing an Array instance by label,
+            i.e., by using the coordinate value via Array.loc[].
             It supports dimensional lookup via position and name.
             The indexing behaviour is mainly defined to match the one of
             `xarray.DataArray` with the major difference that we always keep
             all dimensions.
-            The indexing is performed in the current state of the FFTArray,
+            The indexing is performed in the current state of the Array,
             i.e., each dimension is indexed in its respective state (pos or freq).
-            When the indexing actually changes the returned FFTArray by removing some values,
+            When the indexing actually changes the returned Array by removing some values,
             its internal state will always have all fft factors applied.
 
             Example usage:
@@ -48,7 +48,7 @@ class LocFFTArrayIndexer(Generic[T]):
                 x_dim.fft_array(space="pos")
                 + y_dim.fft_array(space="pos")
             )
-            Four ways of retrieving an FFTArray object
+            Four ways of retrieving an Array object
             with coordinate 3 along x and coordinates values
             between the dimension min (either pos_min or freq_min)
             and 5 along y:
@@ -63,14 +63,14 @@ class LocFFTArrayIndexer(Generic[T]):
         item : Union[ int, slice, EllipsisType, Tuple[Union[int, slice, EllipsisType],...], Mapping[str, Union[int, slice]], ]
             An indexer object with dimension lookup method either
             via position or name. When using positional lookup, the order
-            of the dimensions in the FFTArray object is used (FFTArray.dims).
+            of the dimensions in the Array object is used (Array.dims).
             Per dimension, each indexer can be supplied as an integer or a slice.
             Array-like indexers are not supported as in the general case,
-            the resulting coordinates cannot be expressed as a valid FFTDimension.
-        FFTArray
-            A new FFTArray with the same dimensions as this FFTArray,
-            except each dimension and the FFTArray values are indexed.
-            The resulting FFTArray still fully supports FFTs.
+            the resulting coordinates cannot be expressed as a valid Dimension.
+        Array
+            A new Array with the same dimensions as this Array,
+            except each dimension and the Array values are indexed.
+            The resulting Array still fully supports FFTs.
         """
 
         if item is Ellipsis:
@@ -119,12 +119,12 @@ def parse_tuple_indexer_to_dims(
 
     if len(tuple_indexers) > n_dims:
         raise IndexError(
-            "too many indices for FFTArray: FFTArray is "
+            "too many indices for Array: Array is "
             f"{n_dims}-dimensional, but {len(tuple_indexers)} were indexed."
         )
 
     # Case of length 1 tuple_indexers with only Ellipsis is already
-    # handled before in FFTArray indexing logic, therefore ignored here
+    # handled before in Array indexing logic, therefore ignored here
     full_tuple_indexers: Tuple[Union[float, slice], ...]
 
     # An ellipsis in positional indexing can be used to fill up all missing
@@ -154,11 +154,11 @@ def check_missing_dim_names(
     dim_names: Tuple[str, ...],
     missing_dims: Literal["raise", "warn", "ignore"],
 ) -> None:
-    """Check for indexers with a dimension name that does not appear in the FFTArray.
+    """Check for indexers with a dimension name that does not appear in the Array.
     Depending on the choice of missing_dims,
     either raises a ValueError, throws a warning or just ignores.
     These three different choices for how to handle missing dimensions are
-    inspired by xarray and can be set by the user on calling FFTArray.sel or isel.
+    inspired by xarray and can be set by the user on calling Array.sel or isel.
     Other invalidities are handled elsewhere.
     """
 
@@ -168,7 +168,7 @@ def check_missing_dim_names(
             + "one of the following: 'raise', 'warn', 'ignore'"
         )
 
-    # Check for indexer names that don't exist in the indexed FFTArray
+    # Check for indexer names that don't exist in the indexed Array
     invalid_indexers = [indexer for indexer in indexer_names if indexer not in dim_names]
 
     if len(invalid_indexers) > 0:
@@ -228,14 +228,14 @@ def tuple_indexers_from_dict_or_tuple(
                 f"Dimensions {invalid_indexers} do not exist. "
                 + f"Expected one or more of {dim_names}"
             )
-        # Fill up indexers to match dimensions of indexed FFTArray
+        # Fill up indexers to match dimensions of indexed Array
         full_tuple_indexers = tuple_indexers_from_mapping(
             indexers,
             dim_names=dim_names,
         )
     else:
         # Handle case of positional indexing where we fill up the indexers
-        # to match the dimensionality of the indexed FFTArray
+        # to match the dimensionality of the indexed Array
         tuple_indexers: Tuple[Union[int, slice, EllipsisType], ...]
         if not isinstance(indexers, tuple):
             tuple_indexers = (indexers,)
@@ -253,7 +253,7 @@ def check_substepping(_slice: slice):
     """We do not support substepping, i.e., a slicing step != 1.
     For explanation why not, see error message below.
     We also do not support negative step -1 which would invert the order
-    of the array, which does not make sense for us with FFTDimension.
+    of the array, which does not make sense for us with Dimension.
     """
     if not(_slice.step is None or _slice.step == 1):
         raise IndexError(
