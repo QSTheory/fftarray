@@ -79,7 +79,7 @@ def assert_dual_operand_fun_equivalence_int(arr: Array, precise: bool, log):
         operand(Array, Array).values() = operand(Array.values(), Array.values())
 
     """
-    values = arr.values(space=arr.space)
+    values = arr.values(arr.space)
     xp = array_api_compat.array_namespace(values)
 
     log("f(x,y) = x+y")
@@ -145,7 +145,7 @@ def assert_single_operand_fun_equivalence_int(arr: Array, precise: bool, log):
         operand(Array).values() == operand(Array.values())
 
     """
-    values = arr.values(space=arr.space)
+    values = arr.values(arr.space)
     xp = array_api_compat.array_namespace(values)
     log("f(x) = x")
     assert_equal_op(arr, values, lambda x: x, precise, False, log)

@@ -313,7 +313,7 @@ def elementwise_single_arg(
         return
 
     arr1 = arr1.into_dtype(dtype)
-    arr1_xp = arr1.values(space=space)
+    arr1_xp = arr1.values(space)
 
     if not xp.isdtype(dtype, elementwise_ops_single_arg[op_name]):
         # Other Array API implementations often allow more types.
@@ -337,7 +337,7 @@ def elementwise_single_arg(
     )
 
     np.testing.assert_equal(
-        np.array(fa_res.values(space=space)),
+        np.array(fa_res.values(space)),
         np.array(xp_res),
     )
 
@@ -667,7 +667,7 @@ def elementwise_arr_scalar(
     assert fa_x2.factors_applied == x2_factors
 
     np.testing.assert_allclose(
-        np.array(fa_x2.values(space=space)),
+        np.array(fa_x2.values(space)),
         np.array(ref_x2_values),
     )
 

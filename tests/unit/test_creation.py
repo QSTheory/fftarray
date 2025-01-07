@@ -93,7 +93,7 @@ def test_from_array_object(
         pass
 
     if defensive_copy:
-        assert xp_target.all(arr.values(space="pos") == values_ref)
+        assert xp_target.all(arr.values("pos") == values_ref)
     # If not copy, we cannot test for inequality because aliasing behavior
     # is not defined and for jax for example an inequality check would fail.
 
@@ -195,7 +195,7 @@ def check_array_from_list(
                 space="pos",
                 **array_args,
             )
-    arr_vals = arr.values(space="pos")
+    arr_vals = arr.values("pos")
 
     assert arr.xp == xp_target
     assert arr.shape == ref_vals.shape

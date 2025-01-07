@@ -66,7 +66,7 @@ def sum(
 
     res_meta = _named_dims_to_axis(x, dim_name)
 
-    reduced_values = x.xp.sum(x.values(space=x.space), axis=tuple(res_meta.axis), dtype=dtype)
+    reduced_values = x.xp.sum(x.values(x.space), axis=tuple(res_meta.axis), dtype=dtype)
 
     return Array(
         values=reduced_values,
@@ -85,7 +85,7 @@ def max(
 
     res_meta = _named_dims_to_axis(x, dim_name)
 
-    reduced_values = x.xp.max(x.values(space=x.space), axis=tuple(res_meta.axis))
+    reduced_values = x.xp.max(x.values(x.space), axis=tuple(res_meta.axis))
 
     return Array(
         values=reduced_values,
@@ -120,7 +120,7 @@ def integrate(
             case _:
                 assert_never(space)
 
-    reduced_values = x.xp.sum(x.values(space=x.space), axis=tuple(res_meta.axis), dtype=dtype)
+    reduced_values = x.xp.sum(x.values(x.space), axis=tuple(res_meta.axis), dtype=dtype)
     reduced_values *= integration_element
 
     return Array(

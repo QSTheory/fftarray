@@ -95,7 +95,7 @@ def test_sum(
         return
 
     fa_res = getattr(fa, op_name)(arr, dim_name=_get_dim_names(reduction_dims), dtype=acc_dtype)
-    fa_res_values = fa_res.values(space="pos")
+    fa_res_values = fa_res.values("pos")
 
     ref_input = arr.values("pos")
     ref_res = getattr(xp, op_name)(ref_input, axis=reduction_dims, dtype=acc_dtype)
@@ -147,7 +147,7 @@ def test_max(
         return
 
     fa_res = getattr(fa, op_name)(arr, dim_name=_get_dim_names(reduction_dims))
-    fa_res_values = fa_res.values(space="pos")
+    fa_res_values = fa_res.values("pos")
 
     ref_input = arr.values("pos")
     ref_res = getattr(xp, op_name)(ref_input, axis=reduction_dims)
@@ -269,9 +269,9 @@ def check_integrate(
         x for (i, x) in enumerate(space_norm)
         if i not in _to_integers(indices=reduction_dims, ndims=ndims)
     )
-    fa_res_values = fa_res.values(space=res_space)
+    fa_res_values = fa_res.values(res_space)
 
-    ref_input = arr.values(space=space)
+    ref_input = arr.values(space)
     ref_res = xp.sum(ref_input, axis=reduction_dims, dtype=acc_dtype)
     if reduction_dims is None:
         integration_element = reduce(

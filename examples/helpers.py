@@ -14,15 +14,15 @@ def plt_fftarray(
     if len(arr.dims) == 1:
         dim = arr.dims[0]
         p_pos = figure(width=450, height=400, x_axis_label = f"{dim.name} pos coordinate", min_border=50)
-        pos_values = arr.values(space="pos")
-        p_pos.line(dim.np_array(space="pos"), np.real(pos_values), line_width=2, color = "navy", legend_label="real")
-        p_pos.line(dim.np_array(space="pos"), np.imag(pos_values), line_width=2, color = "firebrick", legend_label="imag")
+        pos_values = arr.values("pos")
+        p_pos.line(dim.np_array("pos"), np.real(pos_values), line_width=2, color = "navy", legend_label="real")
+        p_pos.line(dim.np_array("pos"), np.imag(pos_values), line_width=2, color = "firebrick", legend_label="imag")
         p_pos.title.text = f"{data_name or 'Array values'} shown in position space" # type: ignore
 
         p_freq = figure(width=450, height=400, x_axis_label = f"{dim.name} freq coordinate", min_border=50)
-        freq_values = arr.values(space="freq")
-        p_freq.line(dim.np_array(space="freq"), np.real(freq_values), line_width=2, color = "navy", legend_label="real")
-        p_freq.line(dim.np_array(space="freq"), np.imag(freq_values), line_width=2, color = "firebrick", legend_label="imag")
+        freq_values = arr.values("freq")
+        p_freq.line(dim.np_array("freq"), np.real(freq_values), line_width=2, color = "navy", legend_label="real")
+        p_freq.line(dim.np_array("freq"), np.imag(freq_values), line_width=2, color = "firebrick", legend_label="imag")
         p_freq.title.text = f"{data_name or 'Array values'} shown in frequency space" # type: ignore
 
         plot = row([p_pos, p_freq], sizing_mode="stretch_width") # type: ignore
@@ -42,7 +42,7 @@ def plt_fftarray(
             )
 
             # Array values
-            values_in_space = arr.np_array(space=space)
+            values_in_space = arr.np_array(space)
             values_imag_part = values_in_space.imag
             values_real_part = values_in_space.real
 

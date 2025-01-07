@@ -182,7 +182,7 @@ def elementwise_one_operand(
         else:
             op_norm = getattr(x.xp, name)
 
-        values = op_norm(x.values(space=x.space))
+        values = op_norm(x.values(x.space))
         return Array(
             values=values,
             space=x.space,
@@ -302,7 +302,7 @@ class Array:
                 spaces=(space,),
             ) + "\n"
         str_out += f"Values<{self._xp.__name__}>:\n"
-        str_out += f"{self.values(space=self.space)}"
+        str_out += f"{self.values(self.space)}"
         return str_out
 
     def __bool__(self: Array):
@@ -492,7 +492,7 @@ class Array:
                     ) from e
 
 
-        selected_values = self.values(space=self.space).__getitem__(tuple_indexers)
+        selected_values = self.values(self.space).__getitem__(tuple_indexers)
         # Dimensions with the length 1 are dropped in numpy indexing.
         # We decided against this and keeping even dimensions of length 1.
         # So we have to reintroduce those dropped dimensions via reshape.
@@ -673,7 +673,7 @@ class Array:
         """
         return self._values.shape
 
-    def values(self, space: Union[Space, Iterable[Space]]) -> Any:
+    def values(self, space: Union[Space, Iterable[Space]], /) -> Any:
         """
             Return the values with all lazy state applied.
             Does not mutate self.
@@ -882,7 +882,7 @@ class Array:
         return transposed_arr
 
 
-    def np_array(self: Array, space: Union[Space, Iterable[Space]], dtype = None):
+    def np_array(self: Array, space: Union[Space, Iterable[Space]], /, *, dtype = None):
         """..
 
         Returns
@@ -891,7 +891,7 @@ class Array:
             The values of this Array in the specified space as a bare numpy array.
         """
 
-        values = self.values(space=space)
+        values = self.values(space)
         return np.array(values, dtype=dtype)
 
     def _check_consistency(self) -> None:
