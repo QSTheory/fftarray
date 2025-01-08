@@ -99,7 +99,7 @@ def test_equality() -> None:
 @pytest.mark.parametrize("dtc", [True, False])
 def test_dynamically_traced_coords(dtc: bool) -> None:
     """
-    Test the tracing of an Dimension. The tracing behavior (dynamic/static)
+    Test the tracing of a Dimension. The tracing behavior (dynamic/static)
     is determined by its property `dynamically_traced_coords` (False/True).
 
     If `dynamically_traced_coords=True`, `d_pos`, `pos_min` and `freq_min`

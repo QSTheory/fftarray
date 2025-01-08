@@ -74,7 +74,7 @@ def dim_from_constraints(
         loose_params: Optional[Union[str, List[str]]] = None,
         dynamically_traced_coords: bool = True,
     ) -> Dimension:
-    """Creates an Dimension from an arbitrary subset of all possible grid
+    """Creates a Dimension from an arbitrary subset of all possible grid
     parameters using the z3 constraint solver. Note that the specified grid
     parameters must lead to a unique solution that fulfill the following
     constraints:
@@ -266,7 +266,7 @@ def _z3_constraint_solver(
         loose_params: List[str],
         make_suggestions: bool,
     ) -> GridParams:
-    """Solves the constraints for an Dimension.
+    """Solves the constraints for a Dimension.
 
     This method solves the linear system of equations to correctly match
     the mathematics of the Fourier transform for a given set of constraints.
@@ -289,7 +289,7 @@ def _z3_constraint_solver(
     Returns
     -------
     Dict[str, Union[int, float]]
-        Numerical values for all constraints defining an Dimension.
+        Numerical values for all constraints defining a Dimension.
 
     Raises
     ------

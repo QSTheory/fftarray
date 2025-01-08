@@ -1,9 +1,9 @@
 """
 .. rubric:: The objects inside the tables can be imported directly from :py:mod:`fftarray`:
 
-Provided by :py:mod:`fftarray.fft_array`:
+Provided by :py:mod:`fftarray.array`:
 
-.. currentmodule:: fftarray.fft_array
+.. currentmodule:: fftarray.array
 
 .. autosummary::
     :nosignatures:

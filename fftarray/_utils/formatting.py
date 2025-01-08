@@ -43,7 +43,7 @@ def fft_dim_table(
         include_dim_name=False,
         spaces: Tuple["Space", ...] = ("pos", "freq"),
     ) -> str:
-    """Constructs a table for Dimension.__str__ and FFTArrar.__str__
+    """Constructs a table for Dimension.__str__ and Array.__str__
     containing the grid parameters for each space.
     """
     str_out = ""

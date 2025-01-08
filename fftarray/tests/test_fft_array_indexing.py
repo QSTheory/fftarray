@@ -12,7 +12,7 @@ from fftarray.tests.helpers import XPS
 EllipsisType = TypeVar('EllipsisType')
 
 
-TEST_FFTDIM = fa.dim(
+TEST_DIM = fa.dim(
     name="x", n=8, d_pos=1, pos_min=0, freq_min=0
 )
 STANDARD_TEST_DATAARRAY = xr.DataArray(
@@ -21,8 +21,8 @@ STANDARD_TEST_DATAARRAY = xr.DataArray(
     coords={'x': np.linspace(0, 7, num=8)},
 )
 
-pos_values = TEST_FFTDIM.pos_min + np.arange(TEST_FFTDIM.n)*TEST_FFTDIM.d_pos
-freq_values = TEST_FFTDIM.freq_min + np.arange(TEST_FFTDIM.n)*TEST_FFTDIM.d_freq
+pos_values = TEST_DIM.pos_min + np.arange(TEST_DIM.n)*TEST_DIM.d_pos
+freq_values = TEST_DIM.freq_min + np.arange(TEST_DIM.n)*TEST_DIM.d_freq
 
 STANDARD_TEST_DATASET = xr.Dataset(
     data_vars={
@@ -78,11 +78,11 @@ valid_test_slices = [
 @pytest.mark.parametrize("space", ["pos", "freq"])
 def test_valid_fftdim_dim_from_slice(space: Space, valid_slice: slice) -> None:
 
-    result_dim = TEST_FFTDIM._dim_from_slice(range=valid_slice, space=space)
+    result_dim = TEST_DIM._dim_from_slice(range=valid_slice, space=space)
 
     np.testing.assert_array_equal(
         result_dim.np_array(space),
-        TEST_FFTDIM.np_array(space)[valid_slice],
+        TEST_DIM.np_array(space)[valid_slice],
         strict=True
     )
 
@@ -97,7 +97,7 @@ invalid_slices = [
 def test_errors_fftdim_dim_from_slice(space: Space, invalid_slice: slice) -> None:
 
     with pytest.raises(IndexError):
-        TEST_FFTDIM._dim_from_slice(invalid_slice, space=space)
+        TEST_DIM._dim_from_slice(invalid_slice, space=space)
 
 invalid_substepping_slices = [
     slice(None, None, 2), slice(None, None, 3),
@@ -115,7 +115,7 @@ def test_errors_fftarray_index_substepping(
     as_dict: bool,
 ) -> None:
 
-    fft_arr = fa.coords_from_dim(TEST_FFTDIM, space, xp=xp)
+    fft_arr = fa.coords_from_dim(TEST_DIM, space, xp=xp)
 
     if as_dict:
         invalid_slice = {"x": invalid_slice} # type: ignore
@@ -179,7 +179,7 @@ def test_valid_index_from_coord(
 ) -> None:
 
     def test_function(_coord):
-        return TEST_FFTDIM._index_from_coord(coord=_coord, space=space, method=method)
+        return TEST_DIM._index_from_coord(coord=_coord, space=space, method=method)
 
     try:
         dim_index_result = test_function(valid_coord)
@@ -573,7 +573,7 @@ try:
         return obj.sel(idx)
 
     def test_invalid_tracer_index() -> None:
-        fft_arr = fa.coords_from_dim(TEST_FFTDIM, "pos", xp=jnp)
+        fft_arr = fa.coords_from_dim(TEST_DIM, "pos", xp=jnp)
         tracer_index = jax.numpy.array(3)
 
         with pytest.raises(NotImplementedError):

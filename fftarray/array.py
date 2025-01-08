@@ -445,7 +445,7 @@ class Array:
             Array-like indexers are not supported as in the general case,
             the resulting coordinates can not be supported with a valid Dimension.
         Array
-            A new Arrayth the same dimensionality as this Array,
+            A new Array with the same dimensionality as this Array,
             except each dimension and the Array values are indexed.
             The resulting Array still fully supports FFTs.
         """
@@ -678,7 +678,7 @@ class Array:
             Return the values with all lazy state applied.
             Does not mutate self.
             Therefore each call evaluates its lazy state again.
-            Use `.into_space(factors_applied=True)` if you want to evaluate it once and reuse it multiple times.
+            Use `.into_factors_applied(True)` if you want to evaluate it once and reuse it multiple times.
         """
 
         space_norm: Tuple[Space, ...] = norm_space(space, len(self.dims))
@@ -746,7 +746,7 @@ class Array:
         )
 
         if not self.xp.isdtype(self.dtype, ("real floating", "complex floating")):
-            raise ValueError(f"'as_factors_applied' requires an Array with a float or complex dtype, but got passed array of type '{self.dtype}'")
+            raise ValueError(f"'into_factors_applied' requires an Array with a float or complex dtype, but got passed array of type '{self.dtype}'")
 
         values = self.xp.astype(self._values, complex_type(self.xp, self._values.dtype), copy=True)
 
