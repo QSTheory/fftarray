@@ -17,14 +17,14 @@ import array_api_compat
 from .space import Space
 from .dimension import Dimension
 from .named_array import get_axes_transpose, align_named_arrays
-from ._utils.uniform_value import UniformValue
+from .uniform_value import UniformValue
 
-from ._utils.formatting import dim_table, format_bytes, format_n
-from ._utils.indexing import (
+from .formatting import dim_table, format_bytes, format_n
+from .indexing import (
     LocArrayIndexer, check_missing_dim_names,
     tuple_indexers_from_dict_or_tuple, tuple_indexers_from_mapping,
 )
-from ._utils.helpers import norm_param, norm_space
+from .helpers import norm_param, norm_space
 from .op_lazy_luts import (
     TwoOperandTransforms,
     default_transforms_lut,

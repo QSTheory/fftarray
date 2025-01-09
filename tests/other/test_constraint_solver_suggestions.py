@@ -1,5 +1,5 @@
-from fftarray.constraint_solver import _z3_constraint_solver
-from fftarray.constraint_solver import NoSolutionFoundError, NoUniqueSolutionError
+from fftarray._src.constraint_solver import _z3_constraint_solver
+from fftarray._src.constraint_solver import NoSolutionFoundError, NoUniqueSolutionError
 
 def test_undefined_pos_space():
     user_constraints = dict(

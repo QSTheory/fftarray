@@ -1,9 +1,8 @@
 import pytest
 
-from fftarray.dimension import Dimension
-from fftarray._utils.formatting import format_bytes, format_n
-from fftarray.tests.helpers import XPS
-from tests.helpers import get_dims, get_arr_from_dims
+from fftarray._src.dimension import Dimension
+from fftarray._src.formatting import format_bytes, format_n
+from tests.helpers import XPS, get_dims, get_arr_from_dims
 
 @pytest.mark.parametrize("xp", XPS)
 def test_format(xp) -> None:

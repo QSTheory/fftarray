@@ -9,7 +9,7 @@ from IPython import get_ipython
 from nbformat import read
 from IPython.core.interactiveshell import InteractiveShell
 
-from fftarray.tests.helpers import XPS
+from tests.helpers import XPS
 import fftarray as fa
 
 @pytest.mark.parametrize("xp", XPS)
@@ -42,6 +42,8 @@ def test_notebooks(xp, nb_path):
                     # transform the input to executable Python
                     code = shell.input_transformer_manager.transform_cell(cell.source)
                     # run the code in themodule
+                    exec("import sys", mod.__dict__)
+                    exec("sys.path.append('examples')", mod.__dict__)
                     exec(code, mod.__dict__)
     finally:
         shell.user_ns = save_user_ns

@@ -2,8 +2,8 @@ from typing import Tuple, TYPE_CHECKING
 import numpy as np
 
 if TYPE_CHECKING:
-    from ..dimension import Dimension
-    from ..array import Space
+    from .dimension import Dimension
+    from .array import Space
 
 def format_bytes(bytes) -> str:
     """Converts bytes to KiB, MiB, GiB and TiB."""

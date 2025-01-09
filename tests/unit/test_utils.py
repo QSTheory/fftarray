@@ -1,6 +1,6 @@
 import pytest
 
-from fftarray._utils.helpers import _check_space, norm_space
+from fftarray._src.helpers import _check_space, norm_space
 
 def test_check_space() -> None:
     assert _check_space("pos") == "pos"

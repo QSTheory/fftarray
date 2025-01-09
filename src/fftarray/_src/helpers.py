@@ -1,6 +1,6 @@
 from typing import TypeVar, Union, Iterable, Tuple, get_args, cast
 
-from ..space import Space
+from .space import Space
 
 T = TypeVar("T")
 

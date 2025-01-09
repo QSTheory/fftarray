@@ -6,8 +6,7 @@ import numpy as np
 import xarray as xr
 
 import fftarray as fa
-from fftarray.array import Array, Space
-from fftarray.tests.helpers import XPS
+from tests.helpers import XPS
 
 EllipsisType = TypeVar('EllipsisType')
 
@@ -76,7 +75,7 @@ valid_test_slices = [
 
 @pytest.mark.parametrize("valid_slice", valid_test_slices)
 @pytest.mark.parametrize("space", ["pos", "freq"])
-def test_valid_dim_dim_from_slice(space: Space, valid_slice: slice) -> None:
+def test_valid_dim_dim_from_slice(space: fa.Space, valid_slice: slice) -> None:
 
     result_dim = TEST_DIM._dim_from_slice(range=valid_slice, space=space)
 
@@ -94,7 +93,7 @@ invalid_slices = [
 
 @pytest.mark.parametrize("space", ["pos", "freq"])
 @pytest.mark.parametrize("invalid_slice", invalid_slices)
-def test_errors_dim_dim_from_slice(space: Space, invalid_slice: slice) -> None:
+def test_errors_dim_dim_from_slice(space: fa.Space, invalid_slice: slice) -> None:
 
     with pytest.raises(IndexError):
         TEST_DIM._dim_from_slice(invalid_slice, space=space)
@@ -109,7 +108,7 @@ invalid_substepping_slices = [
 @pytest.mark.parametrize("invalid_slice", invalid_substepping_slices)
 @pytest.mark.parametrize("space", ["pos", "freq"])
 def test_errors_array_index_substepping(
-    space: Space,
+    space: fa.Space,
     invalid_slice: slice,
     xp,
     as_dict: bool,
@@ -147,7 +146,7 @@ invalid_tuples = [
 @pytest.mark.parametrize("invalid_tuple", invalid_tuples)
 @pytest.mark.parametrize("space", ["pos", "freq"])
 def test_errors_array_invalid_indexes(
-    space: Space,
+    space: fa.Space,
     invalid_tuple: tuple,
     xp,
 ) -> None:
@@ -173,7 +172,7 @@ coord_test_samples = [
 @pytest.mark.parametrize("valid_coord", coord_test_samples)
 @pytest.mark.parametrize("space", ["pos", "freq"])
 def test_valid_index_from_coord(
-    space: Space,
+    space: fa.Space,
     valid_coord: Union[float,slice],
     method: Literal["nearest", "pad", "ffill", "backfill", "bfill", None],
 ) -> None:
@@ -196,7 +195,7 @@ def test_valid_index_from_coord(
         xr_result = type(e)
         assert dim_index_result == xr_result
 
-def make_xr_indexer(indexer, space: Space):
+def make_xr_indexer(indexer, space: fa.Space):
     return {
         f"{name}_{space}": [index] if isinstance(index, int) else index
         for name, index in indexer.items()
@@ -212,7 +211,7 @@ integer_indexers_test_samples = [
 @pytest.mark.parametrize("xp", XPS)
 @pytest.mark.parametrize("space", ["pos", "freq"])
 def test_3d_array_indexing_by_integer(
-    space: Space,
+    space: fa.Space,
     xp,
     indexers: Mapping[str, Union[int, slice]],
 ) -> None:
@@ -223,9 +222,9 @@ def test_3d_array_indexing_by_integer(
         xp=xp
     )
 
-    def test_function_isel(_indexers) -> Array:
+    def test_function_isel(_indexers) -> fa.Array:
         return arr.into_space(space).isel(_indexers)
-    def test_function_square_brackets(_indexers) -> Array:
+    def test_function_square_brackets(_indexers) -> fa.Array:
         return arr.into_space(space)[_indexers]
 
     try:
@@ -268,7 +267,7 @@ tuple_indexers = [
 @pytest.mark.parametrize("xp", XPS)
 @pytest.mark.parametrize("space", ["pos", "freq"])
 def test_3d_array_positional_indexing(
-    space: Space,
+    space: fa.Space,
     xp,
     indexers: Tuple[Union[int, float, slice, EllipsisType]],
 ) -> None:
@@ -279,9 +278,9 @@ def test_3d_array_positional_indexing(
         xp=xp
     )
 
-    def test_function_loc_square_brackets(_indexers) -> Array:
+    def test_function_loc_square_brackets(_indexers) -> fa.Array:
         return arr.into_space(space).loc[_indexers]
-    def test_function_square_brackets(_indexers) -> Array:
+    def test_function_square_brackets(_indexers) -> fa.Array:
         return arr.into_space(space)[_indexers]
 
     arr_result_square_brackets = test_function_square_brackets(indexers) # type: ignore
@@ -311,7 +310,7 @@ label_indexers_test_samples = [
 @pytest.mark.parametrize("space", ["pos", "freq"])
 @pytest.mark.parametrize("method", ["nearest", "pad", "ffill", "backfill", "bfill", None, "unsupported"])
 def test_3d_array_label_indexing(
-    space: Space,
+    space: fa.Space,
     xp,
     indexers: Mapping[str, Union[int, slice]],
     method: Literal["nearest", "pad", "ffill", "backfill", "bfill", None],
@@ -351,7 +350,7 @@ def test_3d_array_label_indexing(
 @pytest.mark.parametrize("space", ["pos", "freq"])
 @pytest.mark.parametrize("xp", XPS)
 def test_3d_array_indexing(
-    space: Space,
+    space: fa.Space,
     index_by: Literal["label", "integer"],
     indexers: Mapping[str, Union[int, slice]],
     xp,
@@ -363,13 +362,13 @@ def test_3d_array_indexing(
         xp=xp,
     )
 
-    def test_function_sel(_indexers) -> Array:
+    def test_function_sel(_indexers) -> fa.Array:
         if index_by == "label":
             return arr.into_space(space).sel(_indexers)
         else:
             return arr.into_space(space).isel(_indexers)
 
-    def test_function_square_brackets(_indexers) -> Array:
+    def test_function_square_brackets(_indexers) -> fa.Array:
         if index_by == "label":
             return arr.into_space(space).loc[_indexers]
         else:
@@ -433,7 +432,7 @@ space_combinations = [
 @pytest.mark.parametrize("xp", XPS)
 @pytest.mark.parametrize("space_combination", space_combinations)
 def test_array_state_management(
-    space_combination: Dict[str, Space],
+    space_combination: Dict[str, fa.Space],
     xp,
     indexers: Mapping[str, Union[int, slice]],
 ) -> None:
@@ -457,7 +456,7 @@ def test_array_state_management(
     arr_2d = arrs["x"] + arrs["y"]
 
     space_comb_list = [space_combination[dim_name] for dim_name in ["x", "y"]]
-    diff_space_comb: List[Space] = [
+    diff_space_comb: List[fa.Space] = [
         "pos" if space_comb == "freq" else "freq"
         for space_comb in space_comb_list
     ]
@@ -525,7 +524,7 @@ def generate_test_array_xrdataset(
     dimension_names: List[str],
     dimension_length: Union[int, List[int]],
     xp,
-) -> Tuple[Array, xr.Dataset]:
+) -> Tuple[fa.Array, xr.Dataset]:
 
     if isinstance(dimension_length, int):
         dimension_length = [dimension_length]*len(dimension_names)
@@ -589,10 +588,10 @@ try:
 
         arr, xr_dataset = generate_test_array_xrdataset(["x"], dimension_length=8, xp=jnp)
 
-        def test_function_isel(_indexers) -> Array:
+        def test_function_isel(_indexers) -> fa.Array:
             return arr.isel(x=_indexers)
 
-        def test_function_square_brackets(_indexers) -> Array:
+        def test_function_square_brackets(_indexers) -> fa.Array:
             return arr[slice(*_indexers)]
 
         test_function_isel = jax.jit(test_function_isel, static_argnums=(0,))
