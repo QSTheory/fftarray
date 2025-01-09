@@ -11,7 +11,7 @@ from tests.helpers  import get_dims, dtypes_names_all
 @pytest.mark.parametrize("xp", XPS)
 @pytest.mark.parametrize("init_dtype_name", dtypes_names_all)
 @pytest.mark.parametrize("target_dtype_name", dtypes_names_all)
-def test_astype(xp, init_dtype_name, target_dtype_name) -> None:
+def test_into_dtype(xp, init_dtype_name, target_dtype_name) -> None:
     dim = fa.dim("x", 4, 0.1, 0., 0.)
     arr1 = fa.array(
         xp.asarray([0, 1,2,3]),

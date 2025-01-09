@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from ._utils.defaults import get_default_dtype_name
-from ._utils.formatting import fft_dim_table, format_n
+from ._utils.formatting import dim_table, format_n
 from ._utils.indexing import check_substepping, remap_index_check_int
 
 from .space import Space
@@ -33,7 +33,7 @@ def dim(
 
 @dataclass
 class Dimension:
-    """Properties of an FFTWave grid for one dimension.
+    """Properties of an Array grid for one dimension.
 
     This class encapsulates all the properties of the position and frequency
     coordinate grids for one dimension.
@@ -188,7 +188,7 @@ class Dimension:
         n_str = format_n(self.n)
         str_out = f"<fftarray.Dimension (name={repr(self.name)})>\n"
         str_out += f"n={n_str}\n"
-        str_out += fft_dim_table(self)
+        str_out += dim_table(self)
         return str_out
 
     @property

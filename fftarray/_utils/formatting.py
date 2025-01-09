@@ -37,7 +37,7 @@ def truncate_str(string: str, width: int) -> str:
         string = string[:width-3] + '...'
     return string
 
-def fft_dim_table(
+def dim_table(
         dim: "Dimension",
         include_header=True,
         include_dim_name=False,

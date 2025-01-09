@@ -6,7 +6,7 @@ from bokeh.models import LinearColorMapper
 
 from fftarray import Array, Space
 
-def plt_fftarray(
+def plt_array(
         arr: Array,
         data_name: Optional[str] = None,
         show_plot: bool = True,

@@ -45,8 +45,8 @@ class LocArrayIndexer(Generic[T]):
 
             Example usage:
             arr_2d = (
-                x_dim.fft_array(space="pos")
-                + y_dim.fft_array(space="pos")
+                fa.coords_from_dim(x_dim, "pos")
+                + fa.coords_from_dim(y_dim, "pos")
             )
             Four ways of retrieving an Array object
             with coordinate 3 along x and coordinates values

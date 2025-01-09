@@ -66,7 +66,7 @@ def array(
         See Also
         --------
         set_default_eager, get_default_eager
-        fft_array
+        Array
     """
 
     if isinstance(dims, Dimension):

@@ -19,7 +19,7 @@ from .dimension import Dimension
 from .named_array import get_axes_transpose, align_named_arrays
 from ._utils.uniform_value import UniformValue
 
-from ._utils.formatting import fft_dim_table, format_bytes, format_n
+from ._utils.formatting import dim_table, format_bytes, format_n
 from ._utils.indexing import (
     LocArrayIndexer, check_missing_dim_names,
     tuple_indexers_from_dict_or_tuple, tuple_indexers_from_mapping,
@@ -149,7 +149,7 @@ def elementwise_two_operands(
     ): # This type makes problem for the dunder methods -> Callable[[Any, Any], Array]:
 
     def fun(x1, x2, /) -> Array:
-        unp_inp: UnpackedValues = unpack_fft_arrays([x1, x2])
+        unp_inp: UnpackedValues = unpack_arrays([x1, x2])
         if is_on_self:
             op_norm = partial(_two_elem_self, name=name)
         else:
@@ -264,7 +264,7 @@ class Array:
 
         See Also
         --------
-        fft_array
+        array
         """
 
         self._dims = dims
@@ -295,7 +295,7 @@ class Array:
             str_out += f" Size: {bytes_str}"
         str_out += "\n"
         for i, (dim, space) in enumerate(zip(self.dims, self.space, strict=True)):
-            str_out += fft_dim_table(
+            str_out += dim_table(
                 dim=dim,
                 include_header=(i==0),
                 include_dim_name=True,
@@ -684,8 +684,8 @@ class Array:
         space_norm: Tuple[Space, ...] = norm_space(space, len(self.dims))
         if space_norm != self.space or not all(self._factors_applied):
             # Setting eager before-hand allows copy-elision without the move option.
-            fft_arr = self.into_eager(True).into_space(space).into_factors_applied(True)
-            return fft_arr._values
+            arr = self.into_eager(True).into_space(space).into_factors_applied(True)
+            return arr._values
         return self.xp.asarray(self._values, copy=True)
 
     @property
@@ -966,7 +966,7 @@ class UnpackedDimProperties:
         self.eager = UniformValue()
         self.space = UniformValue()
 
-def unpack_fft_arrays(
+def unpack_arrays(
         values: List[Union[Number, Array, Any]],
     ) -> UnpackedValues:
     """
@@ -997,20 +997,20 @@ def unpack_fft_arrays(
             # input_factors_applied = x._factors_applied
             # target_factors_applied = list(x._factors_applied)
 
-            for dim_idx, fft_dim in enumerate(x._dims):
-                if fft_dim.name not in dims:
+            for dim_idx, dim in enumerate(x._dims):
+                if dim.name not in dims:
                     dim_props = UnpackedDimProperties(len(values))
-                    dims[fft_dim.name] = dim_props
+                    dims[dim.name] = dim_props
                 else:
-                    dim_props = dims[fft_dim.name]
+                    dim_props = dims[dim.name]
 
                 try:
-                    dim_props.dim.set(fft_dim)
+                    dim_props.dim.set(dim)
                 except ValueError:
                     raise ValueError(
                         "Tried to combine Arrays with " +
                         "different dimension of name " +
-                        f"{fft_dim.name}."
+                        f"{dim.name}."
                     ) from None
 
                 try:
@@ -1019,7 +1019,7 @@ def unpack_fft_arrays(
                     raise ValueError(
                         "Tried to call ufunc on Arrays with " +
                         "different spaces in dimension of name " +
-                        f"{fft_dim.name}." +
+                        f"{dim.name}." +
                         "They have to be explicitly converted " +
                         "into an identical space."
                     ) from None
@@ -1030,12 +1030,12 @@ def unpack_fft_arrays(
                     raise ValueError(
                         "Tried to call ufunc on Arrays with " +
                         "different eager settings in dimension of name " +
-                        f"{fft_dim.name}."
+                        f"{dim.name}."
                     ) from None
 
                 dim_props.factors_applied[op_idx] = x._factors_applied[dim_idx]
 
-            elem_dim_names = [fft_dim.name for fft_dim in x._dims]
+            elem_dim_names = [dim.name for dim in x._dims]
             arrays_to_align.append((elem_dim_names, x._values))
 
 

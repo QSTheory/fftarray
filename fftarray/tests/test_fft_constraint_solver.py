@@ -799,7 +799,7 @@ invalid_values = [np.inf, np.nan, True, False, '0', 1+1j, [0], tuple([0])]
 @pytest.mark.parametrize("test_val", invalid_values)
 def test_invalid_values(test_val):
     """
-    Test that FFTWave throws an error if a constraint has an unsupported type.
+    Test that an error is thrown if a constraint has an unsupported type.
     """
     user_constraints = dict(
         pos_min = -1.5*np.pi,

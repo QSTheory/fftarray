@@ -222,15 +222,15 @@ def test_bool() -> None:
     with pytest.raises(ValueError):
         bool(arr)
 
-def draw_hypothesis_fft_array_values(draw, st_type, shape):
+def draw_hypothesis_array_values(draw, st_type, shape):
     """Creates multi-dimensional array with shape `shape` whose values are drawn
     using `draw` from `st_type`."""
     if len(shape) > 1:
-        return [draw_hypothesis_fft_array_values(draw, st_type, shape[1:]) for _ in range(shape[0])]
+        return [draw_hypothesis_array_values(draw, st_type, shape[1:]) for _ in range(shape[0])]
     return draw(st.lists(st_type, min_size=shape[0], max_size=shape[0]))
 
 @st.composite
-def fftarray_strategy(draw) -> Array:
+def array_strategy(draw) -> Array:
     """Initializes an Array using hypothesis."""
     ndims = draw(st.integers(min_value=1, max_value=4))
     value = st.one_of([
@@ -253,44 +253,44 @@ def fftarray_strategy(draw) -> Array:
         fa.dim(f"{ndim}", n=draw(st.integers(min_value=2, max_value=8)), d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
     for ndim in range(ndims)]
     note(dims)
-    fftarr_values = xp.asarray(np.array(draw_hypothesis_fft_array_values(draw, value, [dim.n for dim in dims])))
-    note(fftarr_values.dtype)
-    note(fftarr_values)
+    arr_values = xp.asarray(np.array(draw_hypothesis_array_values(draw, value, [dim.n for dim in dims])))
+    note(arr_values.dtype)
+    note(arr_values)
 
     if not all(factors_applied):
-        fftarr_values = xp.astype(fftarr_values, xp.complex128)
+        arr_values = xp.astype(arr_values, xp.complex128)
     return (
-        fa.array(fftarr_values, dims, init_space)
+        fa.array(arr_values, dims, init_space)
         .into_factors_applied(factors_applied)
         .into_eager(eager)
     )
 
 @pytest.mark.slow
 @settings(max_examples=1000, deadline=None, print_blob=True)
-@given(fftarray_strategy())
-def test_fftarray_lazyness(fftarr):
+@given(array_strategy())
+def test_array_lazyness(arr):
     """Tests the lazyness of an Array, i.e., the correct behavior of
     factors_applied and eager.
     """
-    note(fftarr)
+    note(arr)
     # -- basic tests
-    assert_basic_lazy_logic(fftarr, note)
+    assert_basic_lazy_logic(arr, note)
     # -- test operands
-    assert_single_operand_fun_equivalence(fftarr, all(fftarr._factors_applied), note)
-    assert_dual_operand_fun_equivalence(fftarr, all(fftarr._factors_applied), note)
+    assert_single_operand_fun_equivalence(arr, all(arr._factors_applied), note)
+    assert_dual_operand_fun_equivalence(arr, all(arr._factors_applied), note)
     # Jax only supports FFT for dim<4
     # TODO: Block this off more generally? Array API does not seem to define
     # an upper limit to the number of dimensions (nor do the JAX docs for that matter).
-    if len(fftarr.dims) < 4 or not fftarr.xp==jnp:
+    if len(arr.dims) < 4 or not arr.xp==jnp:
         # -- test eager, factors_applied logic
-        assert_fftarray_eager_factors_applied(fftarr, note)
+        assert_array_eager_factors_applied(arr, note)
 
 @pytest.mark.parametrize("xp", XPS)
 @pytest.mark.parametrize("precision", precisions)
 @pytest.mark.parametrize("space", spaces)
 @pytest.mark.parametrize("eager", [True, False])
 @pytest.mark.parametrize("factors_applied", [True, False])
-def test_fftarray_lazyness_reduced(xp, precision, space, eager, factors_applied) -> None:
+def test_array_lazyness_reduced(xp, precision, space, eager, factors_applied) -> None:
     """Tests the lazyness of an Array, i.e., the correct behavior of
     factors_applied and eager. This is the reduced/faster version of the test
     using hypothesis.
@@ -298,14 +298,13 @@ def test_fftarray_lazyness_reduced(xp, precision, space, eager, factors_applied)
     xdim = fa.dim("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
     ydim = fa.dim("y", n=8, d_pos=0.03, pos_min=-0.5, freq_min=-4.7)
     dtype = getattr(xp, precision)
-    fftarr = fa.coords_from_dim(xdim, space, xp=xp, dtype=dtype).into_eager(eager) + fa.coords_from_dim(ydim, space, xp=xp, dtype=dtype).into_eager(eager)
+    arr = fa.coords_from_dim(xdim, space, xp=xp, dtype=dtype).into_eager(eager) + fa.coords_from_dim(ydim, space, xp=xp, dtype=dtype).into_eager(eager)
     # TODO: This tests either float without factors or complex with factors.
     if factors_applied:
-        fftarr=fftarr.into_factors_applied(factors_applied)
-    # assert_basic_lazy_logic(fftarr, print)
-    assert_basic_lazy_logic(fftarr, print)
-    assert_dual_operand_fun_equivalence(fftarr, all(fftarr._factors_applied), print)
-    assert_fftarray_eager_factors_applied(fftarr, print)
+        arr=arr.into_factors_applied(factors_applied)
+    assert_basic_lazy_logic(arr, print)
+    assert_dual_operand_fun_equivalence(arr, all(arr._factors_applied), print)
+    assert_array_eager_factors_applied(arr, print)
 
 @pytest.mark.parametrize("xp", XPS)
 def test_immutability(xp) -> None:
@@ -349,7 +348,7 @@ def assert_basic_lazy_logic(arr, log):
     _values/(n*d_freq).
     """
     if all(arr._factors_applied):
-        # fftarray must be handled the same way as applying the operations to the values numpy array
+        # Array must be handled the same way as applying the operations to the values numpy array
         log("factors_applied=True -> x.values(x.space) == x._values(space=x.space)")
         np.testing.assert_array_equal(arr.values(arr.space), arr._values, strict=True)
 
@@ -512,7 +511,7 @@ def assert_dual_operand_fun_equivalence(arr: Array, precise: bool, log):
     else:
         assert_equal_op(arr, values, lambda x: x**x, precise, True, log)
 
-def assert_fftarray_eager_factors_applied(arr: Array, log):
+def assert_array_eager_factors_applied(arr: Array, log):
     """Tests whether the factors are only applied when necessary and whether
     the Array after performing an FFT has the correct properties. If the
     initial Array was eager, then the final Array also must be eager and
@@ -618,7 +617,7 @@ try:
 
         xdim = fa.dim("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1, dynamically_traced_coords=dtc)
         ydim = fa.dim("y", n=8, d_pos=0.03, pos_min=-0.4, freq_min=-4.2, dynamically_traced_coords=dtc)
-        fftarr = fa.coords_from_dim(xdim, space, xp=jnp) + fa.coords_from_dim(ydim, space, xp=jnp)
+        arr = fa.coords_from_dim(xdim, space, xp=jnp) + fa.coords_from_dim(ydim, space, xp=jnp)
 
         def jax_scan_step_fun_dynamic(carry, *_):
             # dynamic should support resizing and shifting of the grid
@@ -638,14 +637,14 @@ try:
             return carry, None
 
         if dtc:
-            jax.lax.scan(jax_scan_step_fun_dynamic, fftarr, jnp.arange(3))
+            jax.lax.scan(jax_scan_step_fun_dynamic, arr, jnp.arange(3))
             # internal logic in sel throws NotImplementedError for jitted index
             with pytest.raises(NotImplementedError):
-                jax.lax.scan(jax_scan_step_fun_static, fftarr, jnp.arange(3))
+                jax.lax.scan(jax_scan_step_fun_static, arr, jnp.arange(3))
         else:
-            jax.lax.scan(jax_scan_step_fun_static, fftarr, jnp.arange(3))
+            jax.lax.scan(jax_scan_step_fun_static, arr, jnp.arange(3))
             with pytest.raises(TypeError):
-                jax.lax.scan(jax_scan_step_fun_dynamic, fftarr, jnp.arange(3))
+                jax.lax.scan(jax_scan_step_fun_dynamic, arr, jnp.arange(3))
 except(ImportError):
     pass
 
@@ -655,7 +654,7 @@ def test_different_dimension_dynamic_prop() -> None:
     """
     x_dim = fa.dim(name="x", pos_min=0, freq_min=0, d_pos=1, n=8, dynamically_traced_coords=False)
     y_dim = fa.dim(name="y", pos_min=0, freq_min=0, d_pos=1, n=4, dynamically_traced_coords=True)
-    fftarr = fa.coords_from_dim(x_dim, "pos", xp=jnp) + fa.coords_from_dim(y_dim, "pos", xp=jnp)
+    arr = fa.coords_from_dim(x_dim, "pos", xp=jnp) + fa.coords_from_dim(y_dim, "pos", xp=jnp)
 
     def jax_scan_step_fun_valid(carry, *_):
         xval = carry._dims[0]._pos_min + carry._dims[0]._d_pos # static dimension
@@ -665,7 +664,7 @@ def test_different_dimension_dynamic_prop() -> None:
         carry._dims = tuple(new_dims)
         return carry, carry_sel
 
-    jax.lax.scan(jax_scan_step_fun_valid, fftarr, jnp.arange(3))
+    jax.lax.scan(jax_scan_step_fun_valid, arr, jnp.arange(3))
 
     def jax_scan_step_fun_invalid_change(carry, *_):
         new_dims = list(carry._dims)
@@ -679,8 +678,8 @@ def test_different_dimension_dynamic_prop() -> None:
         return carry, carry_sel
 
     with pytest.raises(TypeError):
-        jax.lax.scan(jax_scan_step_fun_invalid_change, fftarr, jnp.arange(3))
+        jax.lax.scan(jax_scan_step_fun_invalid_change, arr, jnp.arange(3))
 
     with pytest.raises(NotImplementedError):
-        jax.lax.scan(jax_scan_step_fun_invalid_sel, fftarr, jnp.arange(3))
+        jax.lax.scan(jax_scan_step_fun_invalid_sel, arr, jnp.arange(3))
 

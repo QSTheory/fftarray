@@ -2,8 +2,8 @@
 prover from Microsoft Research.
 
 This submodule contains the functionality that initializes the coordinate grid
-of the FFTWave. It contains functions that are out of scope for the average
-FFTWave user. Please visit the development area to toggle their visibility.
+of the Array. It contains functions that are out of scope for the average
+fftarray user. Please visit the development area to toggle their visibility.
 """
 
 from typing import Any, Optional, Union, List, Dict, Literal, TypedDict, Mapping

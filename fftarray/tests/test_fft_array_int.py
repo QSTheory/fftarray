@@ -9,7 +9,7 @@ import fftarray as fa
 from fftarray.array import Array, Space
 
 from fftarray.tests.helpers import XPS
-from fftarray.tests.test_fft_array import draw_hypothesis_fft_array_values, assert_equal_op, assert_basic_lazy_logic, jnp
+from fftarray.tests.test_fft_array import draw_hypothesis_array_values, assert_equal_op, assert_basic_lazy_logic, jnp
 
 
 PrecisionSpec = Literal["float32", "float64"]
@@ -22,7 +22,7 @@ spaces: List[Space] = ["pos", "freq"]
 
 
 @st.composite
-def fftarray_strategy_int(draw) -> Array:
+def array_strategy_int(draw) -> Array:
     """Initializes an Array using hypothesis."""
     ndims = draw(st.integers(min_value=1, max_value=4))
     value = st.integers(min_value=np.iinfo(np.int32).min, max_value=np.iinfo(np.int32).max)
@@ -40,32 +40,32 @@ def fftarray_strategy_int(draw) -> Array:
         fa.dim(f"{ndim}", n=draw(st.integers(min_value=2, max_value=8)), d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
     for ndim in range(ndims)]
     note(dims)
-    fftarr_values = xp.asarray(np.array(draw_hypothesis_fft_array_values(draw, value, [dim.n for dim in dims])))
-    note(fftarr_values.dtype)
-    note(fftarr_values)
+    arr_values = xp.asarray(np.array(draw_hypothesis_array_values(draw, value, [dim.n for dim in dims])))
+    note(arr_values.dtype)
+    note(arr_values)
 
-    return fa.array(fftarr_values, dims, init_space).into_eager(eager)
+    return fa.array(arr_values, dims, init_space).into_eager(eager)
 
 
 @pytest.mark.slow
 @settings(max_examples=1000, deadline=None, print_blob=True)
-@given(fftarray_strategy_int())
-def test_fftarray_lazyness_int(fftarr):
+@given(array_strategy_int())
+def test_array_lazyness_int(arr):
     """Tests the lazyness of an Array, i.e., the correct behavior of
     factors_applied and eager.
     """
-    note(fftarr)
+    note(arr)
     # -- basic tests
-    assert_basic_lazy_logic(fftarr, note)
+    assert_basic_lazy_logic(arr, note)
     # -- test operands
-    assert_single_operand_fun_equivalence_int(fftarr, all(fftarr._factors_applied), note)
-    assert_dual_operand_fun_equivalence_int(fftarr, all(fftarr._factors_applied), note)
+    assert_single_operand_fun_equivalence_int(arr, all(arr._factors_applied), note)
+    assert_dual_operand_fun_equivalence_int(arr, all(arr._factors_applied), note)
     # Jax only supports FFT for dim<4
     # TODO: Block this off more generally? Array API does not seem to define
     # an upper limit to the number of dimensions (nor do the JAX docs for that matter).
-    if len(fftarr.dims) < 4 or not fftarr.xp==jnp:
+    if len(arr.dims) < 4 or not arr.xp==jnp:
         # -- test eager, factors_applied logic
-        assert_fftarray_eager_factors_applied_int(fftarr, note)
+        assert_array_eager_factors_applied_int(arr, note)
 
 def assert_dual_operand_fun_equivalence_int(arr: Array, precise: bool, log):
     """Test whether a dual operation on an Array, e.g., the
@@ -93,7 +93,7 @@ def assert_dual_operand_fun_equivalence_int(arr: Array, precise: bool, log):
     else:
         assert_equal_op(arr, values, lambda x: x**x, precise, True, log)
 
-def assert_fftarray_eager_factors_applied_int(arr: Array, log):
+def assert_array_eager_factors_applied_int(arr: Array, log):
     """Tests whether the factors are only applied when necessary and whether
     the Array after performing an FFT has the correct properties. If the
     initial Array was eager, then the final Array also must be eager and

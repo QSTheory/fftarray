@@ -6,9 +6,9 @@ from fftarray import Array
 import fftarray as fa
 
 def shift_freq(x: Array, offsets: Dict[str, float]) -> Array:
-    """Shift the wavefunction in frequency space:
+    """Shift the Array in frequency space:
     :math:`k_{x,y,z} \\mapsto k_{x,y,z} - \\Delta k_{x,y,z}`.
-    The wavefunction is transformed according to:
+    The Array is transformed according to:
 
     .. math::
 
@@ -16,8 +16,8 @@ def shift_freq(x: Array, offsets: Dict[str, float]) -> Array:
 
     Parameters
     ----------
-    wf : FFTWave
-        The initial wavefunction.
+    x : Array
+        The initial Array.
     delta_kx : float, optional
         The frequency shift in x direction, by default 0.
     delta_ky : float, optional
@@ -27,8 +27,8 @@ def shift_freq(x: Array, offsets: Dict[str, float]) -> Array:
 
     Returns
     -------
-    FFTWave
-        The wavefunction with shifted frequency space.
+    Array
+        The Array with shifted frequency space.
     """
     if not x.xp.isdtype(x.dtype, ("real floating", "complex floating")):
         raise ValueError(
@@ -43,9 +43,9 @@ def shift_freq(x: Array, offsets: Dict[str, float]) -> Array:
     return x.into_space("pos") * phase_shift
 
 def shift_pos(x: Array, offsets: Dict[str, float]) -> Array:
-    """Shift the wavefunction in position space:
+    """Shift the Array in position space:
     :math:`x \\mapsto x - \\Delta x`. :math:`y` and :math:`z` analogously.
-    The wavefunction is transformed according to:
+    The Array is transformed according to:
 
     .. math::
 
@@ -53,8 +53,8 @@ def shift_pos(x: Array, offsets: Dict[str, float]) -> Array:
 
     Parameters
     ----------
-    wf : FFTWave
-        The initial wavefunction.
+    x : Array
+        The initial Array.
     delta_kx : float, optional
         The position shift in x direction, by default 0.
     delta_ky : float, optional
@@ -64,8 +64,8 @@ def shift_pos(x: Array, offsets: Dict[str, float]) -> Array:
 
     Returns
     -------
-    FFTWave
-        The wavefunction with shifted position space.
+    Array
+        The Array with shifted position space.
     """
     if not x.xp.isdtype(x.dtype, ("real floating", "complex floating")):
         raise ValueError(

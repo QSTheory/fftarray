@@ -14,7 +14,7 @@ class SplitArrayMeta:
     axis: List[int]
     eager: Tuple[bool, ...]
     space: Tuple[Space, ...]
-    fft_dims: Tuple[Dimension, ...]
+    dims: Tuple[Dimension, ...]
 
 def _named_dims_to_axis(x: Array, dim_name: Optional[Union[str, Iterable[str]]], /) -> SplitArrayMeta:
     """
@@ -28,7 +28,7 @@ def _named_dims_to_axis(x: Array, dim_name: Optional[Union[str, Iterable[str]]],
         return SplitArrayMeta(
             axis=list(range(len(x.shape))),
             space=tuple([]),
-            fft_dims=tuple([]),
+            dims=tuple([]),
             eager=tuple([]),
         )
 
@@ -41,19 +41,19 @@ def _named_dims_to_axis(x: Array, dim_name: Optional[Union[str, Iterable[str]]],
         dim_idx = dim_names.index(dim_ident)
         axis.append(dim_idx)
 
-    fft_dims = []
+    dims = []
     spaces = []
     eagers = []
-    for fft_dim, space, eager in zip(x.dims, x.space, x.eager, strict=True):
-        if fft_dim.name not in dim_name:
-            fft_dims.append(fft_dim)
+    for dim, space, eager in zip(x.dims, x.space, x.eager, strict=True):
+        if dim.name not in dim_name:
+            dims.append(dim)
             spaces.append(space)
             eagers.append(eager)
 
     return SplitArrayMeta(
         axis=axis,
         space=tuple(spaces),
-        fft_dims=tuple(fft_dims),
+        dims=tuple(dims),
         eager=tuple(eagers),
     )
 
@@ -72,9 +72,9 @@ def sum(
     return Array(
         values=reduced_values,
         space=res_meta.space,
-        dims=res_meta.fft_dims,
+        dims=res_meta.dims,
         eager=res_meta.eager,
-        factors_applied=(True,)*len(res_meta.fft_dims),
+        factors_applied=(True,)*len(res_meta.dims),
         xp=x.xp,
     )
 
@@ -92,9 +92,9 @@ def max(
     return Array(
         values=reduced_values,
         space=res_meta.space,
-        dims=res_meta.fft_dims,
+        dims=res_meta.dims,
         eager=res_meta.eager,
-        factors_applied=(True,)*len(res_meta.fft_dims),
+        factors_applied=(True,)*len(res_meta.dims),
         xp=x.xp,
     )
 
@@ -129,8 +129,8 @@ def integrate(
     return Array(
         values=reduced_values,
         space=res_meta.space,
-        dims=res_meta.fft_dims,
+        dims=res_meta.dims,
         eager=res_meta.eager,
-        factors_applied=(True,)*len(res_meta.fft_dims),
+        factors_applied=(True,)*len(res_meta.dims),
         xp=x.xp,
     )
