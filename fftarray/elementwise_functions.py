@@ -1,8 +1,8 @@
 
-from .fft_array import (
+from .array import (
     elementwise_one_operand,
     elementwise_two_operands,
-    FFTArray,
+    Array,
 )
 from .op_lazy_luts import (
     add_transforms_lut,
@@ -14,10 +14,10 @@ from .op_lazy_luts import (
 
 
 # This one is the only one with kwargs, so just done by hand.
-def clip(x: FFTArray, /, *, min=None, max=None) -> FFTArray:
-    assert isinstance(x, FFTArray)
-    values = x.xp.clip(x.values(space=x.space), min=min, max=max)
-    return FFTArray(
+def clip(x: Array, /, *, min=None, max=None) -> Array:
+    assert isinstance(x, Array)
+    values = x.xp.clip(x.values(x.space), min=min, max=max)
+    return Array(
         values=values,
         space=x.space,
         dims=x.dims,

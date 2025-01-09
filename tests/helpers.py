@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import fftarray as fa
-from fftarray.fft_array import FFTArray
+from fftarray.array import Array
 
 DTYPE_NAME = Literal[
     "bool",
@@ -54,7 +54,7 @@ dtypes_names_pairs = [
 ]
 
 
-def get_dims(n: int) -> List[fa.FFTDimension]:
+def get_dims(n: int) -> List[fa.Dimension]:
     return [
         fa.dim(str(i), n=4+i, d_pos=1.*(i+1.), pos_min=0., freq_min=0.)
         for i in range(n)
@@ -62,7 +62,7 @@ def get_dims(n: int) -> List[fa.FFTDimension]:
 
 def get_arr_from_dims(
         xp,
-        dims: Iterable[fa.FFTDimension],
+        dims: Iterable[fa.Dimension],
         spaces: Union[fa.Space, Iterable[fa.Space]] = "pos",
         dtype_name: DTYPE_NAME = "float64",
     ):
@@ -73,18 +73,18 @@ def get_arr_from_dims(
     else:
         spaces_norm = spaces
     arr = fa.array(
-        values=xp.asarray(
+        xp.asarray(
             1.,
             dtype=dtype,
         ),
-        dims=[],
-        space=[],
+        [],
+        [],
     )
     for dim, space in zip(dims, spaces_norm, strict=True):
-        arr += fa.coords_from_dim(dim=dim, space=space, xp=xp).astype(dtype=dtype)
+        arr += fa.coords_from_dim(dim, space, xp=xp).into_dtype(dtype)
     return arr
 
-def assert_fa_array_exact_equal(x1: FFTArray, x2: FFTArray) -> None:
+def assert_fa_array_exact_equal(x1: Array, x2: Array) -> None:
     x1._check_consistency()
     x2._check_consistency()
 

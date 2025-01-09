@@ -2,8 +2,8 @@ from typing import Any, Optional, Union, Iterable, Tuple, get_args
 
 import array_api_compat
 
-from .fft_dimension import FFTDimension
-from .fft_array import FFTArray
+from .dimension import Dimension
+from .array import Array
 from .space import Space
 from .transform_application import real_type
 from ._utils.defaults import get_default_eager, get_default_dtype_name, get_default_xp
@@ -24,28 +24,29 @@ def _get_xp(xp: Optional[Any], values) -> Tuple[Any, bool]:
 
 def array(
         values,
-        dims: Union[FFTDimension, Iterable[FFTDimension]],
+        dims: Union[Dimension, Iterable[Dimension]],
         space: Union[Space, Iterable[Space]],
+        /,
         *,
         xp: Optional[Any] = None,
         dtype: Optional[Any] = None,
         defensive_copy: bool = True,
-    ) -> FFTArray:
+    ) -> Array:
     """
-        Construct a new instance of FFTArray from raw values.
+        Construct a new instance of `Array` from raw values.
 
         Parameters
         ----------
         values :
-            The values to initialize the `FFTArray` with.
+            The values to initialize the ``Array`` with.
             They can be of any Python Arrray API v2023.12 compatible library.
-            By default they are copied to make sure an external alias cannot influence the created ``FFTArray``.
-        dims : Iterable[FFTDimension]
-            The FFTDimensions for each dimension of the passed in values.
+            By default they are copied to make sure an external alias cannot influence the created ``Array``.
+        dims : Iterable[Dimension]
+            The Dimensions for each dimension of the passed in values.
         space: Union[Space, Iterable[Space]]
-            Specify the space of the values with which the returned FFTArray is intialized.
+            Specify the space of the values with which the returned ``Array`` intialized.
         xp: Optional[Any]
-            The Array API namespace to use for the created ``FFTArray``.
+            The Array API namespace to use for the created ``Array``.
             If it is None, ``array_api_compat.array_namespace(values)`` is used.
             If that fails the default namespace from ``get_default_xp()`` is used.
         dtype: Optional[Any]
@@ -54,22 +55,22 @@ def array(
             array library are used.
         defensive_copy:  bool
             If ``True`` the values array is always copied in order to ensure no external alias to it exists.
-            This ensures the immutability of the created ``FFTArray``.
+            This ensures the immutability of the created ``Array``.
             If this is unnecessary, this defensive copy can be prevented by setting this argument to ``False``.
             In this case it has to be ensured that the passed in array is not used externally after creation.
 
         Returns
         -------
-        FFTArray
+        Array
 
         See Also
         --------
         set_default_eager, get_default_eager
-        fft_array
+        Array
     """
 
-    if isinstance(dims, FFTDimension):
-        dims_tuple: Tuple[FFTDimension, ...] = (dims,)
+    if isinstance(dims, Dimension):
+        dims_tuple: Tuple[Dimension, ...] = (dims,)
     else:
         dims_tuple = tuple(dims)
 
@@ -102,7 +103,7 @@ def array(
         if length != dim.n:
             raise ValueError(f"The dimension `{dim.name}' has length {dim.n} but axis {i} of the passed in `values` array has length {length}.")
 
-    arr = FFTArray(
+    arr = Array(
         dims=dims_tuple,
         values=values,
         space=spaces_normalized,
@@ -114,29 +115,30 @@ def array(
     return arr
 
 def coords_from_dim(
-        dim: FFTDimension,
+        dim: Dimension,
         space: Space,
+        /,
         *,
         xp: Optional[Any] = None,
         dtype: Optional[Any] = None,
-    ) -> FFTArray:
+    ) -> Array:
     """..
 
     Parameters
     ----------
-    dim : FFTDimension
+    dim : Dimension
         The dimension from which the coordinate grid should be created.
     space : Space
-        Specify the space of the coordinates and in which space the returned FFTArray is intialized.
+        Specify the space of the coordinates and in which space the returned ``Array`` is intialized.
     xp : Optional[Any]
-        The array namespace to use for the returned FFTArray. `None` uses default ``numpy`` which can be globally changed.
+        The array namespace to use for the returned ``Array``. `None` uses default ``numpy`` which can be globally changed.
     dtype : Optional[Any]
-        The dtype to use for the returned FFTArray. `None` uses default ``float64`` which can be globally changed.
+        The dtype to use for the returned ``Array``. `None` uses default ``float64`` which can be globally changed.
 
     Returns
     -------
-    FFTArray
-        The grid coordinates of the chosen space packed into an FFTArray with self as only dimension.
+    ``Array``
+        The grid coordinates of the chosen space packed into an ``Array`` with self as only dimension.
 
     See Also
     --------
@@ -160,7 +162,7 @@ def coords_from_dim(
         space=space,
     )
 
-    return FFTArray(
+    return Array(
         values=values,
         dims=(dim,),
         eager=(get_default_eager(),),
@@ -171,13 +173,14 @@ def coords_from_dim(
 
 
 def coords_from_arr(
-        x: FFTArray,
+        x: Array,
         dim_name: str,
         space: Union[Space],
+        /,
         *,
         xp: Optional[Any] = None,
         dtype: Optional[Any] = None,
-	) -> FFTArray:
+	) -> Array:
     """
 
     Constructs an array filled with the coordinates of the specified dimension
@@ -186,22 +189,22 @@ def coords_from_arr(
 
     Parameters
     ----------
-    x : FFTArray
+    x : Array
         The dimensions of the created array. They also imply the shape.
     space : Space
-        Specify the space of the returned FFTArray is intialized.
+        Specify the space of the returned Array is intialized.
     dim_name : str
         The name of the dimension from which to construct the coordinate array.
     xp : Optional[Any]
-        The array namespace to use for the returned FFTArray. ``None`` uses the array namespace of ``x``.
+        The array namespace to use for the returned Array. ``None`` uses the array namespace of ``x``.
     dtype : Optional[Any]
         The dtype to use for the created coordinate array.
         ``None`` uses a real floating point type with the same precision as ``x``.
 
     Returns
     -------
-    FFTArray
-        The grid coordinates of the chosen space packed into an FFTArray with the dimension of name ``dim_name``.
+    Array
+        The grid coordinates of the chosen space packed into an Array with the dimension of name ``dim_name``.
         ``eager`` of the created array is the same as eager in the selected dimension of ``x``.
 
     See Also
@@ -219,43 +222,41 @@ def coords_from_arr(
                 xp_norm = array_api_compat.array_namespace(xp.array(1.))
 
             return coords_from_dim(
-                dim=dim,
-                space=space,
-                xp=xp_norm,
-                dtype=dtype,
-            ).as_eager(eager=x.eager[dim_idx])
-    raise ValueError("Specified dim_name not part of the FFTArray's dimensions.")
+                dim, space, xp=xp_norm, dtype=dtype
+            ).into_eager(x.eager[dim_idx])
+    raise ValueError("Specified dim_name not part of the Array's dimensions.")
 
 def full(
-        dim: Union[FFTDimension, Iterable[FFTDimension]],
+        dim: Union[Dimension, Iterable[Dimension]],
         space: Union[Space, Iterable[Space]],
         fill_value: Union[bool, int, float, complex, Any],
+        /,
         *,
         xp: Optional[Any] = None,
         dtype: Optional[Any] = None,
-    ) -> FFTArray:
+    ) -> Array:
     """..
 
     Parameters
     ----------
-    dim : Union[FFTDimension, Iterable[FFTDimension]]
+    dim : Union[Dimension, Iterable[Dimension]]
         The dimensions of the created array. They also imply the shape.
     space : Space
-        Specify the space of the returned FFTArray is intialized.
+        Specify the space of the returned Array is intialized.
     xp:
-        The Array API namespace to use for the created ``FFTArray``.
+        The Array API namespace to use for the created ``Array``.
         If it is None, ``array_api_compat.array_namespace(fill_value)`` is used.
         If that fails the default namespace from ``get_default_xp()`` is used.
     dtype : Optional[Any]
-        The dtype to use for the returned FFTArray.
+        The dtype to use for the returned Array.
         If the value is `None`, the dtype is inferred from ``fill_value``
         according to the rules of the underlying Array API.
 
 
     Returns
     -------
-    FFTArray
-        The grid coordinates of the chosen space packed into an FFTArray with self as only dimension.
+    Array
+        The grid coordinates of the chosen space packed into an Array with self as only dimension.
 
     See Also
     --------
@@ -264,8 +265,8 @@ def full(
 
     xp, _ = _get_xp(xp, fill_value)
 
-    if isinstance(dim, FFTDimension):
-        dims: Tuple[FFTDimension, ...] = (dim,)
+    if isinstance(dim, Dimension):
+        dims: Tuple[Dimension, ...] = (dim,)
     else:
         dims = tuple(dim)
 
@@ -275,7 +276,7 @@ def full(
     fill_value = xp.asarray(fill_value, dtype=dtype)
     values = xp.full(shape, fill_value)
 
-    arr = FFTArray(
+    arr = Array(
         values=values,
         dims=dims,
         space=norm_space(space, n_dims),

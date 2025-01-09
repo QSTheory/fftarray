@@ -14,9 +14,9 @@ def assert_scalars_almost_equal_nulp(x, y, nulp = 1):
 
 
 
-def test_fftdim_accessors():
+def test_dim_accessors():
     """
-    Test if the accessors of FFTDimension are defined and do not result in a
+    Test if the accessors of Dimension are defined and do not result in a
     contradiction.
     """
     sol = fa.dim("x",
@@ -33,22 +33,22 @@ def test_fftdim_accessors():
     assert np.isclose(sol.freq_extent, sol.freq_max - sol.freq_min)
     assert np.isclose(sol.freq_extent, sol.d_freq * (sol.n - 1.))
 
-def test_fftdim_jax():
+def test_dim_jax():
     """
-    Test if the pytree of FFTDimension is correctly defined, i.e., if the
+    Test if the pytree of Dimension is correctly defined, i.e., if the
     flattening and unflattening works accordingly.
     """
     @jax.jit
-    def jax_func(fftdim: fa.FFTDimension):
-        return fftdim
+    def jax_func(dim: fa.Dimension):
+        return dim
 
-    fftdim = fa.dim("x",
+    dim = fa.dim("x",
         pos_min = 3e-6,
         d_pos = 1e-5,
         freq_min = 0.,
         n = 16,
     )
-    assert jax_func(fftdim) == fftdim
+    assert jax_func(dim) == dim
 
 
 @pytest.mark.parametrize("xp", XPS)
@@ -59,25 +59,25 @@ def test_arrays(xp) -> None:
 
     n = 16
 
-    fftdim = fa.dim("x",
+    dim = fa.dim("x",
         pos_min = 3e-6,
         d_pos = 1e-5,
         freq_min = 0.,
         n = n,
     )
 
-    pos_grid = fa.coords_from_dim(dim=fftdim, xp=xp, space="pos").np_array(space="pos")
-    assert_scalars_almost_equal_nulp(fftdim.pos_min, np.min(pos_grid))
-    assert_scalars_almost_equal_nulp(fftdim.pos_min, pos_grid[0])
-    assert_scalars_almost_equal_nulp(fftdim.pos_max, np.max(pos_grid))
-    assert_scalars_almost_equal_nulp(fftdim.pos_max, pos_grid[-1])
-    assert_scalars_almost_equal_nulp(fftdim.pos_middle, pos_grid[int(n/2)])
+    pos_grid = fa.coords_from_dim(dim, "pos", xp=xp).np_array("pos")
+    assert_scalars_almost_equal_nulp(dim.pos_min, np.min(pos_grid))
+    assert_scalars_almost_equal_nulp(dim.pos_min, pos_grid[0])
+    assert_scalars_almost_equal_nulp(dim.pos_max, np.max(pos_grid))
+    assert_scalars_almost_equal_nulp(dim.pos_max, pos_grid[-1])
+    assert_scalars_almost_equal_nulp(dim.pos_middle, pos_grid[int(n/2)])
 
-    freq_grid = fa.coords_from_dim(dim=fftdim, xp=xp, space="freq").np_array(space="freq")
-    assert_scalars_almost_equal_nulp(fftdim.freq_min, np.min(freq_grid))
-    assert_scalars_almost_equal_nulp(fftdim.freq_min, freq_grid[0])
-    assert_scalars_almost_equal_nulp(fftdim.freq_max, np.max(freq_grid))
-    assert_scalars_almost_equal_nulp(fftdim.freq_max, freq_grid[-1])
+    freq_grid = fa.coords_from_dim(dim, "freq", xp=xp).np_array("freq")
+    assert_scalars_almost_equal_nulp(dim.freq_min, np.min(freq_grid))
+    assert_scalars_almost_equal_nulp(dim.freq_min, freq_grid[0])
+    assert_scalars_almost_equal_nulp(dim.freq_max, np.max(freq_grid))
+    assert_scalars_almost_equal_nulp(dim.freq_max, freq_grid[-1])
 
 def test_equality() -> None:
     dim_1 = fa.dim("x",
@@ -99,18 +99,18 @@ def test_equality() -> None:
 @pytest.mark.parametrize("dtc", [True, False])
 def test_dynamically_traced_coords(dtc: bool) -> None:
     """
-    Test the tracing of an FFTDimension. The tracing behavior (dynamic/static)
+    Test the tracing of a Dimension. The tracing behavior (dynamic/static)
     is determined by its property `dynamically_traced_coords` (False/True).
 
     If `dynamically_traced_coords=True`, `d_pos`, `pos_min` and `freq_min`
     should be jax-leaves.
     If `dynamically_traced_coords=False`, all properties should be static.
 
-    Here, only the basics are tested, whether the FFTDimension properties can be
+    Here, only the basics are tested, whether the Dimension properties can be
     changed within a jax.lax.scan step function.
     """
 
-    fftdim_test = fa.dim("x",
+    dim_test = fa.dim("x",
         pos_min = 3e-6,
         d_pos = 1e-5,
         freq_min = 0.,
@@ -118,32 +118,32 @@ def test_dynamically_traced_coords(dtc: bool) -> None:
         dynamically_traced_coords = dtc
     )
 
-    def jax_step_func_static(fftdim: fa.FFTDimension, a):
-        o = fftdim._n * fftdim._d_pos + a * fftdim._freq_min
-        return fftdim, o
+    def jax_step_func_static(dim: fa.Dimension, a):
+        o = dim._n * dim._d_pos + a * dim._freq_min
+        return dim, o
 
-    def jax_step_func_dynamic(fftdim: fa.FFTDimension, a):
-        fftdim._pos_min = fftdim._pos_min - a
-        fftdim._d_pos = a*fftdim._d_pos
-        fftdim._freq_min = fftdim._freq_min/a
-        return fftdim, a
+    def jax_step_func_dynamic(dim: fa.Dimension, a):
+        dim._pos_min = dim._pos_min - a
+        dim._d_pos = a*dim._d_pos
+        dim._freq_min = dim._freq_min/a
+        return dim, a
 
-    def jax_step_func_forbidden(fftdim: fa.FFTDimension, a):
-        fftdim._name = f"new{fftdim._name}"
-        fftdim._n = fftdim._n + 1
-        fftdim._dynamically_traced_coords = not fftdim._dynamically_traced_coords
-        return fftdim, a
+    def jax_step_func_forbidden(dim: fa.Dimension, a):
+        dim._name = f"new{dim._name}"
+        dim._n = dim._n + 1
+        dim._dynamically_traced_coords = not dim._dynamically_traced_coords
+        return dim, a
 
     # both (static and dynamic) should support this
-    jax.lax.scan(jax_step_func_static, fftdim_test, jax.numpy.arange(3))
+    jax.lax.scan(jax_step_func_static, dim_test, jax.numpy.arange(3))
 
     if dtc:
         # dynamic
-        jax.lax.scan(jax_step_func_dynamic, fftdim_test, jax.numpy.arange(3))
+        jax.lax.scan(jax_step_func_dynamic, dim_test, jax.numpy.arange(3))
     else:
         # static
         with pytest.raises(jax.errors.UnexpectedTracerError):
-            jax.lax.scan(jax_step_func_dynamic, fftdim_test, jax.numpy.arange(3))
+            jax.lax.scan(jax_step_func_dynamic, dim_test, jax.numpy.arange(3))
 
     with pytest.raises(TypeError):
-        jax.lax.scan(jax_step_func_forbidden, fftdim_test, jax.numpy.arange(3))
+        jax.lax.scan(jax_step_func_forbidden, dim_test, jax.numpy.arange(3))

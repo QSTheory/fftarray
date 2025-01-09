@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 import fftarray as fa
 
-from fftarray.fft_dimension import FFTDimension
+from fftarray.dimension import Dimension
 from fftarray.tests.helpers import XPS, XPS_ROTATED_PAIRS
 from tests.helpers import get_dims, dtypes_names_pairs, dtype_names_numeric_core, DTYPE_NAME
 
@@ -71,7 +71,7 @@ def test_from_array_object(
 
     # Eager is always inferred from the default setting since there is no override parameter.
     with fa.default_eager(eager):
-        arr = fa.array(**array_args)
+        arr = fa.array(array_args.pop("values"), array_args.pop("dims"), array_args.pop("space"), **array_args)
 
     assert arr.xp == xp_target
     assert arr.dtype == result_dtype
@@ -93,7 +93,7 @@ def test_from_array_object(
         pass
 
     if defensive_copy:
-        assert xp_target.all(arr.values(space="pos") == values_ref)
+        assert xp_target.all(arr.values("pos") == values_ref)
     # If not copy, we cannot test for inequality because aliasing behavior
     # is not defined and for jax for example an inequality check would fail.
 
@@ -102,11 +102,7 @@ def test_from_array_object(
         wrong_shape[0] = 10
         values = xp_target.full(tuple(wrong_shape), 1., dtype=result_dtype)
         with pytest.raises(ValueError):
-            arr = fa.array(
-                values=values,
-                dims=dims,
-                space="pos",
-            )
+            arr = fa.array(values, dims, "pos")
 
 @pytest.mark.parametrize("xp_target, xp_other", XPS_ROTATED_PAIRS)
 @pytest.mark.parametrize("xp_source", ["default", "direct"])
@@ -169,17 +165,12 @@ def test_from_list(
         with fa.default_xp(default_xp):
             # Test that inhomogeneous list triggers the correct error.
             with pytest.raises(ValueError):
-                fa.array(
-                    values=[1,[2]],
-                    dims=[x_dim],
-                    space="pos",
-                    **array_args,
-                )
+                fa.array([1,[2]], [x_dim], "pos", **array_args)
 
 def check_array_from_list(
         xp_target,
         default_xp,
-        dims: Iterable[FFTDimension],
+        dims: Iterable[Dimension],
         vals_list,
         array_args: Dict[str, Any],
         dtype,
@@ -189,13 +180,8 @@ def check_array_from_list(
 
     with fa.default_eager(eager):
         with fa.default_xp(default_xp):
-            arr = fa.array(
-                values=vals_list,
-                dims=dims,
-                space="pos",
-                **array_args,
-            )
-    arr_vals = arr.values(space="pos")
+            arr = fa.array(vals_list, dims, "pos", **array_args)
+    arr_vals = arr.values("pos")
 
     assert arr.xp == xp_target
     assert arr.shape == ref_vals.shape
@@ -307,18 +293,12 @@ def check_full(
     shape = tuple(dim.n for dim in dims_list)
 
     if len(dims_list) == 1:
-        dims: Union[FFTDimension, List[FFTDimension]] = dims_list[0]
+        dims: Union[Dimension, List[Dimension]] = dims_list[0]
     else:
         dims = dims_list
 
     with fa.default_eager(eager):
-        arr = fa.full(
-            dim=dims,
-            space="pos",
-            fill_value=fill_value,
-            xp=xp,
-            dtype=direct_dtype,
-        )
+        arr = fa.full(dims, "pos", fill_value, xp=xp, dtype=direct_dtype)
 
     arr_values = arr.values("pos")
     ref_arr = xp.full(shape, xp.asarray(fill_value, dtype=direct_dtype))

@@ -303,17 +303,17 @@ def elementwise_single_arg(
 
     arr1 = (
         fa.coords_from_dim(x_dim, space, xp=xp)
-        .as_eager(eager=eager)
-        .as_factors_applied(factors_applied)
+        .into_eager(eager)
+        .into_factors_applied(factors_applied)
     )
 
     if not xp.isdtype(dtype, "complex floating") and not factors_applied:
         with pytest.raises(ValueError):
-                arr1.astype(dtype)
+                arr1.into_dtype(dtype)
         return
 
-    arr1 = arr1.astype(dtype)
-    arr1_xp = arr1.values(space=space)
+    arr1 = arr1.into_dtype(dtype)
+    arr1_xp = arr1.values(space)
 
     if not xp.isdtype(dtype, elementwise_ops_single_arg[op_name]):
         # Other Array API implementations often allow more types.
@@ -337,7 +337,7 @@ def elementwise_single_arg(
     )
 
     np.testing.assert_equal(
-        np.array(fa_res.values(space=space)),
+        np.array(fa_res.values(space)),
         np.array(xp_res),
     )
 
@@ -431,23 +431,23 @@ def elementwise_two_arrs(
 
     x_arr = (
         fa.coords_from_dim(x_dim, space, xp=xp)
-        .as_eager(eager=eager)
-        .as_factors_applied(factors_applied_1)
-        .astype(dtype)
+        .into_eager(eager)
+        .into_factors_applied(factors_applied_1)
+        .into_dtype(dtype)
 
     )
     x2_arr = (
         fa.coords_from_dim(x_dim, space, xp=xp)
-        .as_eager(eager=eager)
-        .as_factors_applied(factors_applied_2)
-        .astype(dtype)
+        .into_eager(eager)
+        .into_factors_applied(factors_applied_2)
+        .into_dtype(dtype)
     )
 
     y_arr = (
         fa.coords_from_dim(y_dim, space, xp=xp)
-        .as_eager(eager=eager)
-        .as_factors_applied(factors_applied_2)
-        .astype(dtype)
+        .into_eager(eager)
+        .into_factors_applied(factors_applied_2)
+        .into_dtype(dtype)
     )
 
     if not is_op_valid_for_dtype:
@@ -624,9 +624,9 @@ def elementwise_arr_scalar(
 
     x_arr = (
         fa.coords_from_dim(x_dim, space, xp=xp)
-        .as_eager(eager=eager)
-        .as_factors_applied(factors_applied)
-        .astype(dtype)
+        .into_eager(eager)
+        .into_factors_applied(factors_applied)
+        .into_dtype(dtype)
     )
 
     dtype = getattr(xp, dtype_name)
@@ -667,7 +667,7 @@ def elementwise_arr_scalar(
     assert fa_x2.factors_applied == x2_factors
 
     np.testing.assert_allclose(
-        np.array(fa_x2.values(space=space)),
+        np.array(fa_x2.values(space)),
         np.array(ref_x2_values),
     )
 
@@ -676,7 +676,7 @@ def elementwise_arr_scalar(
 def test_clip(xp) -> None:
     dim1 = fa.dim("x", 4, 0.1, 0., 0.)
     vals = xp.asarray([1,2,3,4])
-    arr1 = fa.array(vals, dims=[dim1], space="pos")
+    arr1 = fa.array(vals, [dim1], "pos")
     assert xp.all(fa.clip(arr1, min=2, max=3).values("pos") == xp.clip(vals, min=2, max=3))
     assert xp.all(fa.clip(arr1, min=None, max=3).values("pos") == xp.clip(vals, min=None, max=3))
     assert xp.all(fa.clip(arr1).values("pos") == xp.clip(vals))

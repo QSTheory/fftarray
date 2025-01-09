@@ -2,9 +2,8 @@ from dataclasses import dataclass
 from typing import Iterable, Optional, Union, List, Tuple
 from typing_extensions import assert_never
 
-from fftarray.fft_dimension import FFTDimension
-
-from .fft_array import FFTArray
+from .dimension import Dimension
+from .array import Array
 from .space import Space
 
 @dataclass
@@ -15,9 +14,9 @@ class SplitArrayMeta:
     axis: List[int]
     eager: Tuple[bool, ...]
     space: Tuple[Space, ...]
-    fft_dims: Tuple[FFTDimension, ...]
+    dims: Tuple[Dimension, ...]
 
-def _named_dims_to_axis(x: FFTArray, dim_name: Optional[Union[str, Iterable[str]]]) -> SplitArrayMeta:
+def _named_dims_to_axis(x: Array, dim_name: Optional[Union[str, Iterable[str]]], /) -> SplitArrayMeta:
     """
         Transform dimension names into axis indices and extract
         all metadata that is kept after the reduction operation.
@@ -29,7 +28,7 @@ def _named_dims_to_axis(x: FFTArray, dim_name: Optional[Union[str, Iterable[str]
         return SplitArrayMeta(
             axis=list(range(len(x.shape))),
             space=tuple([]),
-            fft_dims=tuple([]),
+            dims=tuple([]),
             eager=tuple([]),
         )
 
@@ -42,67 +41,70 @@ def _named_dims_to_axis(x: FFTArray, dim_name: Optional[Union[str, Iterable[str]
         dim_idx = dim_names.index(dim_ident)
         axis.append(dim_idx)
 
-    fft_dims = []
+    dims = []
     spaces = []
     eagers = []
-    for fft_dim, space, eager in zip(x.dims, x.space, x.eager, strict=True):
-        if fft_dim.name not in dim_name:
-            fft_dims.append(fft_dim)
+    for dim, space, eager in zip(x.dims, x.space, x.eager, strict=True):
+        if dim.name not in dim_name:
+            dims.append(dim)
             spaces.append(space)
             eagers.append(eager)
 
     return SplitArrayMeta(
         axis=axis,
         space=tuple(spaces),
-        fft_dims=tuple(fft_dims),
+        dims=tuple(dims),
         eager=tuple(eagers),
     )
 
 def sum(
-        x: FFTArray,
+        x: Array,
+        /,
         *,
         dim_name: Optional[Union[str, Iterable[str]]] = None,
         dtype = None,
-    ) -> FFTArray:
+    ) -> Array:
 
     res_meta = _named_dims_to_axis(x, dim_name)
 
-    reduced_values = x.xp.sum(x.values(space=x.space), axis=tuple(res_meta.axis), dtype=dtype)
+    reduced_values = x.xp.sum(x.values(x.space), axis=tuple(res_meta.axis), dtype=dtype)
 
-    return FFTArray(
+    return Array(
         values=reduced_values,
         space=res_meta.space,
-        dims=res_meta.fft_dims,
+        dims=res_meta.dims,
         eager=res_meta.eager,
-        factors_applied=(True,)*len(res_meta.fft_dims),
+        factors_applied=(True,)*len(res_meta.dims),
         xp=x.xp,
     )
 
 def max(
-        x: FFTArray,
+        x: Array,
+        /,
         *,
         dim_name: Optional[Union[str, Iterable[str]]] = None,
-    ) -> FFTArray:
+    ) -> Array:
 
     res_meta = _named_dims_to_axis(x, dim_name)
 
-    reduced_values = x.xp.max(x.values(space=x.space), axis=tuple(res_meta.axis))
+    reduced_values = x.xp.max(x.values(x.space), axis=tuple(res_meta.axis))
 
-    return FFTArray(
+    return Array(
         values=reduced_values,
         space=res_meta.space,
-        dims=res_meta.fft_dims,
+        dims=res_meta.dims,
         eager=res_meta.eager,
-        factors_applied=(True,)*len(res_meta.fft_dims),
+        factors_applied=(True,)*len(res_meta.dims),
         xp=x.xp,
     )
 
 def integrate(
-        x: FFTArray,
+        x: Array,
+        /,
         *,
         dim_name: Optional[Union[str, Iterable[str]]] = None,
         dtype = None,
-    ) -> FFTArray:
+    ) -> Array:
     """
         Does a simple rectangle rule integration.
         Automatically uses the `d_pos` or `d_freq` of the integrated dimension
@@ -121,14 +123,14 @@ def integrate(
             case _:
                 assert_never(space)
 
-    reduced_values = x.xp.sum(x.values(space=x.space), axis=tuple(res_meta.axis), dtype=dtype)
+    reduced_values = x.xp.sum(x.values(x.space), axis=tuple(res_meta.axis), dtype=dtype)
     reduced_values *= integration_element
 
-    return FFTArray(
+    return Array(
         values=reduced_values,
         space=res_meta.space,
-        dims=res_meta.fft_dims,
+        dims=res_meta.dims,
         eager=res_meta.eager,
-        factors_applied=(True,)*len(res_meta.fft_dims),
+        factors_applied=(True,)*len(res_meta.dims),
         xp=x.xp,
     )

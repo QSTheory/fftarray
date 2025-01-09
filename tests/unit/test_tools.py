@@ -31,18 +31,15 @@ def test_shift(
     # both spaces.
     dim = fa.dim_from_constraints(name="x", n=128, d_pos=0.01, pos_middle=0., freq_middle=0.)
     arr = fa.coords_from_dim(
-        dim=dim,
-        space=space,
-        xp=xp,
-        dtype=init_dtype,
-    ).as_eager(eager=eager)
+        dim, space, xp=xp, dtype=init_dtype,
+    ).into_eager(eager)
 
     # Use a frequency which fits exactly into the domain to allow periodic shifts
     test_frequency = 5*2*np.pi*getattr(dim, f"d_{other_space}")
     orig = fa.sin(test_frequency*arr)
     shift_amount = 8.1*getattr(dim, f"d_{space}")
 
-    ref_shifted = fa.sin(test_frequency*(arr-shift_amount)).astype("complex")
+    ref_shifted = fa.sin(test_frequency*(arr-shift_amount)).into_dtype("complex")
 
     shift_fun = getattr(fa, f"shift_{space}")
     fft_shifted = shift_fun(orig, {"x": shift_amount})
@@ -53,8 +50,8 @@ def test_shift(
     assert fft_shifted.dims == orig.dims
 
     np.testing.assert_allclose(
-        np.array(ref_shifted.values(space=space)),
-        np.array(fft_shifted.values(space=space)),
+        np.array(ref_shifted.values(space)),
+        np.array(fft_shifted.values(space)),
         atol=atol,
     )
 
@@ -71,9 +68,10 @@ def test_shift_int(
     """
     dim = fa.dim(name="x", n=4, d_pos=0.1, pos_min=0., freq_min=0.)
     arr = fa.array(
-        xp.asarray([0, 1, 2, 4], dtype=getattr(xp, init_dtype_name)),
-        dims=[dim],
-        space=space,
+        xp.asarray([0, 1, 2, 4]),
+        [dim],
+        space,
+        dtype=getattr(xp, init_dtype_name),
     )
 
     shift_fun = getattr(fa, f"shift_{space}")

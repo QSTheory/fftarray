@@ -1,12 +1,12 @@
 from typing import Tuple, Any, List
 
-from .fft_array import FFTArray, Space
-from .fft_dimension import FFTDimension
+from .array import Array, Space
+from .dimension import Dimension
 
-def fftarray_flatten(
-    arr: FFTArray
+def array_flatten(
+    arr: Array
 ) -> Tuple[
-        Tuple[Any, Tuple[FFTDimension, ...]],
+        Tuple[Any, Tuple[Dimension, ...]],
         Tuple[
             Tuple[Space, ...],
             Tuple[bool, ...],
@@ -18,12 +18,12 @@ def fftarray_flatten(
     aux_data = (arr._spaces, arr._eager, arr._factors_applied, arr._xp)
     return (children, aux_data)
 
-def fftarray_unflatten(aux_data, children) -> FFTArray:
+def array_unflatten(aux_data, children) -> Array:
     (values, dims) = children
     (spaces, eager, factors_applied, xp) = aux_data
     # We explicitly do not want to call the constructor here.
     # The consistency check fails (needlessly) for PyTreeArrays and other special "tricks".
-    self = FFTArray.__new__(FFTArray)
+    self = Array.__new__(Array)
     self._values = values
     self._dims = dims
     self._spaces = spaces
@@ -32,21 +32,21 @@ def fftarray_unflatten(aux_data, children) -> FFTArray:
     self._xp = xp
     return self
 
-def fft_dimension_flatten(v: FFTDimension) -> Tuple[List[Any], List[Any]]:
+def dimension_flatten(v: Dimension) -> Tuple[List[Any], List[Any]]:
         """The `flatten_func` used by `jax.tree_util.register_pytree_node` to
-        flatten an FFTDimension.
+        flatten a Dimension.
 
         :meta private:
 
         Parameters
         ----------
-        v : FFTDimension
-            The FFTDimension to flatten.
+        v : Dimension
+            The Dimension to flatten.
 
         Returns
         -------
         Tuple[List[Any], List[Any]]
-            The flatted FFTDimension. Contains ``children`` and ``aux_data``.
+            The flatted Dimension. Contains ``children`` and ``aux_data``.
 
         See Also
         --------
@@ -80,9 +80,9 @@ def fft_dimension_flatten(v: FFTDimension) -> Tuple[List[Any], List[Any]]:
         return (children, aux_data)
 
 
-def fft_dimension_unflatten(aux_data, children) -> FFTDimension:
+def dimension_unflatten(aux_data, children) -> Dimension:
     """The `unflatten_func` used by `jax.tree_util.register_pytree_node` to
-    unflatten an FFTDimension.
+    unflatten a Dimension.
 
     :meta private:
 
@@ -95,8 +95,8 @@ def fft_dimension_unflatten(aux_data, children) -> FFTDimension:
 
     Returns
     -------
-    FFTDimension
-        The unflattened FFTDimension.
+    Dimension
+        The unflattened Dimension.
 
     See Also
     --------
@@ -105,35 +105,35 @@ def fft_dimension_unflatten(aux_data, children) -> FFTDimension:
     # the last element of aux_data is the dynamically_traced_coords flag
     if aux_data[-1]:
         # dynamically traced, _pos_min, _freq_min, _d_pos in children
-        fftdim = FFTDimension.__new__(FFTDimension)
-        fftdim._name = aux_data[0]
-        fftdim._n = aux_data[1]
-        fftdim._pos_min = children[0]
-        fftdim._freq_min = children[1]
-        fftdim._d_pos = children[2]
-        fftdim._dynamically_traced_coords = aux_data[2]
-        return fftdim
+        dim = Dimension.__new__(Dimension)
+        dim._name = aux_data[0]
+        dim._n = aux_data[1]
+        dim._pos_min = children[0]
+        dim._freq_min = children[1]
+        dim._d_pos = children[2]
+        dim._dynamically_traced_coords = aux_data[2]
+        return dim
     # static, everything in aux_data
-    fftdim = FFTDimension.__new__(FFTDimension)
-    fftdim._name = aux_data[0]
-    fftdim._n = aux_data[1]
-    fftdim._pos_min = aux_data[2]
-    fftdim._freq_min = aux_data[3]
-    fftdim._d_pos = aux_data[4]
-    fftdim._dynamically_traced_coords = aux_data[5]
-    return fftdim
+    dim = Dimension.__new__(Dimension)
+    dim._name = aux_data[0]
+    dim._n = aux_data[1]
+    dim._pos_min = aux_data[2]
+    dim._freq_min = aux_data[3]
+    dim._d_pos = aux_data[4]
+    dim._dynamically_traced_coords = aux_data[5]
+    return dim
 
 
 def jax_register_pytree_nodes():
     from jax.tree_util import register_pytree_node
     register_pytree_node(
-        FFTArray,
-        fftarray_flatten,
-        fftarray_unflatten,
+        Array,
+        array_flatten,
+        array_unflatten,
     )
 
     register_pytree_node(
-        FFTDimension,
-        fft_dimension_flatten,
-        fft_dimension_unflatten,
+        Dimension,
+        dimension_flatten,
+        dimension_unflatten,
     )
