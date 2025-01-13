@@ -171,7 +171,7 @@ coord_test_samples = [
 @pytest.mark.parametrize("method", ["nearest", "pad", "ffill", "backfill", "bfill", None])
 @pytest.mark.parametrize("valid_coord", coord_test_samples)
 @pytest.mark.parametrize("space", ["pos", "freq"])
-def test_validindex_from_coord(
+def test_valid_index_from_coord(
     space: fa.Space,
     valid_coord: Union[float,slice],
     method: Literal["nearest", "pad", "ffill", "backfill", "bfill", None],
