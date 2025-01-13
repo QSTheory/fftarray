@@ -119,6 +119,15 @@ def two_inputs_func(
                     dtype = other_values.dtype
                     shape = (1,)*len(other_values.shape)
                     sub_values = unp_inp.xp.full(shape, sub_values, dtype=dtype)
+                elif sub_values.shape == ():
+                    # sub_values is 0d Array, shape needs to be taken from
+                    # other_values to match the unp_inp.
+                    # other_values is an Array since otherwise no phase factors
+                    # would need to be applied.
+                    other_values = unp_inp.values[not op_idx]
+                    dtype = complex_type(unp_inp.xp, sub_values.dtype)
+                    shape = (1,)*len(other_values.shape)
+                    sub_values = unp_inp.xp.full(shape, sub_values, dtype=dtype)
                 else:
                     dtype = complex_type(unp_inp.xp, sub_values.dtype)
                     sub_values = unp_inp.xp.asarray(sub_values, dtype=dtype, copy=True)
