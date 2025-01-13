@@ -335,19 +335,46 @@ class Dimension:
             dynamically_traced_coords=self._dynamically_traced_coords,
         )
 
-    def _index_from_coord(
+    def index_from_coord(
             self,
             coord: Union[float, slice],
             space: Space,
+            *,
             method: Optional[Literal["nearest", "pad", "ffill", "backfill", "bfill"]] = None,
         ) -> Union[int, slice]:
-        """Compute index from given coordinate which can be float or slice.
-        In case of slice input, find the dimension indices which are
-        including the selected coordinates, and return appropriate slice object.
+        """
+        For the Dimension, retrieve the index corresponding to a given
+        coordinate in a specified space.
 
-        Short explanation what "pad", "ffill", "backfill", "bfill" do:
-            bfill, backfill: maps 2.5 to next valid index 3
-            pad, ffill: maps 2.5 to previous valid index 2
+            Parameters:
+            -----------
+            coord : Union[float, slice]
+                The coordinate or range of coordinates for which to find the index.
+                If a slice is provided, the function will handle it accordingly.
+            space : Space
+                The space in which the coordinate is defined. It can be either "pos" or "freq".
+            method : Optional[Literal["nearest", "pad", "ffill", "backfill", "bfill"]], optional
+                The method to use for finding the index when the exact coordinate is not found.
+                Supported methods are:
+                - "nearest": Find the index representing the nearest coordinate.
+                - "pad" or "ffill": Forward fill to the next smallest index.
+                - "backfill" or "bfill": Backward fill to the next highest index.
+                Default is None, which requires an exact match.
+            Returns:
+            --------
+            Union[int, slice]
+                The index or range of indices corresponding to the given coordinate(s).
+                If a float coord is provided, the function returns an integer index.
+                If a slice object is provided, the function returns a slice object.
+            Raises:
+            -------
+            NotImplementedError
+                If a method is provided for a slice object.
+            KeyError
+                If no exact index is found and method is None, or
+                if the coordinate is out of bounds for the specified method.
+            ValueError
+                If an unsupported method is specified.
         """
         # The first part handles coords supplied as slice object whereas
         # it prepares those and distributes the actual work to the second
@@ -358,8 +385,8 @@ class Dimension:
                 # This catches slices supplied to Array.sel or isel with
                 # a method != None (e.g. nearest) which is not supported
                 raise NotImplementedError(
-                    f"cannot use method: `{method}` if the coord argument "
-                    + f"is not scalar, here: {coord}."
+                    f"Retrieving the index from coord with method `{method}` "
+                    f"is only supported for scalars, not slice objects: {coord}."
                 )
             # Handle slice objects with start or end being None whereas
             # we substitute those with the Dimension bounds
@@ -374,8 +401,8 @@ class Dimension:
 
             # Use the scalar part of this function with the methods bfill and ffill
             # to yield indices to include the respective coordinates
-            idx_min: int = self._index_from_coord(coord_start, method="bfill", space=space) # type: ignore
-            idx_max: int = self._index_from_coord(coord_stop, method="ffill", space=space) # type: ignore
+            idx_min: int = self.index_from_coord(coord_start, method="bfill", space=space) # type: ignore
+            idx_max: int = self.index_from_coord(coord_stop, method="ffill", space=space) # type: ignore
             return slice(
                 idx_min,
                 idx_max + 1 # as slice.stop is non-inclusive, add 1
