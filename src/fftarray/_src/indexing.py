@@ -89,7 +89,7 @@ class LocArrayIndexer(Generic[T]):
 
         integer_indexers: List[Union[int, slice]] = []
         for index, dim, space in zip(
-            tuple_indexers, self._arr.dims, self._arr.space, strict=True
+            tuple_indexers, self._arr.dims, self._arr.spaces, strict=True
         ):
             integer_indexers.append(
                 dim._index_from_coord(

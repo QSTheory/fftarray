@@ -296,7 +296,7 @@ def check_integrate(
         x for (i, x) in enumerate(arr_attributes)
         if i not in _to_integers(indices=reduction_dims, ndims=ndims)
     )
-    assert fa_res.space == res_space
+    assert fa_res.spaces == res_space
     assert fa_res.eager == ref_attributes
     # This will be changed at a later point to actually be conserved.
     assert fa_res.factors_applied == (True,)*len(ref_attributes)

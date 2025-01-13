@@ -16,10 +16,10 @@ from .op_lazy_luts import (
 # This one is the only one with kwargs, so just done by hand.
 def clip(x: Array, /, *, min=None, max=None) -> Array:
     assert isinstance(x, Array)
-    values = x.xp.clip(x.values(x.space), min=min, max=max)
+    values = x.xp.clip(x.values(x.spaces), min=min, max=max)
     return Array(
         values=values,
-        space=x.space,
+        spaces=x.spaces,
         dims=x.dims,
         eager=x.eager,
         factors_applied=(True,)*len(x.dims),
