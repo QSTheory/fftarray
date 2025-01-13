@@ -1,9 +1,6 @@
 from typing import Sequence, Tuple, Any, List, Dict
 from dataclasses import dataclass
 
-#-------------------
-# TODO This is copied from abstraction but then quite significantly modified
-#-------------------
 def align_named_arrays(
         arrays: Sequence[Tuple[Sequence[str], Any]],
         xp,

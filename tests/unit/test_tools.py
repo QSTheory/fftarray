@@ -5,8 +5,8 @@ import numpy as np
 
 import fftarray as fa
 
-from fftarray.tests.helpers import XPS, get_other_space
-from fftarray.transform_application import complex_type
+from tests.helpers import XPS, get_other_space
+from fftarray._src.transform_application import complex_type
 
 @pytest.mark.parametrize("xp", XPS)
 @pytest.mark.parametrize("eager", [True, False])

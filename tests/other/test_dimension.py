@@ -5,7 +5,7 @@ import pytest
 import jax
 
 import fftarray as fa
-from fftarray.tests.helpers import XPS
+from tests.helpers import XPS
 
 jax.config.update("jax_enable_x64", True)
 

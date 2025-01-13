@@ -5,7 +5,7 @@ from typing import (
 import warnings
 
 if TYPE_CHECKING:
-    from ..array import Array
+    from .array import Array
 
 # there is no EllipsisType unfortunately, but this helps the reader at least
 EllipsisType = TypeVar('EllipsisType')

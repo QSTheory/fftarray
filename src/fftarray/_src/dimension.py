@@ -5,9 +5,9 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from ._utils.defaults import get_default_dtype_name
-from ._utils.formatting import dim_table, format_n
-from ._utils.indexing import check_substepping, remap_index_check_int
+from .defaults import get_default_dtype_name
+from .formatting import dim_table, format_n
+from .indexing import check_substepping, remap_index_check_int
 
 from .space import Space
 

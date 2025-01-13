@@ -1,10 +1,37 @@
-from typing import Iterable, List, Literal, Union, get_args
+from typing import Iterable, List, Literal, Union, Tuple, get_args
 
+import array_api_strict
+import array_api_compat
 import numpy as np
 import pytest
 
 import fftarray as fa
-from fftarray.array import Array
+
+XPS = [array_api_strict, array_api_compat.get_namespace(np.asarray(1.))]
+
+try:
+    import jax
+    jax.config.update("jax_enable_x64", True)
+    import jax.numpy as jnp
+    XPS.append(array_api_compat.get_namespace(jnp.asarray(1.)))
+    fa.jax_register_pytree_nodes()
+except ImportError:
+    pass
+
+# This is helpful for tests where we need an xp which is not the currently tested one.
+XPS_ROTATED_PAIRS = [
+    pytest.param(xp1, xp2) for xp1, xp2 in zip(XPS, [*XPS[1:],XPS[0]], strict=True)
+]
+
+def get_other_space(space: Union[fa.Space, Tuple[fa.Space, ...]]):
+    """Returns the other space. If input space is "pos", "freq" is returned and
+    vice versa. If space is a `Tuple[Space]`, a tuple is returned.
+    """
+    if isinstance(space, str):
+        if space == "pos":
+            return "freq"
+        return "pos"
+    return tuple(get_other_space(s) for s in space)
 
 DTYPE_NAME = Literal[
     "bool",
@@ -84,7 +111,7 @@ def get_arr_from_dims(
         arr += fa.coords_from_dim(dim, space, xp=xp).into_dtype(dtype)
     return arr
 
-def assert_fa_array_exact_equal(x1: Array, x2: Array) -> None:
+def assert_fa_array_exact_equal(x1: fa.Array, x2: fa.Array) -> None:
     x1._check_consistency()
     x2._check_consistency()
 

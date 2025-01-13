@@ -4,9 +4,7 @@ import numpy as np
 import pytest
 import fftarray as fa
 
-from fftarray.dimension import Dimension
-from fftarray.tests.helpers import XPS, XPS_ROTATED_PAIRS
-from tests.helpers import get_dims, dtypes_names_pairs, dtype_names_numeric_core, DTYPE_NAME
+from tests.helpers import XPS, XPS_ROTATED_PAIRS, get_dims, dtypes_names_pairs, dtype_names_numeric_core, DTYPE_NAME
 
 
 @pytest.mark.parametrize("xp_target, xp_other", XPS_ROTATED_PAIRS)
@@ -170,7 +168,7 @@ def test_from_list(
 def check_array_from_list(
         xp_target,
         default_xp,
-        dims: Iterable[Dimension],
+        dims: Iterable[fa.Dimension],
         vals_list,
         array_args: Dict[str, Any],
         dtype,
@@ -293,7 +291,7 @@ def check_full(
     shape = tuple(dim.n for dim in dims_list)
 
     if len(dims_list) == 1:
-        dims: Union[Dimension, List[Dimension]] = dims_list[0]
+        dims: Union[fa.Dimension, List[fa.Dimension]] = dims_list[0]
     else:
         dims = dims_list
 

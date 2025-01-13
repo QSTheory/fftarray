@@ -6,9 +6,7 @@ import numpy as np
 
 import fftarray as fa
 
-from fftarray.tests.helpers import XPS
-from tests.helpers  import assert_fa_array_exact_equal
-
+from tests.helpers  import XPS, assert_fa_array_exact_equal
 
 
 # List all element-wise ops with the the data types which they support at minimum

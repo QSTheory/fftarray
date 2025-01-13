@@ -5,10 +5,9 @@ import array_api_strict
 import numpy as np
 import pytest
 import fftarray as fa
-from fftarray._utils.helpers import norm_space
+from fftarray._src.helpers import norm_space
 
-from fftarray.tests.helpers import XPS
-from tests.helpers  import get_dims, get_arr_from_dims, dtype_names_numeric_core, DTYPE_NAME
+from tests.helpers import XPS, get_dims, get_arr_from_dims, dtype_names_numeric_core, DTYPE_NAME
 
 function_dtypes = {
     "max": ("integral", "real floating"),

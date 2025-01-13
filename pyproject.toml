@@ -112,12 +112,12 @@ test_all_group = { cmd = ["python", "-m", "pytest", "--include-slow", "--splitti
 # If the timings are out of date it just makes the split a bit less optimal.
 store_test_durations = { cmd = ["python", "-m", "pytest", "--include-slow", "--store-durations"]}
 
-ruff_all = { cmd = ["ruff", "check", "examples", "tests", "fftarray"]}
+ruff_all = { cmd = ["ruff", "check", "examples", "tests", "src/fftarray"]}
 mypy_nb = { cmd = ["nbqa", "mypy", "examples"]}
-mypy = { cmd = ["mypy", "examples", "fftarray", "tests"], depends-on = ["mypy_nb"]}
+mypy = { cmd = ["mypy", "examples", "src/fftarray", "tests"], depends-on = ["mypy_nb"]}
 check = { depends-on = ["mypy", "ruff_all", "test"]}
-cov_html = { cmd = ["python", "-m", "pytest", "--cov=./fftarray", "--cov=./examples", "--cov-report=html"]}
-cov_xml = { cmd = ["python", "-m", "pytest", "--cov=./fftarray", "--cov=./examples", "--cov-report=xml"]}
+cov_html = { cmd = ["python", "-m", "pytest", "--cov=./src", "--cov=./examples", "--cov-report=html", "-n", "auto"]}
+cov_xml = { cmd = ["python", "-m", "pytest", "--cov=./src", "--cov=./examples", "--cov-report=xml", "-n", "auto"]}
 doc = { cmd = ["make"], "cwd" = "docs" }
 # TODO: Currently only tested on macOS. Would be nice to make it an --open option like in cargo.
 doc_open = { cmd = ["open", "docs/build/html/development/index.html"], depends-on = ["doc"] }

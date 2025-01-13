@@ -5,8 +5,7 @@ import pytest
 import numpy as np
 
 import fftarray as fa
-from fftarray.tests.helpers import XPS
-from tests.helpers  import get_dims, dtypes_names_all
+from tests.helpers import XPS, get_dims, dtypes_names_all
 
 @pytest.mark.parametrize("xp", XPS)
 @pytest.mark.parametrize("init_dtype_name", dtypes_names_all)

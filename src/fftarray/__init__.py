@@ -1,9 +1,9 @@
 """
 .. rubric:: The objects inside the tables can be imported directly from :py:mod:`fftarray`:
 
-Provided by :py:mod:`fftarray.array`:
+Provided by :py:mod:`fftarray._src.array`:
 
-.. currentmodule:: fftarray.array
+.. currentmodule:: fftarray._src.array
 
 .. autosummary::
     :nosignatures:
@@ -11,15 +11,15 @@ Provided by :py:mod:`fftarray.array`:
     Array
     Dimension
 
-Provided by :py:mod:`fftarray.tools`:
+Provided by :py:mod:`fftarray._src.tools`:
 
-.. currentmodule:: fftarray.tools
+.. currentmodule:: fftarray._src.tools
 
 .. autosummary::
     :nosignatures:
 
-   shift_frequency
-   shift_position
+   shift_freq
+   shift_pos
 
 Example:
 
@@ -29,7 +29,7 @@ Example:
 
 """
 
-from ._utils.defaults import (
+from ._src.defaults import (
     set_default_xp as set_default_xp,
     get_default_xp as get_default_xp,
     default_xp as default_xp,
@@ -39,40 +39,41 @@ from ._utils.defaults import (
     set_default_eager as set_default_eager,
     get_default_eager as get_default_eager,
     default_eager as default_eager,
+    DEFAULT_DTYPE as DEFAULT_DTYPE,
 )
 
-from .space import Space as Space
-from .dimension import (
+from ._src.space import Space as Space
+from ._src.dimension import (
     Dimension as Dimension,
     dim as dim,
 )
 
-from .array import (
+from ._src.array import (
     abs as abs,
     Array as Array,
 )
 
-from .creation_functions import (
+from ._src.creation_functions import (
    array as array,
    coords_from_dim as coords_from_dim,
    coords_from_arr as coords_from_arr,
    full as full,
 )
-from .statistical_functions import (
+from ._src.statistical_functions import (
     integrate as integrate,
     max as max,
     sum as sum,
 )
 
 
-from .tools import (
+from ._src.tools import (
     shift_freq as shift_freq,
     shift_pos as shift_pos,
 )
 
-from .jax_pytrees import jax_register_pytree_nodes as jax_register_pytree_nodes
+from ._src.jax_pytrees import jax_register_pytree_nodes as jax_register_pytree_nodes
 
-from .elementwise_functions import (
+from ._src.elementwise_functions import (
     acos as acos,
     acosh as acosh,
     add as add,
@@ -141,7 +142,7 @@ from .elementwise_functions import (
 
 from typing import Optional, Literal, Union, List
 try:
-   from .constraint_solver import dim_from_constraints as dim_from_constraints
+   from ._src.constraint_solver import dim_from_constraints as dim_from_constraints
 except ModuleNotFoundError:
    def dim_from_constraints(
          name: str,

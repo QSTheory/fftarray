@@ -6,8 +6,8 @@ from .dimension import Dimension
 from .array import Array
 from .space import Space
 from .transform_application import real_type
-from ._utils.defaults import get_default_eager, get_default_dtype_name, get_default_xp
-from ._utils.helpers import norm_space
+from .defaults import get_default_eager, get_default_dtype_name, get_default_xp
+from .helpers import norm_space
 
 def _get_xp(xp: Optional[Any], values) -> Tuple[Any, bool]:
     used_default_xp = False
