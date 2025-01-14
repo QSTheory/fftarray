@@ -467,10 +467,10 @@ def test_array_state_management(
 
     try:
         # Test Array[]
-        arr_raw_values = arr_2d[indexers].values(arr_2d.space)
+        arr_raw_values = arr_2d[indexers].values(arr_2d.spaces)
         arr_different_internal = arr_2d.into_space(diff_space_comb).into_space(space_comb_list)
         arr_indexed = arr_different_internal[indexers]
-        arr_indexed_values = arr_indexed.values(arr_indexed.space)
+        arr_indexed_values = arr_indexed.values(arr_indexed.spaces)
 
         np.testing.assert_allclose(arr_raw_values, arr_indexed_values, atol=1e-16)
         assert (
@@ -478,13 +478,13 @@ def test_array_state_management(
             (len(indexers) == 0 and arr_indexed._factors_applied == arr_different_internal._factors_applied)
         )
         assert arr_2d.eager == arr_indexed.eager
-        assert arr_different_internal.space == arr_indexed.space
+        assert arr_different_internal.spaces == arr_indexed.spaces
 
         # Test Array.isel()
-        arr_raw_values = arr_2d.isel(indexers).values(arr_2d.space)
+        arr_raw_values = arr_2d.isel(indexers).values(arr_2d.spaces)
         arr_different_internal = arr_2d.into_space(diff_space_comb).into_space(space_comb_list)
         arr_indexed = arr_different_internal.isel(indexers)
-        arr_indexed_values = arr_indexed.values(arr_indexed.space)
+        arr_indexed_values = arr_indexed.values(arr_indexed.spaces)
 
         np.testing.assert_allclose(arr_raw_values, arr_indexed_values, atol=1e-16)
         assert (
@@ -492,13 +492,13 @@ def test_array_state_management(
             (len(indexers) == 0 and arr_indexed._factors_applied == arr_different_internal._factors_applied)
         )
         assert arr_2d.eager == arr_indexed.eager
-        assert arr_different_internal.space == arr_indexed.space
+        assert arr_different_internal.spaces == arr_indexed.spaces
 
         # Test Array.loc[]
-        arr_raw_values = arr_2d.loc[indexers].values(arr_2d.space)
+        arr_raw_values = arr_2d.loc[indexers].values(arr_2d.spaces)
         arr_different_internal = arr_2d.into_space(diff_space_comb).into_space(space_comb_list)
         arr_indexed = arr_different_internal.loc[indexers]
-        arr_indexed_values = arr_indexed.values(arr_indexed.space)
+        arr_indexed_values = arr_indexed.values(arr_indexed.spaces)
 
         np.testing.assert_allclose(arr_raw_values, arr_indexed_values, atol=1e-16)
         assert (
@@ -506,13 +506,13 @@ def test_array_state_management(
             (len(indexers) == 0 and arr_indexed._factors_applied == arr_different_internal._factors_applied)
         )
         assert arr_2d.eager == arr_indexed.eager
-        assert arr_different_internal.space == arr_indexed.space
+        assert arr_different_internal.spaces == arr_indexed.spaces
 
         # Test Array.sel()
-        arr_raw_values = arr_2d.sel(indexers, method="nearest").values(arr_2d.space)
+        arr_raw_values = arr_2d.sel(indexers, method="nearest").values(arr_2d.spaces)
         arr_different_internal = arr_2d.into_space(diff_space_comb).into_space(space_comb_list)
         arr_indexed = arr_different_internal.sel(indexers)
-        arr_indexed_values = arr_indexed.values(arr_indexed.space)
+        arr_indexed_values = arr_indexed.values(arr_indexed.spaces)
 
         np.testing.assert_allclose(arr_raw_values, arr_indexed_values, atol=1e-16)
         assert (
@@ -520,7 +520,7 @@ def test_array_state_management(
             (len(indexers) == 0 and arr_indexed._factors_applied == arr_different_internal._factors_applied)
         )
         assert arr_2d.eager == arr_2d.eager
-        assert arr_different_internal.space == arr_2d.space
+        assert arr_different_internal.spaces == arr_2d.spaces
     except (KeyError, NotImplementedError):
         return
 

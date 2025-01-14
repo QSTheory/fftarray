@@ -196,7 +196,7 @@ def check_defaults(dim: fa.Dimension, xp, dtype_name: fa.DEFAULT_DTYPE, eager: b
     manual_arr = fa.Array(
         values=values,
         dims=(dim,),
-        space=("pos",),
+        spaces=("pos",),
         eager=(eager,),
         xp=xp_compat,
         factors_applied=(True,),
@@ -242,7 +242,7 @@ def array_strategy(draw) -> fa.Array:
     eager = draw(st.lists(st.booleans(), min_size=ndims, max_size=ndims))
     note(f"eager={eager}") # TODO: remove when Array.__repr__ is implemented
     init_space = draw(st.sampled_from(["pos", "freq"]))
-    note(f"space={init_space}") # TODO: remove when Array.__repr__ is implemented
+    note(f"spaces={init_space}") # TODO: remove when Array.__repr__ is implemented
     xp = draw(st.sampled_from(XPS))
     dtype = getattr(xp, draw(st.sampled_from(precisions)))
 
@@ -342,23 +342,23 @@ def is_precision(arr, precision: Literal["float32", "float64"]) -> bool:
 
 def assert_basic_lazy_logic(arr, log):
     """Tests whether Array.values() is equal to the internal _values for the
-    special cases where factors_applied=True, space="pos" and comparing the
-    absolute values, and where space="freq" and comparing values to
+    special cases where factors_applied=True, spaces="pos" and comparing the
+    absolute values, and where spaces="freq" and comparing values to
     _values/(n*d_freq).
     """
     if all(arr._factors_applied):
         # Array must be handled the same way as applying the operations to the values numpy array
-        log("factors_applied=True -> x.values(x.space) == x._values(space=x.space)")
-        np.testing.assert_array_equal(arr.values(arr.space), arr._values, strict=True)
+        log("factors_applied=True -> x.values(x.spaces) == x._values(spaces=x.spaces)")
+        np.testing.assert_array_equal(arr.values(arr.spaces), arr._values, strict=True)
 
-    log("space='pos' -> abs(x.values('pos')) == abs(x._values)")
-    log("space='freq' -> abs(x.values('freq')) == abs(x._values)/(n*d_freq)")
+    log("spaces='pos' -> abs(x.values('pos')) == abs(x._values)")
+    log("spaces='freq' -> abs(x.values('freq')) == abs(x._values)/(n*d_freq)")
     scale = 1
-    for dim, space, factors_applied in zip(arr.dims, arr.space, arr._factors_applied, strict=True):
+    for dim, space, factors_applied in zip(arr.dims, arr.spaces, arr._factors_applied, strict=True):
         if space == "freq" and not factors_applied:
             scale *= 1/(dim.n*dim.d_freq)
     rtol = 1e-6 if is_precision(arr, "float32") else 1e-12
-    np.testing.assert_allclose(np.abs(arr.values(arr.space)), np.abs(arr._values)*scale, rtol=rtol)
+    np.testing.assert_allclose(np.abs(arr.values(arr.spaces)), np.abs(arr._values)*scale, rtol=rtol)
 
 def is_inf_or_nan(x):
     """Check if (real or imag of) x is inf or nan"""
@@ -366,14 +366,14 @@ def is_inf_or_nan(x):
     return (xp.any(xp.isinf(x)) or xp.any(xp.isnan(x)))
 
 def internal_and_public_values_should_differ(arr: fa.Array) -> bool:
-    """Returns boolean, whether `arr.values(arr.space)` should differ from
+    """Returns boolean, whether `arr.values(arr.spaces)` should differ from
     `arr._values`.
     This is the case if `factors_applied=False` and the values are non-zero
     (along at least one dimension).
     Note that the position space needs to be treated separately as the phase
     factor for the first coordinate is 1 (and thus does not change `_values`).
     """
-    for factor, space, i, in zip(arr._factors_applied, arr.space, range(len(arr.dims)), strict=True):
+    for factor, space, i, in zip(arr._factors_applied, arr.spaces, range(len(arr.dims)), strict=True):
         if not factor:
             # factor needs to be applied
             if space == "pos":
@@ -383,7 +383,7 @@ def internal_and_public_values_should_differ(arr: fa.Array) -> bool:
                 if arr.xp.any(arr.xp.take(arr._values, arr.xp.arange(1,arr.dims[i].n), axis=i)!=0):
                     return True
             else:
-                # for space="freq", the factor includes scale unequal 1, so all
+                # for spaces="freq", the factor includes scale unequal 1, so all
                 # values along this dimension must be non-zero
                 if arr.xp.any(arr._values!=0):
                     return True
@@ -415,7 +415,7 @@ def assert_equal_op(
         fa_op = ops
 
     f_arr_op = fa_op(arr)
-    arr_op = f_arr_op.values(arr.space)
+    arr_op = f_arr_op.values(arr.spaces)
     values_op = np_op(values)
 
     xp = array_api_compat.array_namespace(arr_op, values_op)
@@ -467,7 +467,7 @@ def assert_single_operand_fun_equivalence(arr: fa.Array, precise: bool, log):
         operand(Array).values() == operand(Array.values())
 
     """
-    values = arr.values(arr.space)
+    values = arr.values(arr.spaces)
     xp = arr.xp
     log("f(x) = x")
     assert_equal_op(arr, values, lambda x: x, precise, False, log)
@@ -492,7 +492,7 @@ def assert_dual_operand_fun_equivalence(arr: fa.Array, precise: bool, log):
         operand(Array, Array).values() = operand(Array.values(), Array.values())
 
     """
-    values = arr.values(arr.space)
+    values = arr.values(arr.spaces)
     xp = arr.xp
 
     log("f(x,y) = x+y")
@@ -546,7 +546,7 @@ def assert_array_eager_factors_applied(arr: fa.Array, log):
         assert (ifa == ffa) or (ffa == ea)
 
     log("fft(x)._factors_applied ...")
-    arr_fft = arr.into_space(get_other_space(arr.space))
+    arr_fft = arr.into_space(get_other_space(arr.spaces))
     np.testing.assert_array_equal(arr.eager, arr_fft.eager)
     for ffapplied, feager in zip(arr_fft._factors_applied, arr_fft.eager, strict=True):
         assert (feager and ffapplied) or (not feager and not ffapplied)
@@ -566,11 +566,11 @@ def test_fft_ifft_invariance(xp, space: fa.Space):
     other_space = get_other_space(space)
     arr_fft = arr.into_space(other_space)
     arr_fft_ifft = arr_fft.into_space(space)
-    if is_inf_or_nan(arr_fft_ifft.values(arr_fft_ifft.space)):
+    if is_inf_or_nan(arr_fft_ifft.values(arr_fft_ifft.spaces)):
         # edge cases (very large numbers) result in inf after fft
         return
     rtol = 1e-5 if is_precision(arr, "float32") else 1e-6
-    np.testing.assert_allclose(arr.values(arr.space), arr_fft_ifft.values(arr_fft_ifft.space), rtol=rtol, atol=1e-38)
+    np.testing.assert_allclose(arr.values(arr.spaces), arr_fft_ifft.values(arr_fft_ifft.spaces), rtol=rtol, atol=1e-38)
 
 
 @pytest.mark.parametrize("xp", XPS)
@@ -690,7 +690,7 @@ def array_strategy_int(draw) -> fa.Array:
     eager = draw(st.lists(st.booleans(), min_size=ndims, max_size=ndims))
     note(f"eager={eager}") # TODO: remove when Array.__repr__ is implemented
     init_space = draw(st.sampled_from(["pos", "freq"]))
-    note(f"space={init_space}") # TODO: remove when Array.__repr__ is implemented
+    note(f"spaces={init_space}") # TODO: remove when Array.__repr__ is implemented
     # xp = draw(st.sampled_from(XPS))
     xp = XPS[0] # this is array_api_strict
     dtype = getattr(xp, draw(st.sampled_from(precisions)))
@@ -736,7 +736,7 @@ def assert_dual_operand_fun_equivalence_int(arr: fa.Array, precise: bool, log):
         operand(Array, Array).values() = operand(Array.values(), Array.values())
 
     """
-    values = arr.values(arr.space)
+    values = arr.values(arr.spaces)
     xp = array_api_compat.array_namespace(values)
 
     log("f(x,y) = x+y")
@@ -790,7 +790,7 @@ def assert_array_eager_factors_applied_int(arr: fa.Array, log):
         assert (ifa == ffa) or (ffa == ea)
 
     log("fft(x)._factors_applied ...")
-    # arr_fft = arr.into_space(get_other_space(arr.space))
+    # arr_fft = arr.into_space(get_other_space(arr.spaces))
     # np.testing.assert_array_equal(arr.eager, arr_fft.eager)
     # for ffapplied, feager in zip(arr_fft._factors_applied, arr_fft.eager):
     #     assert (feager and ffapplied) or (not feager and not ffapplied)
@@ -802,7 +802,7 @@ def assert_single_operand_fun_equivalence_int(arr: fa.Array, precise: bool, log)
         operand(Array).values() == operand(Array.values())
 
     """
-    values = arr.values(arr.space)
+    values = arr.values(arr.spaces)
     xp = array_api_compat.array_namespace(values)
     log("f(x) = x")
     assert_equal_op(arr, values, lambda x: x, precise, False, log)
@@ -880,18 +880,18 @@ def assert_equal_binary_op_0d(
     `op` denotes the operation acting on the Array and on the values before
     comparison.
     """
-    scalar_val = arr_0d.values(arr_0d.space) # take the scalar from the 0d Array
+    scalar_val = arr_0d.values(arr_0d.spaces) # take the scalar from the 0d Array
     arrs = [arr_0d, arr_nd] # Array - Array op
     arr_scalar = [scalar_val, arr_nd] # for reference, scalar - Array op
-    scalar_tensor = [scalar_val, arr_nd.values(arr_nd.space)] # for reference, scalar - scalar op
+    scalar_tensor = [scalar_val, arr_nd.values(arr_nd.spaces)] # for reference, scalar - scalar op
 
     # iterate the order
     for order in [[0,1],[1,0]]:
         arr_arr_op = op(*[arrs[o] for o in order])
         arr_scalar_op = op(*[arr_scalar[o] for o in order])
         st_op_val = op(*[scalar_tensor[o] for o in order])
-        aa_op_val = arr_arr_op.values(arr_nd.space)
-        as_op_val = arr_scalar_op.values(arr_nd.space)
+        aa_op_val = arr_arr_op.values(arr_nd.spaces)
+        as_op_val = arr_scalar_op.values(arr_nd.spaces)
 
         # values should all match, properties should be the ones of arr_nd
         def rtol(*x: fa.Array) -> float:
@@ -902,5 +902,5 @@ def assert_equal_binary_op_0d(
         assert aa_op_val.dtype == res_dtype
         assert arr_arr_op.factors_applied == arr_scalar_op.factors_applied
         assert arr_arr_op.eager == arr_nd.eager
-        assert arr_arr_op.space == arr_nd.space
+        assert arr_arr_op.spaces == arr_nd.spaces
         assert arr_arr_op.dims == arr_nd.dims

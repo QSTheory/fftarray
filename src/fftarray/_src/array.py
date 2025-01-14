@@ -64,14 +64,14 @@ def abs(x: Array, /) -> Array:
             values=values,
             dims=x.dims,
             signs=signs,
-            spaces=x.space,
+            spaces=x.spaces,
             xp=x.xp,
             scale_only=True,
         )
 
     return Array(
         values=values,
-        space=x.space,
+        spaces=x.spaces,
         dims=x.dims,
         eager=x.eager,
         factors_applied=(True,)*len(x.dims),
@@ -137,7 +137,7 @@ def two_inputs_func(
                     values=sub_values,
                     dims=unp_inp.dims,
                     signs=signs.tolist(),
-                    spaces=unp_inp.space,
+                    spaces=unp_inp.spaces,
                     scale_only=False,
                 )
     else:
@@ -146,7 +146,7 @@ def two_inputs_func(
     values = op(*unp_inp.values)
     return Array(
         values=values,
-        space=unp_inp.space,
+        spaces=unp_inp.spaces,
         dims=unp_inp.dims,
         eager=unp_inp.eager,
         factors_applied=tuple(final_factors_applied.tolist()),
@@ -196,10 +196,10 @@ def elementwise_one_operand(
         else:
             op_norm = getattr(x.xp, name)
 
-        values = op_norm(x.values(x.space))
+        values = op_norm(x.values(x.spaces))
         return Array(
             values=values,
-            space=x.space,
+            spaces=x.spaces,
             dims=x.dims,
             eager=x.eager,
             factors_applied=(True,)*len(x.dims),
@@ -243,7 +243,7 @@ class Array:
             self,
             values,
             dims: Tuple[Dimension, ...],
-            space: Tuple[Space, ...],
+            spaces: Tuple[Space, ...],
             eager: Tuple[bool, ...],
             factors_applied: Tuple[bool, ...],
             xp,
@@ -283,7 +283,7 @@ class Array:
 
         self._dims = dims
         self._values = values
-        self._spaces = space
+        self._spaces = spaces
         self._eager = eager
         self._factors_applied = factors_applied
         self._xp = xp
@@ -308,7 +308,7 @@ class Array:
             bytes_str = format_bytes(self._values.nbytes)
             str_out += f" Size: {bytes_str}"
         str_out += "\n"
-        for i, (dim, space) in enumerate(zip(self.dims, self.space, strict=True)):
+        for i, (dim, space) in enumerate(zip(self.dims, self.spaces, strict=True)):
             str_out += dim_table(
                 dim=dim,
                 include_header=(i==0),
@@ -316,7 +316,7 @@ class Array:
                 spaces=(space,),
             ) + "\n"
         str_out += f"Values<{self._xp.__name__}>:\n"
-        str_out += f"{self.values(self.space)}"
+        str_out += f"{self.values(self.spaces)}"
         return str_out
 
     def __bool__(self: Array):
@@ -480,7 +480,7 @@ class Array:
         )
 
         new_dims = []
-        for index, orig_dim, space in zip(tuple_indexers, self._dims, self.space, strict=True):
+        for index, orig_dim, space in zip(tuple_indexers, self._dims, self.spaces, strict=True):
             if index == slice(None, None, None):
                 # No selection, just keep the old dim.
                 new_dims.append(orig_dim)
@@ -506,7 +506,7 @@ class Array:
                     ) from e
 
 
-        selected_values = self.values(self.space).__getitem__(tuple_indexers)
+        selected_values = self.values(self.spaces).__getitem__(tuple_indexers)
         # Dimensions with the length 1 are dropped in numpy indexing.
         # We decided against this and keeping even dimensions of length 1.
         # So we have to reintroduce those dropped dimensions via reshape.
@@ -515,7 +515,7 @@ class Array:
         return Array(
             values=selected_values,
             dims=tuple(new_dims),
-            space=self.space,
+            spaces=self.spaces,
             eager=self.eager,
             factors_applied=(True,)*len(new_dims),
             xp=self._xp,
@@ -584,7 +584,7 @@ class Array:
             **indexers_kwargs: Union[float, slice],
         ) -> Array:
         """Inspired by xarray.DataArray.sel
-        In comparison to itx xarray implementation, there is an add-on:
+        In comparison to its xarray implementation, there is an add-on:
         - Implements missing_dims arg and accordingly raises errors
         """
 
@@ -625,7 +625,7 @@ class Array:
         # indices for the coordinate indexers by checking the respective
         # Dimension
         tuple_indexers_as_integer = []
-        for dim, space in zip(self.dims, self.space, strict=True):
+        for dim, space in zip(self.dims, self.spaces, strict=True):
             if dim.name in final_indexers:
                 index = final_indexers[dim.name]
                 try:
@@ -696,7 +696,7 @@ class Array:
         """
 
         space_norm: Tuple[Space, ...] = norm_space(space, len(self.dims))
-        if space_norm != self.space or not all(self._factors_applied):
+        if space_norm != self.spaces or not all(self._factors_applied):
             # Setting eager before-hand allows copy-elision without the move option.
             arr = self.into_eager(True).into_space(space).into_factors_applied(True)
             return arr._values
@@ -712,7 +712,7 @@ class Array:
         return Array(
             dims=self._dims,
             values=values,
-            space=self._spaces,
+            spaces=self._spaces,
             eager=self._eager,
             factors_applied=self._factors_applied,
             xp=array_api_compat.array_namespace(values),
@@ -741,7 +741,7 @@ class Array:
         return Array(
             dims=self._dims,
             values=values,
-            space=self._spaces,
+            spaces=self._spaces,
             eager=self._eager,
             factors_applied=self._factors_applied,
             xp=self._xp,
@@ -770,7 +770,7 @@ class Array:
                 values=values,
                 dims=self.dims,
                 signs=signs,
-                spaces=self.space,
+                spaces=self.spaces,
                 scale_only=False,
             )
 
@@ -778,7 +778,7 @@ class Array:
         return Array(
             dims=self._dims,
             values=values,
-            space=self._spaces,
+            spaces=self._spaces,
             eager=self._eager,
             factors_applied=factors_applied_norm,
             xp=self._xp,
@@ -800,16 +800,16 @@ class Array:
         return Array(
             dims=self._dims,
             values=self._values,
-            space=self.space,
+            spaces=self.spaces,
             eager=eager_norm,
             factors_applied=self.factors_applied,
             xp=self.xp,
         )
 
     @property
-    def space(self) -> Tuple[Space, ...]:
+    def spaces(self) -> Tuple[Space, ...]:
         """
-            Enables automatically and easily detecting in which space a generic Array curently is.
+            Enables automatically and easily detecting in which spaces a generic Array currently is.
         """
         return self._spaces
 
@@ -863,18 +863,18 @@ class Array:
         return Array(
             dims=dims,
             values=values,
-            space=space_after,
+            spaces=space_after,
             eager=self.eager,
             factors_applied=factors_applied_after,
             xp=self.xp,
         )
 
 
-    def transpose(self: Array, *dims: str) -> Array:
+    def transpose(self: Array, *dim_names: str) -> Array:
         """
             Transpose with dimension names.
         """
-        new_dim_names = list(dims)
+        new_dim_names = list(dim_names)
         old_dim_names = [dim.name for dim in self._dims]
         if len(new_dim_names) == 0:
             new_dim_names = copy(old_dim_names)
@@ -888,7 +888,7 @@ class Array:
         transposed_arr = Array(
             values=transposed_values,
             dims=tuple(self._dims[idx] for idx in axes_transpose),
-            space=tuple(self._spaces[idx] for idx in axes_transpose),
+            spaces=tuple(self._spaces[idx] for idx in axes_transpose),
             eager=tuple(self._eager[idx] for idx in axes_transpose),
             factors_applied=tuple(self._factors_applied[idx] for idx in axes_transpose),
             xp=self._xp,
@@ -958,7 +958,7 @@ class UnpackedValues:
     # dim 0: dim_idx, dim 1: op_idx
     factors_applied: npt.NDArray[np.bool]
     # Space per dimension, must be homogeneous over all values
-    space: Tuple[Space, ...]
+    spaces: Tuple[Space, ...]
     # eager per dimension, must be homogeneous over all values
     eager: Tuple[bool, ...]
 
@@ -1071,7 +1071,7 @@ def unpack_arrays(
     return UnpackedValues(
         dims = tuple(dims_list),
         values = unpacked_values, # type: ignore
-        space = tuple(space_list),
+        spaces = tuple(space_list),
         factors_applied=factors_applied,
         eager=tuple(eager_list),
         xp = xp.get(),
