@@ -303,8 +303,14 @@ def check_integrate(
 
     if len(fa_res_values.shape) > 0:
         assert type(ref_res) is type(fa_res_values)
-
-    np.testing.assert_equal(
-        np.array(ref_res),
-        np.array(fa_res_values),
-    )
+        np.testing.assert_equal(
+            np.array(ref_res),
+            np.array(fa_res_values),
+        )
+    else:
+        # fa_res_values is a python scalar and does not have a dtype, so the
+        # test failes in numpy 1.25 without explicitly setting the dtype
+        np.testing.assert_equal(
+            np.array(ref_res),
+            np.array(fa_res_values, dtype=type(ref_res)),
+        )
