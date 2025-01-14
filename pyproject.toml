@@ -40,7 +40,6 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
 ]
 "helpers" = [
     "z3-solver",
-    "xarray"
 ]
 "dashboards" = [
     "fftarray[helpers]",
@@ -68,6 +67,7 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
     "pytest-split",
     "array-api-strict",
     "ruff",
+    "xarray",
 ]
 
 "doc" = [

@@ -570,7 +570,7 @@ class Array:
             **indexers_kwargs: Union[float, slice],
         ) -> Array:
         """Inspired by xarray.DataArray.sel
-        In comparison to itx xarray implementation, there is an add-on:
+        In comparison to its xarray implementation, there is an add-on:
         - Implements missing_dims arg and accordingly raises errors
         """
 
