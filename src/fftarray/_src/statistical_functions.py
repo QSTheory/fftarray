@@ -13,7 +13,7 @@ class SplitArrayMeta:
     """
     axis: List[int]
     eager: Tuple[bool, ...]
-    space: Tuple[Space, ...]
+    spaces: Tuple[Space, ...]
     dims: Tuple[Dimension, ...]
 
 def _named_dims_to_axis(x: Array, dim_name: Optional[Union[str, Iterable[str]]], /) -> SplitArrayMeta:
@@ -27,7 +27,7 @@ def _named_dims_to_axis(x: Array, dim_name: Optional[Union[str, Iterable[str]]],
     if dim_name is None:
         return SplitArrayMeta(
             axis=list(range(len(x.shape))),
-            space=tuple([]),
+            spaces=tuple([]),
             dims=tuple([]),
             eager=tuple([]),
         )
@@ -44,7 +44,7 @@ def _named_dims_to_axis(x: Array, dim_name: Optional[Union[str, Iterable[str]]],
     dims = []
     spaces = []
     eagers = []
-    for dim, space, eager in zip(x.dims, x.space, x.eager, strict=True):
+    for dim, space, eager in zip(x.dims, x.spaces, x.eager, strict=True):
         if dim.name not in dim_name:
             dims.append(dim)
             spaces.append(space)
@@ -52,7 +52,7 @@ def _named_dims_to_axis(x: Array, dim_name: Optional[Union[str, Iterable[str]]],
 
     return SplitArrayMeta(
         axis=axis,
-        space=tuple(spaces),
+        spaces=tuple(spaces),
         dims=tuple(dims),
         eager=tuple(eagers),
     )
@@ -67,11 +67,11 @@ def sum(
 
     res_meta = _named_dims_to_axis(x, dim_name)
 
-    reduced_values = x.xp.sum(x.values(x.space), axis=tuple(res_meta.axis), dtype=dtype)
+    reduced_values = x.xp.sum(x.values(x.spaces), axis=tuple(res_meta.axis), dtype=dtype)
 
     return Array(
         values=reduced_values,
-        space=res_meta.space,
+        spaces=res_meta.spaces,
         dims=res_meta.dims,
         eager=res_meta.eager,
         factors_applied=(True,)*len(res_meta.dims),
@@ -88,11 +88,11 @@ def prod(
 
     res_meta = _named_dims_to_axis(x, dim_name)
 
-    reduced_values = x.xp.prod(x.values(x.space), axis=tuple(res_meta.axis), dtype=dtype)
+    reduced_values = x.xp.prod(x.values(x.spaces), axis=tuple(res_meta.axis), dtype=dtype)
 
     return Array(
         values=reduced_values,
-        space=res_meta.space,
+        spaces=res_meta.spaces,
         dims=res_meta.dims,
         eager=res_meta.eager,
         factors_applied=(True,)*len(res_meta.dims),
@@ -108,11 +108,11 @@ def max(
 
     res_meta = _named_dims_to_axis(x, dim_name)
 
-    reduced_values = x.xp.max(x.values(x.space), axis=tuple(res_meta.axis))
+    reduced_values = x.xp.max(x.values(x.spaces), axis=tuple(res_meta.axis))
 
     return Array(
         values=reduced_values,
-        space=res_meta.space,
+        spaces=res_meta.spaces,
         dims=res_meta.dims,
         eager=res_meta.eager,
         factors_applied=(True,)*len(res_meta.dims),
@@ -128,11 +128,11 @@ def min(
 
     res_meta = _named_dims_to_axis(x, dim_name)
 
-    reduced_values = x.xp.min(x.values(x.space), axis=tuple(res_meta.axis))
+    reduced_values = x.xp.min(x.values(x.spaces), axis=tuple(res_meta.axis))
 
     return Array(
         values=reduced_values,
-        space=res_meta.space,
+        spaces=res_meta.spaces,
         dims=res_meta.dims,
         eager=res_meta.eager,
         factors_applied=(True,)*len(res_meta.dims),
@@ -148,11 +148,11 @@ def mean(
 
     res_meta = _named_dims_to_axis(x, dim_name)
 
-    reduced_values = x.xp.mean(x.values(x.space), axis=tuple(res_meta.axis))
+    reduced_values = x.xp.mean(x.values(x.spaces), axis=tuple(res_meta.axis))
 
     return Array(
         values=reduced_values,
-        space=res_meta.space,
+        spaces=res_meta.spaces,
         dims=res_meta.dims,
         eager=res_meta.eager,
         factors_applied=(True,)*len(res_meta.dims),
@@ -175,7 +175,7 @@ def integrate(
 
     integration_element = 1.
     for i in res_meta.axis:
-        space = x.space[i]
+        space = x.spaces[i]
         match space:
             case "pos":
                 integration_element *= x.dims[i].d_pos
@@ -184,12 +184,12 @@ def integrate(
             case _:
                 assert_never(space)
 
-    reduced_values = x.xp.sum(x.values(x.space), axis=tuple(res_meta.axis), dtype=dtype)
+    reduced_values = x.xp.sum(x.values(x.spaces), axis=tuple(res_meta.axis), dtype=dtype)
     reduced_values *= integration_element
 
     return Array(
         values=reduced_values,
-        space=res_meta.space,
+        spaces=res_meta.spaces,
         dims=res_meta.dims,
         eager=res_meta.eager,
         factors_applied=(True,)*len(res_meta.dims),

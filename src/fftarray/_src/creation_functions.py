@@ -24,7 +24,7 @@ def _get_xp(xp: Optional[Any], values) -> Tuple[Any, bool]:
 
 def array(
         values,
-        dims: Union[Dimension, Iterable[Dimension]],
+        dim: Union[Dimension, Iterable[Dimension]],
         space: Union[Space, Iterable[Space]],
         /,
         *,
@@ -41,10 +41,10 @@ def array(
             The values to initialize the ``Array`` with.
             They can be of any Python Arrray API v2023.12 compatible library.
             By default they are copied to make sure an external alias cannot influence the created ``Array``.
-        dims : Iterable[Dimension]
-            The Dimensions for each dimension of the passed in values.
+        dim : Union[Dimension, Iterable[Dimension]]
+            The Dimension(s) for each dimension of the passed in values.
         space: Union[Space, Iterable[Space]]
-            Specify the space of the values with which the returned ``Array`` intialized.
+            Specify the space(s) of the values with which the returned ``Array`` intialized.
         xp: Optional[Any]
             The Array API namespace to use for the created ``Array``.
             If it is None, ``array_api_compat.array_namespace(values)`` is used.
@@ -69,10 +69,10 @@ def array(
         Array
     """
 
-    if isinstance(dims, Dimension):
-        dims_tuple: Tuple[Dimension, ...] = (dims,)
+    if isinstance(dim, Dimension):
+        dims_tuple: Tuple[Dimension, ...] = (dim,)
     else:
-        dims_tuple = tuple(dims)
+        dims_tuple = tuple(dim)
 
     xp, used_default_xp = _get_xp(xp, values)
 
@@ -106,7 +106,7 @@ def array(
     arr = Array(
         dims=dims_tuple,
         values=values,
-        space=spaces_normalized,
+        spaces=spaces_normalized,
         eager=(get_default_eager(),)*n_dims,
         factors_applied=(True,)*n_dims,
         xp=xp,
@@ -167,7 +167,7 @@ def coords_from_dim(
         dims=(dim,),
         eager=(get_default_eager(),),
         factors_applied=(True,),
-        space=(space,),
+        spaces=(space,),
         xp=xp,
     )
 
@@ -175,7 +175,7 @@ def coords_from_dim(
 def coords_from_arr(
         x: Array,
         dim_name: str,
-        space: Union[Space],
+        space: Space,
         /,
         *,
         xp: Optional[Any] = None,
@@ -190,7 +190,7 @@ def coords_from_arr(
     Parameters
     ----------
     x : Array
-        The dimensions of the created array. They also imply the shape.
+        The array from which to construct the coordinate array.
     space : Space
         Specify the space of the returned Array is intialized.
     dim_name : str
@@ -240,9 +240,9 @@ def full(
     Parameters
     ----------
     dim : Union[Dimension, Iterable[Dimension]]
-        The dimensions of the created array. They also imply the shape.
-    space : Space
-        Specify the space of the returned Array is intialized.
+        The dimension(s) of the created array. They also imply the shape.
+    space : Union[Space, Iterable[Space]]
+        Specify the space(s) in which the returned Array is intialized.
     xp:
         The Array API namespace to use for the created ``Array``.
         If it is None, ``array_api_compat.array_namespace(fill_value)`` is used.
@@ -279,7 +279,7 @@ def full(
     arr = Array(
         values=values,
         dims=dims,
-        space=norm_space(space, n_dims),
+        spaces=norm_space(space, n_dims),
         eager=(get_default_eager(),)*n_dims,
         factors_applied=(True,)*n_dims,
         xp=xp,

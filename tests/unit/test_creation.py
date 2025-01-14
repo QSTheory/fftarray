@@ -36,7 +36,7 @@ def test_from_array_object(
 
     array_args: Dict[str, Any] = dict(
         dims=dims,
-        space="pos",
+        spaces="pos",
         defensive_copy=defensive_copy,
     )
 
@@ -69,7 +69,7 @@ def test_from_array_object(
 
     # Eager is always inferred from the default setting since there is no override parameter.
     with fa.default_eager(eager):
-        arr = fa.array(array_args.pop("values"), array_args.pop("dims"), array_args.pop("space"), **array_args)
+        arr = fa.array(array_args.pop("values"), array_args.pop("dims"), array_args.pop("spaces"), **array_args)
 
     assert arr.xp == xp_target
     assert arr.dtype == result_dtype
