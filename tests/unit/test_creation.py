@@ -1,4 +1,6 @@
-from typing import Iterable, Literal, Optional, Dict, Any, Union, List
+from typing import (
+    Iterable, Literal, Optional, Dict, Any, Union, List, get_args
+)
 
 import numpy as np
 import pytest
@@ -309,3 +311,55 @@ def check_full(
         np.array(ref_arr),
         np.array(arr_values),
     )
+
+@pytest.mark.parametrize("xp_target, xp_other", XPS_ROTATED_PAIRS)
+@pytest.mark.parametrize("xp_source", ["default", "direct"])
+@pytest.mark.parametrize("dtype_name", dtype_names_numeric_core)
+@pytest.mark.parametrize("eager", [False, True])
+@pytest.mark.parametrize("space", get_args(fa.Space))
+def test_coords_from_dim(
+        xp_target,
+        xp_other,
+        xp_source: Literal["default", "direct"],
+        dtype_name: DTYPE_NAME,
+        eager: bool,
+        space: fa.Space,
+    ) -> None:
+    """
+        Test Array creation from a Dimension.
+        This has two cases for xp derivation:
+        1) From default xp.
+        2) Via direct override.
+    """
+
+    dtype = getattr(xp_target, dtype_name)
+    dim = fa.dim("x", n=3, d_pos=0.1, pos_min=0, freq_min=0)
+    ref_values = xp_target.asarray(dim.np_array(space), dtype=dtype)
+
+    array_args = dict(
+        dtype=dtype,
+    )
+
+    match xp_source:
+        case "default":
+            default_xp = xp_target
+        case "direct":
+            default_xp = xp_other
+            array_args["xp"] = xp_target
+
+    with fa.default_eager(eager):
+        with fa.default_xp(default_xp):
+            if not xp_target.isdtype(dtype, ("real floating", "complex floating")):
+                with pytest.raises(ValueError):
+                    arr = fa.coords_from_dim(dim, space, **array_args)
+                return
+            arr = fa.coords_from_dim(dim, space, **array_args)
+
+    arr_values = np.array(arr.values(space))
+    np.testing.assert_equal(arr_values, ref_values)
+    assert arr.shape == (dim.n,)
+    assert arr.xp == xp_target
+    assert arr.dtype == dtype
+    assert arr.spaces == (space,)
+    assert arr.eager == (eager,)
+    assert arr.factors_applied == (True,)
