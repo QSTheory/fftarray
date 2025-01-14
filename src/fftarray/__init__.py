@@ -64,6 +64,9 @@ from ._src.statistical_functions import (
     max as max,
     sum as sum,
 )
+from ._src.manipulation_functions import (
+    permute_dims as permute_dims
+)
 
 
 from ._src.tools import (
