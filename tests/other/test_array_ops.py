@@ -857,7 +857,7 @@ def test_0d_arrays(
 
     # The expected resulting dtype is the stronger one out of the two used ones: float32 and float64
     res_float_dtype_name = "float64" if precision_0d != precision_nd else precision_0d
-    # Due to the into_factors_applied, the dtype might be complex
+    # Due to the into_factors_applied, the dtype is complex (regardless of the input value)
     if fas is not True:
         res_float_dtype = getattr(xp, get_complex_name(res_float_dtype_name))
     else:
