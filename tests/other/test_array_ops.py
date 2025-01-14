@@ -894,11 +894,10 @@ def assert_equal_binary_op_0d(
         as_op_val = arr_scalar_op.values(arr_nd.space)
 
         # values should all match, properties should be the ones of arr_nd
-        def is_low_precision(x: fa.Array) -> bool:
-            return x.dtype in [arr_nd.xp.float32, arr_nd.xp.complex64]
-        rtol = 1e-5 if (is_low_precision(aa_op_val) or is_low_precision(as_op_val)) else 1e-7
-        np.testing.assert_allclose(aa_op_val, as_op_val, rtol=rtol) # type: ignore
-        np.testing.assert_allclose(as_op_val, st_op_val, rtol=rtol) # type: ignore
+        def rtol(*x: fa.Array) -> float:
+            return 1e-5 if any(arr.dtype in [arr_nd.xp.float32, arr_nd.xp.complex64] for arr in x) else 1e-7
+        np.testing.assert_allclose(st_op_val, as_op_val, rtol=rtol(st_op_val, as_op_val)) # type: ignore
+        np.testing.assert_allclose(st_op_val, aa_op_val, rtol=rtol(st_op_val, aa_op_val)) # type: ignore
         assert arr_arr_op.xp == arr_nd.xp
         assert aa_op_val.dtype == res_dtype
         assert arr_arr_op.factors_applied == arr_scalar_op.factors_applied
