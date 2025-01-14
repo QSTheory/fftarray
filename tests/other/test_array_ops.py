@@ -222,6 +222,8 @@ def test_bool() -> None:
 def draw_hypothesis_array_values(draw, st_type, shape):
     """Creates multi-dimensional array with shape `shape` whose values are drawn
     using `draw` from `st_type`."""
+    if len(shape) == 0:
+        return draw(st_type)
     if len(shape) > 1:
         return [draw_hypothesis_array_values(draw, st_type, shape[1:]) for _ in range(shape[0])]
     return draw(st.lists(st_type, min_size=shape[0], max_size=shape[0]))
@@ -229,7 +231,7 @@ def draw_hypothesis_array_values(draw, st_type, shape):
 @st.composite
 def array_strategy(draw) -> fa.Array:
     """Initializes an Array using hypothesis."""
-    ndims = draw(st.integers(min_value=1, max_value=4))
+    ndims = draw(st.integers(min_value=0, max_value=4))
     value = st.one_of([
         # st.integers(min_value=np.iinfo(np.int32).min, max_value=np.iinfo(np.int32).max),
         st.complex_numbers(allow_infinity=False, allow_nan=False, allow_subnormal=False, width=64),
@@ -683,7 +685,7 @@ def test_different_dimension_dynamic_prop() -> None:
 @st.composite
 def array_strategy_int(draw) -> fa.Array:
     """Initializes an Array using hypothesis."""
-    ndims = draw(st.integers(min_value=1, max_value=4))
+    ndims = draw(st.integers(min_value=0, max_value=4))
     value = st.integers(min_value=np.iinfo(np.int32).min, max_value=np.iinfo(np.int32).max)
     eager = draw(st.lists(st.booleans(), min_size=ndims, max_size=ndims))
     note(f"eager={eager}") # TODO: remove when Array.__repr__ is implemented
@@ -837,21 +839,26 @@ def test_0d_arrays(
     arr_0d = fa.array(4.2, tuple([]), tuple([]), xp=xp, dtype=getattr(xp, precision_0d))
     if ndims > 0:
         dims = get_dims(ndims)
-        # spice it up
-        spaces = space if ndims < 2 else [space, get_other_space(space)]
-        fas = factors_applied if ndims < 2 else [factors_applied, not factors_applied]
-        eagers = eager if ndims < 2 else [eager, not eager]
+        # spice it up a notch or five
+        spaces = space if ndims == 1 else [space, get_other_space(space)]
+        fas = factors_applied if ndims == 1 else [factors_applied, not factors_applied]
+        eagers = eager if ndims == 1 else [eager, not eager]
         arr_nd = (
             get_arr_from_dims(xp, dims, spaces, precision_nd)
             .into_eager(eagers)
         )
-        if (not factors_applied and ndims == 1) or ndims == 2:
+        # into_factors_applied always returns Array with complex dtype,
+        # so to preserve dtype for tests below, avoid this if factors_applied is True
+        if fas is not True:
             arr_nd = arr_nd.into_factors_applied(fas)
     else:
+        fas = True # for further test, factors_applied can be assumed True for 0d
         arr_nd = fa.array(42., tuple([]), tuple([]), xp=xp, dtype=getattr(xp, precision_nd))
 
+    # The expected resulting dtype is the stronger one out of the two used ones: float32 and float64
     res_float_dtype_name = "float64" if precision_0d != precision_nd else precision_0d
-    if (not factors_applied and ndims > 0) or ndims == 2:
+    # Due to the into_factors_applied, the dtype might be complex
+    if fas is not True:
         res_float_dtype = getattr(xp, get_complex_name(res_float_dtype_name))
     else:
         res_float_dtype = getattr(xp, res_float_dtype_name)
