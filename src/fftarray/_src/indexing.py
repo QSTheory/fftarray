@@ -92,7 +92,7 @@ class LocArrayIndexer(Generic[T]):
             tuple_indexers, self._arr.dims, self._arr.spaces, strict=True
         ):
             integer_indexers.append(
-                dim._index_from_coord(
+                dim.index_from_coord(
                     coord=index,
                     space=space,
                     method=None,

@@ -41,7 +41,7 @@ Relevant functions/classes for indexing
 - property Array.loc = LocArrayIndexer(self)
 - method Array.sel
 - method Array.isel
-- method Dimension._index_from_coord
+- method Dimension.index_from_coord
 - method Dimension._dim_from_slice
 - method Dimension._dim_from_start_and_n
 """
@@ -55,10 +55,10 @@ def test_dim_single_element_indexing() -> None:
 
     def test_functions(dim):
         return (
-            dim._index_from_coord(0.5, method = None, space="pos"),
-            dim._index_from_coord(2.5, method = None, space="pos"),
-            dim._index_from_coord(0.4, method = "nearest", space="pos"),
-            dim._index_from_coord(2.6, method = "nearest", space="pos"),
+            dim.index_from_coord(0.5, "pos", method=None),
+            dim.index_from_coord(2.5, "pos", method=None),
+            dim.index_from_coord(0.4, "pos", method="nearest"),
+            dim.index_from_coord(2.6, "pos", method="nearest"),
         )
 
     results = test_functions(dim)
@@ -178,7 +178,7 @@ def test_valid_index_from_coord(
 ) -> None:
 
     def test_function(_coord):
-        return TEST_DIM._index_from_coord(coord=_coord, space=space, method=method)
+        return TEST_DIM.index_from_coord(coord=_coord, space=space, method=method)
 
     try:
         dim_index_result = test_function(valid_coord)
@@ -194,6 +194,10 @@ def test_valid_index_from_coord(
     except (KeyError, NotImplementedError) as e:
         xr_result = type(e)
         assert dim_index_result == xr_result
+
+def test_index_from_coord_value_error() -> None:
+    with pytest.raises(ValueError):
+        TEST_DIM.index_from_coord(coord=10, space="pos", method="unsupported") # type: ignore
 
 def make_xr_indexer(indexer, space: fa.Space):
     return {

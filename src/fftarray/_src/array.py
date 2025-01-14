@@ -616,7 +616,7 @@ class Array:
                 index = final_indexers[dim.name]
                 try:
                     tuple_indexers_as_integer.append(
-                        dim._index_from_coord(
+                        dim.index_from_coord(
                             coord=index,
                             space=space,
                             method=method,
