@@ -2,12 +2,12 @@ from typing import List, Optional
 
 import numpy as np
 from bokeh.plotting import figure, row, column, show
-from bokeh.models import LinearColorMapper
+from bokeh.models import LinearColorMapper, LogColorMapper
 
-from fftarray import Array, Space
+import fftarray as fa
 
 def plt_array(
-        arr: Array,
+        arr: fa.Array,
         data_name: Optional[str] = None,
         show_plot: bool = True,
     ):
@@ -28,7 +28,7 @@ def plt_array(
         plot = row([p_pos, p_freq], sizing_mode="stretch_width") # type: ignore
     elif len(arr.dims) == 2:
         row_plots = []
-        spaces: List[Space] = ["pos", "freq"]
+        spaces: List[fa.Space] = ["pos", "freq"]
         for space in spaces:
             # Dimension properties
             dim_names = [dim.name for dim in arr.dims]
@@ -103,3 +103,39 @@ def plt_array(
         show(plot)
     else:
         return plot
+
+def plt_array_values_space_time(
+        pos_values,
+        freq_values,
+        pos_grid,
+        freq_grid,
+        time,
+        pos_unit = "m",
+        freq_unit = "1/m",
+    ):
+    """Plot the one-dimensional values in space-time as a rasterized image.
+    """
+    plots = []
+    for space, values, grid in [["pos", pos_values, pos_grid], ["freq", freq_values, freq_grid]]:
+        color_mapper = LinearColorMapper(palette="Viridis256", low=np.min(values), high=np.max(values))
+        plot = figure(
+            x_axis_label = f"time [s]",
+            y_axis_label = f"{space} coordinate [{freq_unit if space=='freq' else pos_unit}]",
+            x_range=(float(time[0]), float(time[-1])),
+            y_range=(float(grid[0]), float(grid[-1]))
+        )
+        r = plot.image(
+            image=[np.transpose(values)],
+            x = time[0],
+            y = grid[0],
+            dw = time[-1] - time[0],
+            dh = grid[-1] - grid[0],
+            color_mapper=color_mapper
+        )
+        color_bar = r.construct_color_bar(padding=1)
+        plot.add_layout(color_bar, "right")
+        plot.title.text = f"Absolute squared of Psi in {space} space"
+        plots.append(plot)
+
+    row_plot = row(plots, sizing_mode="stretch_width")
+    show(row_plot)
