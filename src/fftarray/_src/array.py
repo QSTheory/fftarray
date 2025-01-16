@@ -956,7 +956,7 @@ class UnpackedValues:
     # Shared array namespace between all values.
     xp: Any
     # dim 0: dim_idx, dim 1: op_idx
-    factors_applied: npt.NDArray[np.bool]
+    factors_applied: npt.NDArray[np.bool_]
     # Space per dimension, must be homogeneous over all values
     spaces: Tuple[Space, ...]
     # eager per dimension, must be homogeneous over all values
@@ -1061,7 +1061,7 @@ def unpack_arrays(
     dims_list = [dims[dim_name].dim.get() for dim_name in dim_names]
     space_list = [dims[dim_name].space.get() for dim_name in dim_names]
     eager_list = [dims[dim_name].eager.get() for dim_name in dim_names]
-    factors_applied: npt.NDArray[np.bool] = np.array([dims[dim_name].factors_applied for dim_name in dim_names])
+    factors_applied: npt.NDArray[np.bool_] = np.array([dims[dim_name].factors_applied for dim_name in dim_names])
 
     for value in unpacked_values:
         assert value is not None
