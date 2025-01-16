@@ -1,3 +1,4 @@
+import itertools
 from typing import (
     Iterable, Literal, Optional, Dict, Any, Union, List, get_args
 )
@@ -318,7 +319,8 @@ def check_full(
     # Test dtype inference from default, including invalid cases
     *[pytest.param("default", dtype, None) for dtype in dtype_names_numeric_core],
     # Test dtype inference from direct, including invalid cases
-    *[pytest.param("direct", dtype, "float64") for dtype in dtype_names_numeric_core],
+    *[pytest.param("direct", dtype_target, dtype_other) for dtype_target, dtype_other
+      in itertools.combinations(["int64", "complex64"], r=2)],
 ])
 @pytest.mark.parametrize("eager", [False, True])
 @pytest.mark.parametrize("space", get_args(fa.Space))
@@ -356,12 +358,12 @@ def test_coords_from_dim(
         case "default":
             default_dtype_name = dtype_name_target
         case "direct":
-            default_dtype_name = dtype_name_other
+            default_dtype_name = dtype_name_other # type: ignore
             array_args["dtype"] = dtype_target
 
     with fa.default_eager(eager):
         with fa.default_xp(default_xp):
-            with fa.default_dtype_name(default_dtype_name):
+            with fa.default_dtype_name(default_dtype_name): # type: ignore
                 if not xp_target.isdtype(dtype_target, ("real floating", "complex floating")):
                     with pytest.raises(ValueError):
                         arr = fa.coords_from_dim(dim, space, **array_args)
