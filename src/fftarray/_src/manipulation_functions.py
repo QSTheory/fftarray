@@ -5,7 +5,7 @@ from .named_array import get_axes_permute
 
 def permute_dims(x: Array, dim_names: Tuple[str, ...]) -> Array:
         """
-            Transpose with dimension names.
+            Permutes the dimensions of an Array.
         """
         new_dim_names = list(dim_names)
         old_dim_names = [dim.name for dim in x.dims]
