@@ -9,7 +9,7 @@ import jax.numpy as jnp
 
 import fftarray as fa
 
-from tests.helpers import XPS, get_other_space
+from tests.helpers import XPS, get_other_space, get_dims, get_arr_from_dims
 
 PrecisionSpec = Literal["float32", "float64"]
 
@@ -222,6 +222,8 @@ def test_bool() -> None:
 def draw_hypothesis_array_values(draw, st_type, shape):
     """Creates multi-dimensional array with shape `shape` whose values are drawn
     using `draw` from `st_type`."""
+    if len(shape) == 0:
+        return draw(st_type)
     if len(shape) > 1:
         return [draw_hypothesis_array_values(draw, st_type, shape[1:]) for _ in range(shape[0])]
     return draw(st.lists(st_type, min_size=shape[0], max_size=shape[0]))
@@ -229,7 +231,7 @@ def draw_hypothesis_array_values(draw, st_type, shape):
 @st.composite
 def array_strategy(draw) -> fa.Array:
     """Initializes an Array using hypothesis."""
-    ndims = draw(st.integers(min_value=1, max_value=4))
+    ndims = draw(st.integers(min_value=0, max_value=4))
     value = st.one_of([
         # st.integers(min_value=np.iinfo(np.int32).min, max_value=np.iinfo(np.int32).max),
         st.complex_numbers(allow_infinity=False, allow_nan=False, allow_subnormal=False, width=64),
@@ -683,7 +685,7 @@ def test_different_dimension_dynamic_prop() -> None:
 @st.composite
 def array_strategy_int(draw) -> fa.Array:
     """Initializes an Array using hypothesis."""
-    ndims = draw(st.integers(min_value=1, max_value=4))
+    ndims = draw(st.integers(min_value=0, max_value=4))
     value = st.integers(min_value=np.iinfo(np.int32).min, max_value=np.iinfo(np.int32).max)
     eager = draw(st.lists(st.booleans(), min_size=ndims, max_size=ndims))
     note(f"eager={eager}") # TODO: remove when Array.__repr__ is implemented
@@ -814,3 +816,91 @@ def assert_single_operand_fun_equivalence_int(arr: fa.Array, precise: bool, log)
     # assert_equal_op(arr, values, (xp.exp, fa.exp), False, True, log) # precise comparison fails
     # log("f(x) = sqrt(x)")
     # assert_equal_op(arr, values, (xp.sqrt, fa.sqrt), False, True, log) # precise comparison fails
+
+@pytest.mark.parametrize("ndims", [0,1,2])
+@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("precision_0d", precisions)
+@pytest.mark.parametrize("precision_nd", precisions)
+@pytest.mark.parametrize("space", ["pos", "freq"])
+@pytest.mark.parametrize("eager", [True, False])
+@pytest.mark.parametrize("factors_applied", [True, False])
+def test_0d_arrays(
+        ndims: int,
+        xp: Any,
+        precision_0d: PrecisionSpec,
+        precision_nd: PrecisionSpec,
+        space: fa.Space,
+        eager: bool,
+        factors_applied: bool,
+    ):
+    """Test whether arithmetic with 0d Arrays works. Tests add, multiply,
+    division and pow with a 0d Array and a 0/1/2d Array.
+    """
+    arr_0d = fa.array(4.2, tuple([]), tuple([]), xp=xp, dtype=getattr(xp, precision_0d))
+    if ndims > 0:
+        dims = get_dims(ndims)
+        # spice it up a notch or five
+        spaces = space if ndims == 1 else [space, get_other_space(space)]
+        fas = factors_applied if ndims == 1 else [factors_applied, not factors_applied]
+        eagers = eager if ndims == 1 else [eager, not eager]
+        arr_nd = (
+            get_arr_from_dims(xp, dims, spaces, precision_nd)
+            .into_eager(eagers)
+        )
+        # into_factors_applied always returns Array with complex dtype,
+        # so to preserve dtype for tests below, avoid this if factors_applied is True
+        if fas is not True:
+            arr_nd = arr_nd.into_factors_applied(fas)
+    else:
+        fas = True # for further test, factors_applied can be assumed True for 0d
+        arr_nd = fa.array(42., tuple([]), tuple([]), xp=xp, dtype=getattr(xp, precision_nd))
+
+    # The expected resulting dtype is the stronger one out of the two used ones: float32 and float64
+    res_float_dtype_name = "float64" if precision_0d != precision_nd else precision_0d
+    # Due to the into_factors_applied, the dtype is complex (regardless of the input value)
+    if fas is not True:
+        res_float_dtype = getattr(xp, get_complex_name(res_float_dtype_name))
+    else:
+        res_float_dtype = getattr(xp, res_float_dtype_name)
+
+    assert_equal_binary_op_0d(arr_0d, arr_nd, lambda x,y: x+y, res_float_dtype)
+    assert_equal_binary_op_0d(arr_0d, arr_nd, lambda x,y: x*y, res_float_dtype)
+    assert_equal_binary_op_0d(arr_0d, arr_nd, lambda x,y: y/x, res_float_dtype)
+    assert_equal_binary_op_0d(arr_0d, arr_nd, lambda x,y: y**x, res_float_dtype)
+
+
+def assert_equal_binary_op_0d(
+        arr_0d: fa.Array,
+        arr_nd: fa.Array,
+        op: Callable[[Any, Any], fa.Array],
+        res_dtype: Any
+    ):
+    """Helper function to test equality between operation on Arrays and their
+    values.
+    `op` denotes the operation acting on the Array and on the values before
+    comparison.
+    """
+    scalar_val = arr_0d.values(arr_0d.spaces) # take the scalar from the 0d Array
+    arrs = [arr_0d, arr_nd] # Array - Array op
+    arr_scalar = [scalar_val, arr_nd] # for reference, scalar - Array op
+    scalar_tensor = [scalar_val, arr_nd.values(arr_nd.spaces)] # for reference, scalar - scalar op
+
+    # iterate the order
+    for order in [[0,1],[1,0]]:
+        arr_arr_op = op(*[arrs[o] for o in order])
+        arr_scalar_op = op(*[arr_scalar[o] for o in order])
+        st_op_val = op(*[scalar_tensor[o] for o in order])
+        aa_op_val = arr_arr_op.values(arr_nd.spaces)
+        as_op_val = arr_scalar_op.values(arr_nd.spaces)
+
+        # values should all match, properties should be the ones of arr_nd
+        def rtol(*x: fa.Array) -> float:
+            return 1e-5 if any(arr.dtype in [arr_nd.xp.float32, arr_nd.xp.complex64] for arr in x) else 1e-7
+        np.testing.assert_allclose(st_op_val, as_op_val, rtol=rtol(st_op_val, as_op_val)) # type: ignore
+        np.testing.assert_allclose(st_op_val, aa_op_val, rtol=rtol(st_op_val, aa_op_val)) # type: ignore
+        assert arr_arr_op.xp == arr_nd.xp
+        assert aa_op_val.dtype == res_dtype
+        assert arr_arr_op.factors_applied == arr_scalar_op.factors_applied
+        assert arr_arr_op.eager == arr_nd.eager
+        assert arr_arr_op.spaces == arr_nd.spaces
+        assert arr_arr_op.dims == arr_nd.dims
