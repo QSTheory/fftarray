@@ -2,7 +2,7 @@ from typing import List, Optional
 
 import numpy as np
 from bokeh.plotting import figure, row, column, show
-from bokeh.models import LinearColorMapper, LogColorMapper
+from bokeh.models import LinearColorMapper
 
 import fftarray as fa
 
@@ -119,7 +119,7 @@ def plt_array_values_space_time(
     for space, values, grid in [["pos", pos_values, pos_grid], ["freq", freq_values, freq_grid]]:
         color_mapper = LinearColorMapper(palette="Viridis256", low=np.min(values), high=np.max(values))
         plot = figure(
-            x_axis_label = f"time [s]",
+            x_axis_label = "time [s]",
             y_axis_label = f"{space} coordinate [{freq_unit if space=='freq' else pos_unit}]",
             x_range=(float(time[0]), float(time[-1])),
             y_range=(float(grid[0]), float(grid[-1]))
