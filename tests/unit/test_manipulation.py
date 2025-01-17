@@ -10,11 +10,7 @@ from tests.helpers import XPS, get_dims, get_arr_from_dims
 @pytest.mark.parametrize("ndims, permuted_axes",
     [pytest.param(nd, perm) for nd in [0,1,2,3] for perm in permutations(range(nd))]
 )
-def test_permute_dims(
-        xp: Any,
-        ndims: int,
-        permuted_axes: List[int]
-    ):
+def test_permute_dims(xp: Any, ndims: int, permuted_axes: List[int]) -> None:
     """Tests fa.permute_dims. Creates an Array with 0,1,2,3 Dimensions and
     tests all possible permutations, e.g., with 2 Dimensions it tests to permute
     the axes from [0,1] to [0,1], [1,0].
