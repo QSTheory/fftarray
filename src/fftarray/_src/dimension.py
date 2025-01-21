@@ -346,35 +346,37 @@ class Dimension:
         For the Dimension, retrieve the index corresponding to a given
         coordinate in a specified space.
 
-            Parameters:
-            -----------
-            coord : Union[float, slice]
-                The coordinate or range of coordinates for which to find the index.
-                If a slice is provided, the function will handle it accordingly.
-            space : Space
-                The space in which the coordinate is defined. It can be either "pos" or "freq".
-            method : Optional[Literal["nearest", "pad", "ffill", "backfill", "bfill"]], optional
-                The method to use for finding the index when the exact coordinate is not found.
-                Supported methods are:
-                - "nearest": Find the index representing the nearest coordinate.
-                - "pad" or "ffill": Forward fill to the next smallest index.
-                - "backfill" or "bfill": Backward fill to the next highest index.
-                Default is None, which requires an exact match.
-            Returns:
-            --------
-            Union[int, slice]
-                The index or range of indices corresponding to the given coordinate(s).
-                If a float coord is provided, the function returns an integer index.
-                If a slice object is provided, the function returns a slice object.
-            Raises:
-            -------
-            NotImplementedError
-                If a method is provided for a slice object.
-            KeyError
-                If no exact index is found and method is None, or
-                if the coordinate is out of bounds for the specified method.
-            ValueError
-                If an unsupported method is specified.
+        Parameters
+        ----------
+        coord : Union[float, slice]
+            The coordinate or range of coordinates for which to find the index.
+            If a slice is provided, the function will handle it accordingly.
+        space : Space
+            The space in which the coordinate is defined. It can be either "pos" or "freq".
+        method : Optional[Literal["nearest", "pad", "ffill", "backfill", "bfill"]], optional
+            The method to use for finding the index when the exact coordinate is not found.
+            Supported methods are:
+            - "nearest": Find the index representing the nearest coordinate.
+            - "pad" or "ffill": Forward fill to the next smallest index.
+            - "backfill" or "bfill": Backward fill to the next highest index.
+            Default is None, which requires an exact match.
+
+        Returns
+        -------
+        Union[int, slice]
+            The index or range of indices corresponding to the given coordinate(s).
+            If a float coord is provided, the function returns an integer index.
+            If a slice object is provided, the function returns a slice object.
+
+        Raises
+        ------
+        NotImplementedError
+            If a method is provided for a slice object.
+        KeyError
+            If no exact index is found and method is None, or
+            if the coordinate is out of bounds for the specified method.
+        ValueError
+            If an unsupported method is specified.
         """
         # The first part handles coords supplied as slice object whereas
         # it prepares those and distributes the actual work to the second

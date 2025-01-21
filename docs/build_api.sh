@@ -11,9 +11,9 @@ echo "private: $private"
 public="public"
 if [ "$current_version" == "$public" ]
 then
-	sphinx-apidoc -o source/api ../src/fftarray $exclude $private -P -M
+	sphinx-apidoc -o source/api --module-first --no-toc --force ../src/fftarray $exclude $private -P -M
 else
-	sphinx-apidoc -o source/api ../src/fftarray $exclude -P -M
+	sphinx-apidoc -o source/api --module-first --no-toc --force ../src/fftarray $exclude -P -M
 fi
 
 python create_nblinks.py
