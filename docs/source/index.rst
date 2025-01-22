@@ -3,30 +3,38 @@ fftarray
 
 GPU-accelerated fast fourier transform using named arrays and easy syntax.
 
+---------
 
 .. toctree::
-   :hidden:
    :maxdepth: 1
    :caption: Getting Started
 
    installation
 
 .. toctree::
-   :hidden:
    :maxdepth: 2
 
    examples/index
-   Indexing <indexing>
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 1
+
+   Indexing <indexing>
+
+---------
+
+.. toctree::
+   :maxdepth: 1
    :caption: API documentation
 
    api/fftarray
+   api/creation_functions
+   api/elementwise_functions
+   api/statistical_functions
 
+---------
 
 .. toctree::
-   :hidden:
    :maxdepth: 1
    :caption: Further resources
 

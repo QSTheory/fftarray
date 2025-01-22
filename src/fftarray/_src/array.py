@@ -161,6 +161,10 @@ def elementwise_two_operands(
         transforms_lut: TwoOperandTransforms = default_transforms_lut,
         is_on_self: bool = False,
     ): # This type makes problem for the dunder methods -> Callable[[Any, Any], Array]:
+    """Helper function handling elementwise functions for two operands.
+
+    :meta private:
+    """
 
     def fun(x1, x2, /) -> Array:
         unp_inp: UnpackedValues = unpack_arrays([x1, x2])
@@ -189,6 +193,11 @@ def elementwise_one_operand(
         name: str,
         is_on_self: bool = False,
     ) -> Callable[[Array], Array]:
+    """Helper function handling elementwise functions for a single operand.
+
+    :meta private:
+    """
+
     def single_element_func(x: Array, /) -> Array:
         assert isinstance(x, Array)
         if is_on_self:
