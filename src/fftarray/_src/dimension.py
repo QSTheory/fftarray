@@ -11,6 +11,7 @@ from .indexing import check_substepping, remap_index_check_int
 
 from .space import Space
 
+
 def dim(
         name: str,
         n: int,
@@ -20,7 +21,34 @@ def dim(
         *,
         dynamically_traced_coords: bool = True,
     ) -> Dimension:
-    # TODO: How to duplicate the doc-string between function and Dimension
+    """Initialize a :class:`Dimension`.
+
+    Parameters
+    ----------
+    name : str
+        Name of the dimension.
+    n : int
+        Number of grid points.
+    d_pos : float
+        Distance between two neighboring position grid points.
+    pos_min : float
+        Smallest position grid point.
+    freq_min : float
+        Smallest frequency grid point
+    dynamically_traced_coords : bool, optional
+        Only relevant for use with JAX tracing. Whether the coordinate values
+        should be dynamically traced such that the grid can be altered inside a
+        jitted function, by default True
+
+    Returns
+    -------
+    Dimension
+        Initialized Dimension.
+
+    See Also
+    --------
+    Dimension
+    """
 
     return Dimension(
         name=name,
@@ -41,30 +69,38 @@ class Dimension:
     Note that properties associated with the position grid are denoted by `pos`,
     whereas the frequency grid properties are denoted with `freq`.
 
-    It takes care that the spacing lines up according to the mathematics of the
-    FFT. The mathematics of the Discrete Fourier Transform automatically
-    determine the third component of ``freq_extent``, ``pos_extent`` and
-    resolution if the other two are set. The fact that resolution has to be a
-    positive integer therefore also quantizes the ratio of the extent and
-    sample spacing in both position and frequency space.
+    A minimal set of parameters that uniquely define the grid is selected to
+    initialize the Dimension. Based on these, all other grid properties are
+    computed while taking into account the constraints of the discrete Fourier
+    Transform. The complete set of constraints is given by::
 
-    **Parameters**::
+        pos_extent = pos_max - pos_min pos_middle = 0.5 * (pos_min + pos_max +
+        d_pos) d_pos = pos_extent/(n-1)
 
-        loose_params: Union[str, List[str]] = [] # List of loose grid parameters (parameters that can be improved by the constraint solver).
+        freq_extent = freq_max - freq_min freq_middle = 0.5 * (freq_max +
+        freq_min + d_freq) d_freq = freq_extent/(n-1)
 
-        n:           Union[int, Literal["power_of_two", "even"]] = "power_of_two" # The number of position and frequency grid points.
-                                                                                  # Instead of supplying an integer, one of the rounding modes "even" or "power_of_two" can be chosen.
-        d_pos:       Optional[float] = None # The distance between two neighboring position grid points.
-        d_freq:      Optional[float] = None # The distance between two neighboring frequency grid points.
-        pos_min:     Optional[float] = None # The smallest position grid point.
-        pos_max:     Optional[float] = None # The largest position grid point.
-        pos_middle:  Optional[float] = None # The middle of the position grid.
-        pos_extent:  Optional[float] = None # The length of the position grid.
-        freq_min:    Optional[float] = None # The smallest frequency grid point.
-        freq_max:    Optional[float] = None # The largest frequency grid point.
-        freq_extent: Optional[float] = None # The length of the frequency grid.
-        freq_middle: Optional[float] = None # The offset of the frequency grid.
+        d_freq * d_pos * n = 2*pi
 
+    Parameters
+    ----------
+    name : str
+        Name of the dimension.
+    n : int
+        Number of grid points.
+    d_pos : float
+        Distance between two neighboring position grid points.
+    pos_min : float
+        Smallest position grid point.
+    freq_min : float
+        Smallest frequency grid point
+    dynamically_traced_coords : bool
+        Only relevant for use with JAX tracing. Whether the coordinate values
+        should be dynamically traced such that the grid can be altered inside a
+        jitted function
+
+    Notes
+    -----
     **Implementation details**
 
     The grid in both spaces (position and frequency) goes from min to max
@@ -117,7 +153,8 @@ class Dimension:
 
     .. highlight:: none
 
-    These are the symbolic definitions of all the different names (for even ``n``)::
+    These are the symbolic definitions of all the different names (for even
+    ``n``)::
 
         pos_extent = pos_max - pos_min
         pos_middle = 0.5 * (pos_min + pos_max + d_pos)
@@ -129,8 +166,9 @@ class Dimension:
 
         d_freq * d_pos * n = 2*pi
 
-    For odd ``n`` the definitions for ``pos_middle`` and ``freq_middle`` change to ensure that
-    they and the minimum and maximum position and frequency are actually sampled and not in between two samples.::
+    For odd ``n`` the definitions for ``pos_middle`` and ``freq_middle`` change
+    to ensure that they and the minimum and maximum position and frequency are
+    actually sampled and not in between two samples.::
 
         pos_middle = 0.5 * (pos_min + pos_max)
         freq_middle = 0.5 * (freq_max + freq_min)
@@ -152,6 +190,10 @@ class Dimension:
         np.min(freq) = freq_min
 
         pos[1]-pos[0] = d_pos (if n >= 2)
+
+    See Also
+    --------
+    fftarray.dim
     """
 
     _pos_min: float

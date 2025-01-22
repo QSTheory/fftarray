@@ -77,7 +77,7 @@ def dim_from_constraints(
     """Creates a Dimension from an arbitrary subset of all possible grid
     parameters using the z3 constraint solver. Note that the specified grid
     parameters must lead to a unique solution that fulfill the following
-    constraints:
+    constraints::
 
         pos_extent = pos_max - pos_min
         pos_middle = 0.5 * (pos_min + pos_max + d_pos)
@@ -141,8 +141,8 @@ def dim_from_constraints(
         constraint solver.
 
     See Also
-    --------
-    fftarray.fft_constraint_solver.fft_grid_params_from_constraints
+    -----
+    Dimension
     """
 
     params = get_fft_grid_params_from_constraints(
