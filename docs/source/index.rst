@@ -28,6 +28,8 @@ GPU-accelerated fast fourier transform using named arrays and easy syntax.
    :caption: API documentation
 
    api/fftarray
+   api/dimension
+   api/array
    api/defaults
    api/tools
    api/creation_functions
