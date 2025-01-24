@@ -151,6 +151,9 @@ python = "3.12.*"
 [tool.pixi.feature.py313.dependencies]
 python = "3.13.*"
 
+[tool.pixi.feature.numpy125.dependencies]
+numpy = "1.25.*"
+
 [tool.pixi.environments]
 # Recursive optional dependencies are currently ignored by pixi environments: https://github.com/prefix-dev/pixi/issues/2024
 devcuda = ["dev", "check", "doc", "jaxcuda", "helpers", "dashboards"]
@@ -161,6 +164,7 @@ check310 = ["py310", "check", "jax", "helpers"]
 check311 = ["py311", "check", "jax", "helpers"]
 check312 = ["py312", "check", "jax", "helpers"]
 check313 = ["py313", "check", "jax", "helpers"]
+checknumpy125 = ["numpy125", "check", "jax", "helpers"]
 
 [tool.pixi.feature.doc.dependencies]
 pandoc = ">=3.5,<4"
