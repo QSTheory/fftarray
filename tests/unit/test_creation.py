@@ -329,8 +329,8 @@ def test_coords_from_dim(
         xp_other,
         xp_source: Literal["default", "direct"],
         dtype_source: Literal["default", "direct"],
-        dtype_name_target: DTYPE_NAME,
-        dtype_name_other: Optional[DTYPE_NAME],
+        dtype_name_target: fa.DEFAULT_DTYPE,
+        dtype_name_other: Optional[fa.DEFAULT_DTYPE],
         eager: bool,
         space: fa.Space,
     ) -> None:
@@ -358,12 +358,13 @@ def test_coords_from_dim(
         case "default":
             default_dtype_name = dtype_name_target
         case "direct":
-            default_dtype_name = dtype_name_other # type: ignore
+            assert dtype_name_other is not None
+            default_dtype_name = dtype_name_other
             array_args["dtype"] = dtype_target
 
     with fa.default_eager(eager):
         with fa.default_xp(default_xp):
-            with fa.default_dtype_name(default_dtype_name): # type: ignore
+            with fa.default_dtype_name(default_dtype_name):
                 if not xp_target.isdtype(dtype_target, ("real floating", "complex floating")):
                     with pytest.raises(ValueError):
                         arr = fa.coords_from_dim(dim, space, **array_args)
