@@ -41,7 +41,7 @@ class TwoOperandTransforms:
     def __init__(
             self,
             factor_application_signs: npt.NDArray[np.int8],
-            final_factor_state: npt.NDArray[np.bool],
+            final_factor_state: npt.NDArray[np.bool_],
         ):
         """..
 
@@ -67,7 +67,7 @@ class TwoOperandTransforms:
     # Shape 2(operands)*8(input state combinations), valid values: -1, 0, 1
     factor_application_signs: npt.NDArray[np.int8]
     # Shape 8(input state combinations)
-    final_factor_state: npt.NDArray[np.bool]
+    final_factor_state: npt.NDArray[np.bool_]
 
 """
     Generates the required phase factor applications and factors_applied result required

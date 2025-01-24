@@ -83,51 +83,65 @@ def two_inputs_func(
             op,
             transforms_lut: TwoOperandTransforms=default_transforms_lut,
         ) -> Array:
-    # Compute look-up indices by interpreting the three bits as a binary number.
-    lut_indices = np.array(unp_inp.eager)*4 + np.dot(unp_inp.factors_applied,[2,1])
-    # Compute the required phase applications for each operand per dimension
-    # by applying the rules encoded in the look-up table.
-    factor_transforms = transforms_lut.factor_application_signs[lut_indices]
-    # Compute the resulting factors_applied per dimension
-    # by applying the rules encoded in the look-up table.
-    final_factors_applied = transforms_lut.final_factor_state[lut_indices]
+    # For a zero-dimensional Array, the factors do not need to be applied and we
+    # can shortcut this (also would not work as eager and factors_applied are
+    # empty).
+    if len(unp_inp.dims) > 0:
+        # Compute look-up indices by interpreting the three bits as a binary number.
+        lut_indices = np.array(unp_inp.eager)*4 + np.dot(unp_inp.factors_applied,[2,1])
+        # Compute the required phase applications for each operand per dimension
+        # by applying the rules encoded in the look-up table.
+        factor_transforms = transforms_lut.factor_application_signs[lut_indices]
+        # Compute the resulting factors_applied per dimension
+        # by applying the rules encoded in the look-up table.
+        final_factors_applied = transforms_lut.final_factor_state[lut_indices]
 
+        # Apply above defined scale and phase factors depending on the specific case
+        for op_idx in [0,1]:
+            signs = factor_transforms[:,op_idx]
+            if not np.all(signs==0):
+                sub_values: Any = unp_inp.values[op_idx]
+                if isinstance(sub_values, Number):
+                    # This function is only called if at least one of the operands is an Array.
+                    # But the transform-signs LUTs may also coerce an operand from factors_applied=True
+                    # to factors_applied=False.
+                    # And this operand may be a scalar which is not supported by apply_lazy.
+                    # So this check transforms the scalar into a complex array with the same number of dimensions
+                    # as the other operand.
+                    # The other operand has to be complex because it can be the only source for even
+                    # introducing factors_applied=False into this operation.
+                    # This can only happen here because functions like pow are valid for mixed inputs
+                    # and for example turning 2 into 2. changes the actual result.
+                    # For addition and subtraction (which are the LUTs causing this path to be hit)
+                    # this upcast here is fine, but that has to be determined for each LUT separately.
 
-    # Apply above defined scale and phase factors depending on the specific case
-    for op_idx in [0,1]:
-        signs = factor_transforms[:,op_idx]
-        if not np.all(signs==0):
-            sub_values: Any = unp_inp.values[op_idx]
-            if isinstance(sub_values, Number):
-                # This function is only called if at least one of the operands is an Array.
-                # But the transform-signs LUTs may also coerce an operand from factors_applied=True
-                # to factors_applied=False.
-                # And this operand may be a scalar which is not supported by apply_lazy.
-                # So this check transforms the scalar into a complex array with the same number of dimensions
-                # as the other operand.
-                # The other operand has to be complex because it can be the only source for even
-                # introducing factors_applied=False into this operation.
-                # This can only happen here because functions like pow are valid for mixed inputs
-                # and for example turning 2 into 2. changes the actual result.
-                # For addition and subtraction (which are the LUTs causing this path to be hit)
-                # this upcast here is fine, but that has to be determined for each LUT separately.
+                    other_values: Any = unp_inp.values[not op_idx]
+                    dtype = other_values.dtype
+                    shape = (1,)*len(other_values.shape)
+                    sub_values = unp_inp.xp.full(shape, sub_values, dtype=dtype)
+                elif sub_values.shape == ():
+                    # sub_values is 0d Array, shape needs to be taken from
+                    # other_values to match the unp_inp.
+                    # other_values is an Array since otherwise no phase factors
+                    # would need to be applied.
+                    other_values = unp_inp.values[not op_idx]
+                    dtype = complex_type(unp_inp.xp, sub_values.dtype)
+                    shape = (1,)*len(other_values.shape)
+                    sub_values = unp_inp.xp.full(shape, sub_values, dtype=dtype)
+                else:
+                    dtype = complex_type(unp_inp.xp, sub_values.dtype)
+                    sub_values = unp_inp.xp.asarray(sub_values, dtype=dtype, copy=True)
 
-                other_values: Any = unp_inp.values[not op_idx]
-                dtype = other_values.dtype
-                shape = (1,)*len(other_values.shape)
-                sub_values = unp_inp.xp.full(shape, sub_values, dtype=dtype)
-            else:
-                dtype = complex_type(unp_inp.xp, sub_values.dtype)
-                sub_values = unp_inp.xp.asarray(sub_values, dtype=dtype, copy=True)
-
-            unp_inp.values[op_idx] = apply_lazy(
-                xp=unp_inp.xp,
-                values=sub_values,
-                dims=unp_inp.dims,
-                signs=signs.tolist(),
-                spaces=unp_inp.spaces,
-                scale_only=False,
-            )
+                unp_inp.values[op_idx] = apply_lazy(
+                    xp=unp_inp.xp,
+                    values=sub_values,
+                    dims=unp_inp.dims,
+                    signs=signs.tolist(),
+                    spaces=unp_inp.spaces,
+                    scale_only=False,
+                )
+    else:
+        final_factors_applied = np.array([])
 
     values = op(*unp_inp.values)
     return Array(
@@ -942,7 +956,7 @@ class UnpackedValues:
     # Shared array namespace between all values.
     xp: Any
     # dim 0: dim_idx, dim 1: op_idx
-    factors_applied: npt.NDArray[np.bool]
+    factors_applied: npt.NDArray[np.bool_]
     # Space per dimension, must be homogeneous over all values
     spaces: Tuple[Space, ...]
     # eager per dimension, must be homogeneous over all values
@@ -1047,7 +1061,7 @@ def unpack_arrays(
     dims_list = [dims[dim_name].dim.get() for dim_name in dim_names]
     space_list = [dims[dim_name].space.get() for dim_name in dim_names]
     eager_list = [dims[dim_name].eager.get() for dim_name in dim_names]
-    factors_applied: npt.NDArray[np.bool] = np.array([dims[dim_name].factors_applied for dim_name in dim_names])
+    factors_applied: npt.NDArray[np.bool_] = np.array([dims[dim_name].factors_applied for dim_name in dim_names])
 
     for value in unpacked_values:
         assert value is not None

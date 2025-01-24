@@ -62,6 +62,9 @@ from ._src.creation_functions import (
 from ._src.statistical_functions import (
     integrate as integrate,
     max as max,
+    mean as mean,
+    min as min,
+    prod as prod,
     sum as sum,
 )
 
