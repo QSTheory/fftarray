@@ -839,7 +839,7 @@ def test_0d_arrays(
     arr_0d = fa.array(4.2, tuple([]), tuple([]), xp=xp, dtype=getattr(xp, precision_0d))
 
     dims = get_dims(ndims)
-    # vary space, factors_applied and eager per dimention
+    # vary space, factors_applied and eager per dimension
     spaces_list = [[space, get_other_space(space)][i%2] for i in range(ndims)]
     factors_applied_list = [(i%2==0)^factors_applied for i in range(ndims)]
     eagers_list = [(i%2==0)^eager for i in range(ndims)]
