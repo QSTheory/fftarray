@@ -143,27 +143,22 @@ from ._src.elementwise_functions import (
 try:
    from ._src.constraint_solver import dim_from_constraints as dim_from_constraints
 except ModuleNotFoundError:
-    from typing import (
-        Optional as _Optional,
-        Literal as _Literal,
-        Union as _Union,
-        List as _List
-    )
+    from typing import Optional, Literal, Union, List
     def dim_from_constraints(
          name: str,
          *,
-         n: _Union[int, _Literal["power_of_two", "even"]] = "power_of_two",
-         d_pos: _Optional[float] = None,
-         d_freq: _Optional[float] = None,
-         pos_min: _Optional[float] = None,
-         pos_max: _Optional[float] = None,
-         pos_middle: _Optional[float] = None,
-         pos_extent: _Optional[float] = None,
-         freq_min: _Optional[float] = None,
-         freq_max: _Optional[float] = None,
-         freq_extent: _Optional[float] = None,
-         freq_middle: _Optional[float] = None,
-         loose_params: _Optional[_Union[str, _List[str]]] = None,
+         n: Union[int, Literal["power_of_two", "even"]] = "power_of_two",
+         d_pos: Optional[float] = None,
+         d_freq: Optional[float] = None,
+         pos_min: Optional[float] = None,
+         pos_max: Optional[float] = None,
+         pos_middle: Optional[float] = None,
+         pos_extent: Optional[float] = None,
+         freq_min: Optional[float] = None,
+         freq_max: Optional[float] = None,
+         freq_extent: Optional[float] = None,
+         freq_middle: Optional[float] = None,
+         loose_params: Optional[Union[str, List[str]]] = None,
          dynamically_traced_coords: bool = True,
     ) -> Dimension:
       raise ModuleNotFoundError("You need to install `fftarray[helpers]` to use the constraint solver.")
@@ -171,5 +166,8 @@ except ModuleNotFoundError:
 
 
 __all__ = [
-    g for g in globals() if not g.startswith("_")
+    g for g in globals() if (
+       (not g.startswith("_"))
+       or (g not in ["Optional", "List", "Union", "Literal"])
+    )
 ]
