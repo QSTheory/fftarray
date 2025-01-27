@@ -1,6 +1,7 @@
-import pytest
-from typing import Any, List
+from typing import Any, Tuple
 from itertools import permutations
+
+import pytest
 import numpy as np
 
 import fftarray as fa
@@ -10,7 +11,7 @@ from tests.helpers import XPS, get_dims, get_arr_from_dims
 @pytest.mark.parametrize("ndims, permuted_axes",
     [pytest.param(nd, perm) for nd in [0,1,2,3] for perm in permutations(range(nd))]
 )
-def test_permute_dims(xp: Any, ndims: int, permuted_axes: List[int]) -> None:
+def test_permute_dims(xp: Any, ndims: int, permuted_axes: Tuple[int]) -> None:
     """Tests fa.permute_dims. Creates an Array with 0,1,2,3 Dimensions and
     tests all possible permutations, e.g., with 2 Dimensions it tests to permute
     the axes from [0,1] to [0,1], [1,0].
@@ -30,7 +31,7 @@ def test_permute_dims(xp: Any, ndims: int, permuted_axes: List[int]) -> None:
     values_ref = xp.permute_dims(values_before, permuted_axes)
 
     # fftarray operation
-    arr_permuted = fa.permute_dims(arr_before, dim_names=permuted_dim_names)
+    arr_permuted = fa.permute_dims(arr_before, permuted_dim_names)
     values_permuted = arr_permuted.values("pos")
     dim_names_after = tuple(dim.name for dim in arr_permuted.dims)
 

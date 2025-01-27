@@ -3,7 +3,7 @@ from copy import copy
 from .array import Array
 from .named_array import get_axes_permute
 
-def permute_dims(x: Array, dim_names: Tuple[str, ...]) -> Array:
+def permute_dims(x: Array, dim_names: Tuple[str, ...], /) -> Array:
         """
             Permutes the dimensions of an Array.
         """
