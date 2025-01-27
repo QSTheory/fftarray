@@ -837,28 +837,27 @@ def test_0d_arrays(
     division and pow with a 0d Array and a 0/1/2d Array.
     """
     arr_0d = fa.array(4.2, tuple([]), tuple([]), xp=xp, dtype=getattr(xp, precision_0d))
-    if ndims > 0:
-        dims = get_dims(ndims)
-        # spice it up a notch or five
-        spaces = space if ndims == 1 else [space, get_other_space(space)]
-        fas = factors_applied if ndims == 1 else [factors_applied, not factors_applied]
-        eagers = eager if ndims == 1 else [eager, not eager]
-        arr_nd = (
-            get_arr_from_dims(xp, dims, spaces, precision_nd)
-            .into_eager(eagers)
-        )
-        # into_factors_applied always returns Array with complex dtype,
-        # so to preserve dtype for tests below, avoid this if factors_applied is True
-        if fas is not True:
-            arr_nd = arr_nd.into_factors_applied(fas)
-    else:
-        fas = True # for further test, factors_applied can be assumed True for 0d
-        arr_nd = fa.array(42., tuple([]), tuple([]), xp=xp, dtype=getattr(xp, precision_nd))
+
+    dims = get_dims(ndims)
+    # vary space, factors_applied and eager per dimention
+    spaces_list = [[space, get_other_space(space)][i%2] for i in range(ndims)]
+    factors_applied_list = [(i%2==0)^factors_applied for i in range(ndims)]
+    eagers_list = [(i%2==0)^eager for i in range(ndims)]
+    arr_nd = (
+        get_arr_from_dims(xp, dims, spaces_list, precision_nd)
+        .into_eager(eagers_list)
+    )
+    # Numpy has a special case for x**y with y \in {0., 1., 2.}, where it does not upcast the precision.
+    arr_nd = arr_nd+xp.asarray(1.1, dtype=getattr(xp, precision_nd))
+    # into_factors_applied always returns Array with complex dtype,
+    # so to preserve dtype for tests below, avoid this if factors_applied is True
+    if not all(factors_applied_list):
+        arr_nd = arr_nd.into_factors_applied(factors_applied_list)
 
     # The expected resulting dtype is the stronger one out of the two used ones: float32 and float64
     res_float_dtype_name = "float64" if precision_0d != precision_nd else precision_0d
     # Due to the into_factors_applied, the dtype is complex (regardless of the input value)
-    if fas is not True:
+    if not all(factors_applied_list):
         res_float_dtype = getattr(xp, get_complex_name(res_float_dtype_name))
     else:
         res_float_dtype = getattr(xp, res_float_dtype_name)
