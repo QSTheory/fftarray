@@ -67,6 +67,9 @@ from ._src.statistical_functions import (
     prod as prod,
     sum as sum,
 )
+from ._src.manipulation_functions import (
+    permute_dims as permute_dims
+)
 
 
 from ._src.tools import (

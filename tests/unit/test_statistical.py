@@ -86,7 +86,7 @@ def test_sum_prod(
     arr = arr.into_eager(arr_attributes)
     if xp.isdtype(source_dtype, "complex floating"):
         arr = arr.into_factors_applied(arr_attributes)
-    arr = arr.transpose(*[dim.name for dim in dims])
+    arr = fa.permute_dims(arr, tuple(dim.name for dim in dims))
 
     if should_raise is not None:
         if xp == array_api_strict:
@@ -137,7 +137,7 @@ def test_max_min_mean(
     arr = arr.into_eager(arr_attributes)
     if xp.isdtype(dtype, "complex floating"):
         arr = arr.into_factors_applied(arr_attributes)
-    arr = arr.transpose(*[dim.name for dim in dims])
+    arr = fa.permute_dims(arr, tuple(dim.name for dim in dims))
 
     if not xp.isdtype(dtype, function_dtypes[op_name]):
         if xp == array_api_strict:
@@ -255,7 +255,7 @@ def check_integrate(
     arr = arr.into_eager(arr_attributes)
     if xp.isdtype(source_dtype, "complex floating"):
         arr = arr.into_factors_applied(arr_attributes)
-    arr = arr.transpose(*[dim.name for dim in dims])
+    arr = fa.permute_dims(arr, tuple(dim.name for dim in dims))
 
     if should_raise is not None:
         if xp == array_api_strict:

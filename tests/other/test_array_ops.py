@@ -126,8 +126,16 @@ def test_broadcasting() -> None:
 
     x_ref_broadcast = x_ref.reshape(1,-1)
     y_ref_broadcast = y_ref.reshape(-1,1)
-    np.testing.assert_array_almost_equal_nulp((fa.coords_from_dim(x_dim, "pos", xp=np) + fa.coords_from_dim(y_dim, "pos", xp=np)).transpose("x", "y").values("pos"), (x_ref_broadcast+y_ref_broadcast).transpose(), nulp = 0)
-    np.testing.assert_array_almost_equal_nulp((fa.coords_from_dim(x_dim, "pos", xp=np) + fa.coords_from_dim(y_dim, "pos", xp=np)).transpose("y", "x").values("pos"), x_ref_broadcast+y_ref_broadcast, nulp = 0)
+    np.testing.assert_array_almost_equal_nulp(
+        fa.permute_dims(fa.coords_from_dim(x_dim, "pos", xp=np) + fa.coords_from_dim(y_dim, "pos", xp=np), ("x", "y")).values("pos"),
+        (x_ref_broadcast+y_ref_broadcast).transpose(),
+        nulp = 0
+    )
+    np.testing.assert_array_almost_equal_nulp(
+        fa.permute_dims(fa.coords_from_dim(x_dim, "pos", xp=np) + fa.coords_from_dim(y_dim, "pos", xp=np), ("y", "x")).values("pos"),
+        x_ref_broadcast+y_ref_broadcast,
+        nulp = 0
+    )
 
 
 @pytest.mark.parametrize("xp", XPS)
