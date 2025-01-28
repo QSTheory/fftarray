@@ -11,6 +11,8 @@ from tests.helpers import XPS, get_dims, get_arr_from_dims, dtype_names_numeric_
 
 function_dtypes = {
     "max": ("integral", "real floating"),
+    "min": ("integral", "real floating"),
+    "mean": ("real floating"),
 }
 
 reduction_dims_combinations = [
@@ -54,15 +56,14 @@ def _to_integers(indices: Optional[Union[int, Tuple[int]]], ndims: int) -> Tuple
     return tuple(indices)
 
 @pytest.mark.parametrize("xp", XPS)
-# Will be extended to include prod
-@pytest.mark.parametrize("op_name", ["sum"])
+@pytest.mark.parametrize("op_name", ["sum", "prod"])
 @pytest.mark.parametrize(
     "source_dtype_name, acc_dtype_name, should_raise",
     source_and_res_dtype_name_pairs
 )
 @pytest.mark.parametrize("ndims, reduction_dims", reduction_dims_combinations)
 @pytest.mark.parametrize("attribute_inversion", [False, True])
-def test_sum(
+def test_sum_prod(
         xp,
         op_name,
         source_dtype_name: DTYPE_NAME,
@@ -116,12 +117,11 @@ def test_sum(
     )
 
 @pytest.mark.parametrize("xp", XPS)
-# Will be extended to min and mean
-@pytest.mark.parametrize("op_name", ["max"])
+@pytest.mark.parametrize("op_name", ["max", "min", "mean"])
 @pytest.mark.parametrize("dtype_name", dtype_names_numeric_core)
 @pytest.mark.parametrize("ndims, reduction_dims", reduction_dims_combinations)
 @pytest.mark.parametrize("attribute_inversion", [False, True])
-def test_max(
+def test_max_min_mean(
         xp,
         op_name: str,
         dtype_name: DTYPE_NAME,
@@ -303,8 +303,14 @@ def check_integrate(
 
     if len(fa_res_values.shape) > 0:
         assert type(ref_res) is type(fa_res_values)
-
-    np.testing.assert_equal(
-        np.array(ref_res),
-        np.array(fa_res_values),
-    )
+        np.testing.assert_equal(
+            np.array(ref_res),
+            np.array(fa_res_values),
+        )
+    else:
+        # fa_res_values is a python scalar and does not have a dtype, so the
+        # test failes in numpy 1.25 without explicitly setting the dtype
+        np.testing.assert_equal(
+            np.array(ref_res),
+            np.array(fa_res_values, dtype=type(ref_res)),
+        )
