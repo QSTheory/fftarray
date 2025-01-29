@@ -27,7 +27,6 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
     "matplotlib.sphinxext.plot_directive",
-    "sphinx_autodoc_typehints",
     "myst_nb",
     # "sphinx_remove_toctrees",
     "sphinx_copybutton",
@@ -40,12 +39,14 @@ add_module_names = False
 
 napoleon_numpy_docstring = True
 napolean_use_rtype = False
+napoleon_use_param = False
 
 autosummary_generate = True
 autosummary_overwrite = True
 autosummary_import_members = True
 
-autodoc_typehints = "none"
+autodoc_typehints = "both"
+autodoc_typehints_format = "short"
 
 nbsphinx_allow_errors = True
 

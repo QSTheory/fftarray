@@ -72,9 +72,8 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
 
 "doc" = [
     "fftarray[jax, helpers, dashboards]",
-    "sphinx>=4.0",
-    "sphinx-autodoc-typehints",
-    "sphinx-book-theme",
+    "sphinx>=6.1",
+    "sphinx-book-theme>=1.0.1",
     "sphinx-design",
     "sphinx-copybutton",
     "lxml_html_clean",
