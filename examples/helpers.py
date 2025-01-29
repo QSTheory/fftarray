@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Any
 
 import numpy as np
 from bokeh.plotting import figure, row, column, show
@@ -105,13 +105,13 @@ def plt_array(
         return plot
 
 def plt_array_values_space_time(
-        pos_values,
-        freq_values,
-        pos_grid,
-        freq_grid,
-        time,
-        pos_unit = "m",
-        freq_unit = "1/m",
+        pos_values: Any,
+        freq_values: Any,
+        pos_grid: Any,
+        freq_grid: Any,
+        time: Any,
+        pos_unit: str = "m",
+        freq_unit: str = "1/m",
     ):
     """Plot the one-dimensional values in space-time as a rasterized image.
     """
@@ -134,7 +134,7 @@ def plt_array_values_space_time(
         )
         color_bar = r.construct_color_bar(padding=1)
         plot.add_layout(color_bar, "right")
-        plot.title.text = f"Absolute squared of Psi in {space} space"
+        plot.title.text = f"Absolute squared of Psi in {space} space" # type: ignore
         plots.append(plot)
 
     row_plot = row(plots, sizing_mode="stretch_width")

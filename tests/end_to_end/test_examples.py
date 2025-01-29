@@ -16,6 +16,7 @@ import fftarray as fa
 @pytest.mark.parametrize("nb_path", [
     "Gaussians",
     "multi_dimensional",
+    "Bragg_beam_splitter"
 ])
 def test_notebooks(xp, nb_path):
     # load the notebook object
