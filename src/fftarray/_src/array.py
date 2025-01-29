@@ -4,7 +4,6 @@ from typing import (
     Mapping, Optional, Union, List, Any, Tuple, Dict,
     Literal, TypeVar, Iterable, Set, get_args, Callable,
 )
-from copy import copy
 from numbers import Number
 from dataclasses import dataclass
 import textwrap
@@ -16,7 +15,7 @@ import array_api_compat
 
 from .space import Space
 from .dimension import Dimension
-from .named_array import get_axes_transpose, align_named_arrays
+from .named_array import align_named_arrays
 from .uniform_value import UniformValue
 
 from .formatting import dim_table, format_bytes, format_n
@@ -868,33 +867,6 @@ class Array:
             factors_applied=factors_applied_after,
             xp=self.xp,
         )
-
-
-    def transpose(self: Array, *dim_names: str) -> Array:
-        """
-            Transpose with dimension names.
-        """
-        new_dim_names = list(dim_names)
-        old_dim_names = [dim.name for dim in self._dims]
-        if len(new_dim_names) == 0:
-            new_dim_names = copy(old_dim_names)
-            new_dim_names.reverse()
-        else:
-            assert len(new_dim_names) == len(self._dims)
-
-        axes_transpose = get_axes_transpose(old_dim_names, new_dim_names)
-        transposed_values = self._xp.permute_dims(self._values, tuple(axes_transpose))
-
-        transposed_arr = Array(
-            values=transposed_values,
-            dims=tuple(self._dims[idx] for idx in axes_transpose),
-            spaces=tuple(self._spaces[idx] for idx in axes_transpose),
-            eager=tuple(self._eager[idx] for idx in axes_transpose),
-            factors_applied=tuple(self._factors_applied[idx] for idx in axes_transpose),
-            xp=self._xp,
-        )
-        return transposed_arr
-
 
     def np_array(self: Array, space: Union[Space, Iterable[Space]], /, *, dtype = None):
         """..
