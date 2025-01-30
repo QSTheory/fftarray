@@ -114,7 +114,7 @@ def plt_array_values_space_time(
         pos_unit: str = "m",
         freq_unit: str = "1/m",
     ):
-    """Plot the one-dimensional values in space-time as a rasterized image.
+    """Plot the one-dimensional values in space-time as a image.
     """
     plots = []
     for space, values, grid in [["pos", pos_values, pos_grid], ["freq", freq_values, freq_grid]]:
