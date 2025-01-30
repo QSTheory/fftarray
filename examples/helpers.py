@@ -1,4 +1,5 @@
 from typing import List, Optional, Any
+from typing_extensions import assert_never
 
 import numpy as np
 from bokeh.plotting import figure, row, column, show
@@ -118,9 +119,19 @@ def plt_array_values_space_time(
     plots = []
     for space, values, grid in [["pos", pos_values, pos_grid], ["freq", freq_values, freq_grid]]:
         color_mapper = LinearColorMapper(palette="Viridis256", low=np.min(values), high=np.max(values))
+        match space:
+            case "pos":
+                unit = pos_unit
+                variable = "x"
+            case "freq":
+                unit = freq_unit
+                variable = "f"
+            case _:
+                assert_never(space)
+
         plot = figure(
             x_axis_label = "time [s]",
-            y_axis_label = f"{space} coordinate [{freq_unit if space=='freq' else pos_unit}]",
+            y_axis_label = f"{space} coordinate [{unit}]",
             x_range=(float(time[0]), float(time[-1])),
             y_range=(float(grid[0]), float(grid[-1]))
         )
@@ -134,7 +145,7 @@ def plt_array_values_space_time(
         )
         color_bar = r.construct_color_bar(padding=1)
         plot.add_layout(color_bar, "right")
-        plot.title.text = f"Absolute squared of Psi in {space} space" # type: ignore
+        plot.title.text = f"$$|\Psi({variable})|^2$$ in {space} space" # type: ignore
         plots.append(plot)
 
     row_plot = row(plots, sizing_mode="stretch_width")
