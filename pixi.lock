@@ -2224,8 +2224,8 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/bzip2-1.0.8-h4bc722e_7.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/ca-certificates-2024.12.14-hbcca054_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/ld_impl_linux-64-2.43-h712a8e2_2.conda
-      - conda: https://conda.anaconda.org/conda-forge/linux-64/libblas-3.9.0-26_linux64_openblas.conda
-      - conda: https://conda.anaconda.org/conda-forge/linux-64/libcblas-3.9.0-26_linux64_openblas.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/libblas-3.9.0-28_h59b9bed_openblas.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/libcblas-3.9.0-28_he106b2a_openblas.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/libexpat-2.6.4-h5888daf_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/libffi-3.4.2-h7f98852_5.tar.bz2
       - conda: https://conda.anaconda.org/conda-forge/linux-64/libgcc-14.2.0-h77fa898_1.conda
@@ -2233,7 +2233,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/libgfortran-14.2.0-h69a702a_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/libgfortran5-14.2.0-hd5240d6_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/libgomp-14.2.0-h77fa898_1.conda
-      - conda: https://conda.anaconda.org/conda-forge/linux-64/liblapack-3.9.0-26_linux64_openblas.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/liblapack-3.9.0-28_h7ac8fdf_openblas.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/liblzma-5.6.3-hb9d3cd8_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/libnsl-2.0.1-hd590300_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/libopenblas-0.3.28-pthreads_h94d23a6_1.conda
@@ -2324,8 +2324,8 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/bzip2-1.0.8-h68df207_7.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/ca-certificates-2024.12.14-hcefe29a_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/ld_impl_linux-aarch64-2.43-h80caac9_2.conda
-      - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/libblas-3.9.0-26_linuxaarch64_openblas.conda
-      - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/libcblas-3.9.0-26_linuxaarch64_openblas.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/libblas-3.9.0-28_h1a9f1db_openblas.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/libcblas-3.9.0-28_hab92f65_openblas.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/libexpat-2.6.4-h5ad3122_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/libffi-3.4.2-h3557bc0_5.tar.bz2
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/libgcc-14.2.0-he277a41_1.conda
@@ -2333,7 +2333,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/libgfortran-14.2.0-he9431aa_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/libgfortran5-14.2.0-hb6113d0_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/libgomp-14.2.0-he277a41_1.conda
-      - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/liblapack-3.9.0-26_linuxaarch64_openblas.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/liblapack-3.9.0-28_h411afd4_openblas.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/liblzma-5.6.3-h86ecc28_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/libnsl-2.0.1-h31becfc_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/libopenblas-0.3.28-pthreads_h9d3fd7e_1.conda
@@ -2429,7 +2429,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-64/libffi-3.4.2-h0d85af4_5.tar.bz2
       - conda: https://conda.anaconda.org/conda-forge/osx-64/libgfortran-5.0.0-13_2_0_h97931a8_3.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/libgfortran5-13.2.0-h2873a65_3.conda
-      - conda: https://conda.anaconda.org/conda-forge/osx-64/liblapack-3.9.0-26_osx64_openblas.conda
+      - conda: https://conda.anaconda.org/conda-forge/osx-64/liblapack-3.9.0-28_h236ab99_openblas.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/liblzma-5.6.3-hd471939_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/libopenblas-0.3.28-openmp_hbf64a52_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/libsqlite-3.48.0-hdb6dae5_1.conda
@@ -2521,7 +2521,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/libffi-3.4.2-h3422bc3_5.tar.bz2
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/libgfortran-5.0.0-13_2_0_hd922786_3.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/libgfortran5-13.2.0-hf226fd6_3.conda
-      - conda: https://conda.anaconda.org/conda-forge/osx-arm64/liblapack-3.9.0-26_osxarm64_openblas.conda
+      - conda: https://conda.anaconda.org/conda-forge/osx-arm64/liblapack-3.9.0-28_hc9a63f6_openblas.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/liblzma-5.6.3-h39f12f2_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/libopenblas-0.3.28-openmp_hf332438_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/libsqlite-3.48.0-h3f77e49_1.conda
@@ -2607,13 +2607,13 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/win-64/bzip2-1.0.8-h2466b09_7.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/ca-certificates-2024.12.14-h56e8100_0.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/intel-openmp-2024.2.1-h57928b3_1083.conda
-      - conda: https://conda.anaconda.org/conda-forge/win-64/libblas-3.9.0-26_win64_mkl.conda
-      - conda: https://conda.anaconda.org/conda-forge/win-64/libcblas-3.9.0-26_win64_mkl.conda
+      - conda: https://conda.anaconda.org/conda-forge/win-64/libblas-3.9.0-28_h576b46c_mkl.conda
+      - conda: https://conda.anaconda.org/conda-forge/win-64/libcblas-3.9.0-28_h7ad3364_mkl.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/libexpat-2.6.4-he0c23c2_0.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/libffi-3.4.2-h8ffe710_5.tar.bz2
       - conda: https://conda.anaconda.org/conda-forge/win-64/libhwloc-2.11.2-default_ha69328c_1001.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/libiconv-1.17-hcfcfb64_2.conda
-      - conda: https://conda.anaconda.org/conda-forge/win-64/liblapack-3.9.0-26_win64_mkl.conda
+      - conda: https://conda.anaconda.org/conda-forge/win-64/liblapack-3.9.0-28_hacfb0e4_mkl.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/liblzma-5.6.3-h2466b09_1.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/libsqlite-3.48.0-h67fdade_1.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/libwinpthread-12.0.0.r4.gg4f2fc60ca-h57928b3_9.conda
@@ -2979,6 +2979,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/26/60/1ddff83a56d33aaf6f10ec8ce84b4c007d9368b21008876fceda7e7381ef/sphinx-8.1.3-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/3c/dc/dc46c5c7c566b7ec5e8f860f9c89533bf03c0e6aadc96fb9b337867e4460/sphinx_autodoc_typehints-3.0.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/2b/80/90574e2e82c955b9c6f6b77f7badb2cf2ef4ef77599e4343cced2d098681/sphinx_book_theme-1.1.3-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/9e/48/1ea60e74949eecb12cdd6ac43987f9fd331156388dcc2319b45e2ebb81bf/sphinx_copybutton-0.5.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/c6/43/65c0acbd8cc6f50195a3a1fc195c404988b15c67090e73c7a41a9f57d6bd/sphinx_design-0.6.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/5d/85/9ebeae2f76e9e77b952f4b274c27238156eae7979c5421fba91a28f4970d/sphinxcontrib_applehelp-2.0.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/35/7a/987e583882f985fe4d7323774889ec58049171828b58c2217e7f79cdf44e/sphinxcontrib_devhelp-2.0.0-py3-none-any.whl
@@ -3163,6 +3164,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/26/60/1ddff83a56d33aaf6f10ec8ce84b4c007d9368b21008876fceda7e7381ef/sphinx-8.1.3-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/3c/dc/dc46c5c7c566b7ec5e8f860f9c89533bf03c0e6aadc96fb9b337867e4460/sphinx_autodoc_typehints-3.0.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/2b/80/90574e2e82c955b9c6f6b77f7badb2cf2ef4ef77599e4343cced2d098681/sphinx_book_theme-1.1.3-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/9e/48/1ea60e74949eecb12cdd6ac43987f9fd331156388dcc2319b45e2ebb81bf/sphinx_copybutton-0.5.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/c6/43/65c0acbd8cc6f50195a3a1fc195c404988b15c67090e73c7a41a9f57d6bd/sphinx_design-0.6.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/5d/85/9ebeae2f76e9e77b952f4b274c27238156eae7979c5421fba91a28f4970d/sphinxcontrib_applehelp-2.0.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/35/7a/987e583882f985fe4d7323774889ec58049171828b58c2217e7f79cdf44e/sphinxcontrib_devhelp-2.0.0-py3-none-any.whl
@@ -3337,6 +3339,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/26/60/1ddff83a56d33aaf6f10ec8ce84b4c007d9368b21008876fceda7e7381ef/sphinx-8.1.3-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/3c/dc/dc46c5c7c566b7ec5e8f860f9c89533bf03c0e6aadc96fb9b337867e4460/sphinx_autodoc_typehints-3.0.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/2b/80/90574e2e82c955b9c6f6b77f7badb2cf2ef4ef77599e4343cced2d098681/sphinx_book_theme-1.1.3-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/9e/48/1ea60e74949eecb12cdd6ac43987f9fd331156388dcc2319b45e2ebb81bf/sphinx_copybutton-0.5.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/c6/43/65c0acbd8cc6f50195a3a1fc195c404988b15c67090e73c7a41a9f57d6bd/sphinx_design-0.6.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/5d/85/9ebeae2f76e9e77b952f4b274c27238156eae7979c5421fba91a28f4970d/sphinxcontrib_applehelp-2.0.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/35/7a/987e583882f985fe4d7323774889ec58049171828b58c2217e7f79cdf44e/sphinxcontrib_devhelp-2.0.0-py3-none-any.whl
@@ -3510,6 +3513,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/26/60/1ddff83a56d33aaf6f10ec8ce84b4c007d9368b21008876fceda7e7381ef/sphinx-8.1.3-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/3c/dc/dc46c5c7c566b7ec5e8f860f9c89533bf03c0e6aadc96fb9b337867e4460/sphinx_autodoc_typehints-3.0.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/2b/80/90574e2e82c955b9c6f6b77f7badb2cf2ef4ef77599e4343cced2d098681/sphinx_book_theme-1.1.3-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/9e/48/1ea60e74949eecb12cdd6ac43987f9fd331156388dcc2319b45e2ebb81bf/sphinx_copybutton-0.5.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/c6/43/65c0acbd8cc6f50195a3a1fc195c404988b15c67090e73c7a41a9f57d6bd/sphinx_design-0.6.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/5d/85/9ebeae2f76e9e77b952f4b274c27238156eae7979c5421fba91a28f4970d/sphinxcontrib_applehelp-2.0.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/35/7a/987e583882f985fe4d7323774889ec58049171828b58c2217e7f79cdf44e/sphinxcontrib_devhelp-2.0.0-py3-none-any.whl
@@ -3688,6 +3692,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/26/60/1ddff83a56d33aaf6f10ec8ce84b4c007d9368b21008876fceda7e7381ef/sphinx-8.1.3-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/3c/dc/dc46c5c7c566b7ec5e8f860f9c89533bf03c0e6aadc96fb9b337867e4460/sphinx_autodoc_typehints-3.0.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/2b/80/90574e2e82c955b9c6f6b77f7badb2cf2ef4ef77599e4343cced2d098681/sphinx_book_theme-1.1.3-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/9e/48/1ea60e74949eecb12cdd6ac43987f9fd331156388dcc2319b45e2ebb81bf/sphinx_copybutton-0.5.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/c6/43/65c0acbd8cc6f50195a3a1fc195c404988b15c67090e73c7a41a9f57d6bd/sphinx_design-0.6.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/5d/85/9ebeae2f76e9e77b952f4b274c27238156eae7979c5421fba91a28f4970d/sphinxcontrib_applehelp-2.0.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/35/7a/987e583882f985fe4d7323774889ec58049171828b58c2217e7f79cdf44e/sphinxcontrib_devhelp-2.0.0-py3-none-any.whl
@@ -3891,6 +3896,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/26/60/1ddff83a56d33aaf6f10ec8ce84b4c007d9368b21008876fceda7e7381ef/sphinx-8.1.3-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/3c/dc/dc46c5c7c566b7ec5e8f860f9c89533bf03c0e6aadc96fb9b337867e4460/sphinx_autodoc_typehints-3.0.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/2b/80/90574e2e82c955b9c6f6b77f7badb2cf2ef4ef77599e4343cced2d098681/sphinx_book_theme-1.1.3-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/9e/48/1ea60e74949eecb12cdd6ac43987f9fd331156388dcc2319b45e2ebb81bf/sphinx_copybutton-0.5.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/c6/43/65c0acbd8cc6f50195a3a1fc195c404988b15c67090e73c7a41a9f57d6bd/sphinx_design-0.6.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/5d/85/9ebeae2f76e9e77b952f4b274c27238156eae7979c5421fba91a28f4970d/sphinxcontrib_applehelp-2.0.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/35/7a/987e583882f985fe4d7323774889ec58049171828b58c2217e7f79cdf44e/sphinxcontrib_devhelp-2.0.0-py3-none-any.whl
@@ -4070,6 +4076,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/26/60/1ddff83a56d33aaf6f10ec8ce84b4c007d9368b21008876fceda7e7381ef/sphinx-8.1.3-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/3c/dc/dc46c5c7c566b7ec5e8f860f9c89533bf03c0e6aadc96fb9b337867e4460/sphinx_autodoc_typehints-3.0.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/2b/80/90574e2e82c955b9c6f6b77f7badb2cf2ef4ef77599e4343cced2d098681/sphinx_book_theme-1.1.3-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/9e/48/1ea60e74949eecb12cdd6ac43987f9fd331156388dcc2319b45e2ebb81bf/sphinx_copybutton-0.5.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/c6/43/65c0acbd8cc6f50195a3a1fc195c404988b15c67090e73c7a41a9f57d6bd/sphinx_design-0.6.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/5d/85/9ebeae2f76e9e77b952f4b274c27238156eae7979c5421fba91a28f4970d/sphinxcontrib_applehelp-2.0.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/35/7a/987e583882f985fe4d7323774889ec58049171828b58c2217e7f79cdf44e/sphinxcontrib_devhelp-2.0.0-py3-none-any.whl
@@ -4239,6 +4246,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/26/60/1ddff83a56d33aaf6f10ec8ce84b4c007d9368b21008876fceda7e7381ef/sphinx-8.1.3-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/3c/dc/dc46c5c7c566b7ec5e8f860f9c89533bf03c0e6aadc96fb9b337867e4460/sphinx_autodoc_typehints-3.0.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/2b/80/90574e2e82c955b9c6f6b77f7badb2cf2ef4ef77599e4343cced2d098681/sphinx_book_theme-1.1.3-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/9e/48/1ea60e74949eecb12cdd6ac43987f9fd331156388dcc2319b45e2ebb81bf/sphinx_copybutton-0.5.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/c6/43/65c0acbd8cc6f50195a3a1fc195c404988b15c67090e73c7a41a9f57d6bd/sphinx_design-0.6.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/5d/85/9ebeae2f76e9e77b952f4b274c27238156eae7979c5421fba91a28f4970d/sphinxcontrib_applehelp-2.0.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/35/7a/987e583882f985fe4d7323774889ec58049171828b58c2217e7f79cdf44e/sphinxcontrib_devhelp-2.0.0-py3-none-any.whl
@@ -4407,6 +4415,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/26/60/1ddff83a56d33aaf6f10ec8ce84b4c007d9368b21008876fceda7e7381ef/sphinx-8.1.3-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/3c/dc/dc46c5c7c566b7ec5e8f860f9c89533bf03c0e6aadc96fb9b337867e4460/sphinx_autodoc_typehints-3.0.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/2b/80/90574e2e82c955b9c6f6b77f7badb2cf2ef4ef77599e4343cced2d098681/sphinx_book_theme-1.1.3-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/9e/48/1ea60e74949eecb12cdd6ac43987f9fd331156388dcc2319b45e2ebb81bf/sphinx_copybutton-0.5.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/c6/43/65c0acbd8cc6f50195a3a1fc195c404988b15c67090e73c7a41a9f57d6bd/sphinx_design-0.6.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/5d/85/9ebeae2f76e9e77b952f4b274c27238156eae7979c5421fba91a28f4970d/sphinxcontrib_applehelp-2.0.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/35/7a/987e583882f985fe4d7323774889ec58049171828b58c2217e7f79cdf44e/sphinxcontrib_devhelp-2.0.0-py3-none-any.whl
@@ -4580,6 +4589,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/26/60/1ddff83a56d33aaf6f10ec8ce84b4c007d9368b21008876fceda7e7381ef/sphinx-8.1.3-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/3c/dc/dc46c5c7c566b7ec5e8f860f9c89533bf03c0e6aadc96fb9b337867e4460/sphinx_autodoc_typehints-3.0.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/2b/80/90574e2e82c955b9c6f6b77f7badb2cf2ef4ef77599e4343cced2d098681/sphinx_book_theme-1.1.3-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/9e/48/1ea60e74949eecb12cdd6ac43987f9fd331156388dcc2319b45e2ebb81bf/sphinx_copybutton-0.5.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/c6/43/65c0acbd8cc6f50195a3a1fc195c404988b15c67090e73c7a41a9f57d6bd/sphinx_design-0.6.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/5d/85/9ebeae2f76e9e77b952f4b274c27238156eae7979c5421fba91a28f4970d/sphinxcontrib_applehelp-2.0.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/35/7a/987e583882f985fe4d7323774889ec58049171828b58c2217e7f79cdf44e/sphinxcontrib_devhelp-2.0.0-py3-none-any.whl
@@ -4728,6 +4738,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/26/60/1ddff83a56d33aaf6f10ec8ce84b4c007d9368b21008876fceda7e7381ef/sphinx-8.1.3-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/3c/dc/dc46c5c7c566b7ec5e8f860f9c89533bf03c0e6aadc96fb9b337867e4460/sphinx_autodoc_typehints-3.0.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/2b/80/90574e2e82c955b9c6f6b77f7badb2cf2ef4ef77599e4343cced2d098681/sphinx_book_theme-1.1.3-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/9e/48/1ea60e74949eecb12cdd6ac43987f9fd331156388dcc2319b45e2ebb81bf/sphinx_copybutton-0.5.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/c6/43/65c0acbd8cc6f50195a3a1fc195c404988b15c67090e73c7a41a9f57d6bd/sphinx_design-0.6.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/5d/85/9ebeae2f76e9e77b952f4b274c27238156eae7979c5421fba91a28f4970d/sphinxcontrib_applehelp-2.0.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/35/7a/987e583882f985fe4d7323774889ec58049171828b58c2217e7f79cdf44e/sphinxcontrib_devhelp-2.0.0-py3-none-any.whl
@@ -4857,6 +4868,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/26/60/1ddff83a56d33aaf6f10ec8ce84b4c007d9368b21008876fceda7e7381ef/sphinx-8.1.3-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/3c/dc/dc46c5c7c566b7ec5e8f860f9c89533bf03c0e6aadc96fb9b337867e4460/sphinx_autodoc_typehints-3.0.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/2b/80/90574e2e82c955b9c6f6b77f7badb2cf2ef4ef77599e4343cced2d098681/sphinx_book_theme-1.1.3-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/9e/48/1ea60e74949eecb12cdd6ac43987f9fd331156388dcc2319b45e2ebb81bf/sphinx_copybutton-0.5.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/c6/43/65c0acbd8cc6f50195a3a1fc195c404988b15c67090e73c7a41a9f57d6bd/sphinx_design-0.6.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/5d/85/9ebeae2f76e9e77b952f4b274c27238156eae7979c5421fba91a28f4970d/sphinxcontrib_applehelp-2.0.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/35/7a/987e583882f985fe4d7323774889ec58049171828b58c2217e7f79cdf44e/sphinxcontrib_devhelp-2.0.0-py3-none-any.whl
@@ -4981,6 +4993,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/26/60/1ddff83a56d33aaf6f10ec8ce84b4c007d9368b21008876fceda7e7381ef/sphinx-8.1.3-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/3c/dc/dc46c5c7c566b7ec5e8f860f9c89533bf03c0e6aadc96fb9b337867e4460/sphinx_autodoc_typehints-3.0.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/2b/80/90574e2e82c955b9c6f6b77f7badb2cf2ef4ef77599e4343cced2d098681/sphinx_book_theme-1.1.3-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/9e/48/1ea60e74949eecb12cdd6ac43987f9fd331156388dcc2319b45e2ebb81bf/sphinx_copybutton-0.5.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/c6/43/65c0acbd8cc6f50195a3a1fc195c404988b15c67090e73c7a41a9f57d6bd/sphinx_design-0.6.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/5d/85/9ebeae2f76e9e77b952f4b274c27238156eae7979c5421fba91a28f4970d/sphinxcontrib_applehelp-2.0.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/35/7a/987e583882f985fe4d7323774889ec58049171828b58c2217e7f79cdf44e/sphinxcontrib_devhelp-2.0.0-py3-none-any.whl
@@ -5104,6 +5117,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/26/60/1ddff83a56d33aaf6f10ec8ce84b4c007d9368b21008876fceda7e7381ef/sphinx-8.1.3-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/3c/dc/dc46c5c7c566b7ec5e8f860f9c89533bf03c0e6aadc96fb9b337867e4460/sphinx_autodoc_typehints-3.0.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/2b/80/90574e2e82c955b9c6f6b77f7badb2cf2ef4ef77599e4343cced2d098681/sphinx_book_theme-1.1.3-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/9e/48/1ea60e74949eecb12cdd6ac43987f9fd331156388dcc2319b45e2ebb81bf/sphinx_copybutton-0.5.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/c6/43/65c0acbd8cc6f50195a3a1fc195c404988b15c67090e73c7a41a9f57d6bd/sphinx_design-0.6.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/5d/85/9ebeae2f76e9e77b952f4b274c27238156eae7979c5421fba91a28f4970d/sphinxcontrib_applehelp-2.0.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/35/7a/987e583882f985fe4d7323774889ec58049171828b58c2217e7f79cdf44e/sphinxcontrib_devhelp-2.0.0-py3-none-any.whl
@@ -5229,6 +5243,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/26/60/1ddff83a56d33aaf6f10ec8ce84b4c007d9368b21008876fceda7e7381ef/sphinx-8.1.3-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/3c/dc/dc46c5c7c566b7ec5e8f860f9c89533bf03c0e6aadc96fb9b337867e4460/sphinx_autodoc_typehints-3.0.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/2b/80/90574e2e82c955b9c6f6b77f7badb2cf2ef4ef77599e4343cced2d098681/sphinx_book_theme-1.1.3-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/9e/48/1ea60e74949eecb12cdd6ac43987f9fd331156388dcc2319b45e2ebb81bf/sphinx_copybutton-0.5.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/c6/43/65c0acbd8cc6f50195a3a1fc195c404988b15c67090e73c7a41a9f57d6bd/sphinx_design-0.6.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/5d/85/9ebeae2f76e9e77b952f4b274c27238156eae7979c5421fba91a28f4970d/sphinxcontrib_applehelp-2.0.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/35/7a/987e583882f985fe4d7323774889ec58049171828b58c2217e7f79cdf44e/sphinxcontrib_devhelp-2.0.0-py3-none-any.whl
@@ -6455,12 +6470,15 @@ packages:
   - pytest-split ; extra == 'dev'
   - pytest-xdist[psutil] ; extra == 'dev'
   - ruff ; extra == 'dev'
-  - sphinx-autodoc-typehints ; extra == 'dev'
   - sphinx-book-theme>=1.0.1 ; extra == 'dev'
+  - sphinx-copybutton ; extra == 'dev'
   - sphinx-design ; extra == 'dev'
-  - sphinx>=4.2 ; extra == 'dev'
+  - sphinx>=6.1 ; extra == 'dev'
   - xarray ; extra == 'dev'
   - z3-solver ; extra == 'dev'
+  - bokeh ; extra == 'doc'
+  - ipykernel ; extra == 'doc'
+  - ipython ; extra == 'doc'
   - jax>=0.4.30 ; extra == 'doc'
   - lxml-html-clean ; extra == 'doc'
   - m2r2 ; extra == 'doc'
@@ -6468,10 +6486,10 @@ packages:
   - myst-nb ; extra == 'doc'
   - nbsphinx ; extra == 'doc'
   - nbsphinx-link ; extra == 'doc'
-  - sphinx-autodoc-typehints ; extra == 'doc'
   - sphinx-book-theme>=1.0.1 ; extra == 'doc'
+  - sphinx-copybutton ; extra == 'doc'
   - sphinx-design ; extra == 'doc'
-  - sphinx>=4.2 ; extra == 'doc'
+  - sphinx>=6.1 ; extra == 'doc'
   - z3-solver ; extra == 'doc'
   - z3-solver ; extra == 'helpers'
   - jax>=0.4.30 ; extra == 'jax'
@@ -7572,182 +7590,172 @@ packages:
   purls: []
   size: 698245
   timestamp: 1729655345825
-- conda: https://conda.anaconda.org/conda-forge/linux-64/libblas-3.9.0-26_linux64_openblas.conda
-  build_number: 26
-  sha256: 30bd658682b124243f8e52d8edf8a19e7be1bc31e4fe4baec30a64002dc8cd0c
-  md5: ac52800af2e0c0e7dac770b435ce768a
+- conda: https://conda.anaconda.org/conda-forge/linux-64/libblas-3.9.0-28_h59b9bed_openblas.conda
+  build_number: 28
+  sha256: 93fbcf2800b859b7ca5add3ab5d3aa11c6a6ff4b942a1cea4bf644f78488edb8
+  md5: 73e2a99fdeb8531d50168987378fda8a
   depends:
   - libopenblas >=0.3.28,<0.3.29.0a0
   - libopenblas >=0.3.28,<1.0a0
   constrains:
-  - libcblas 3.9.0 26_linux64_openblas
-  - liblapack 3.9.0 26_linux64_openblas
-  - liblapacke 3.9.0 26_linux64_openblas
-  - blas * openblas
+  - libcblas =3.9.0=28*_openblas
+  - blas =2.128=openblas
+  - liblapack =3.9.0=28*_openblas
+  - liblapacke =3.9.0=28*_openblas
   arch: x86_64
   platform: linux
   license: BSD-3-Clause
-  license_family: BSD
   purls: []
-  size: 16393
-  timestamp: 1734432564346
-- conda: https://conda.anaconda.org/conda-forge/linux-aarch64/libblas-3.9.0-26_linuxaarch64_openblas.conda
-  build_number: 26
-  sha256: df6d8ee34d45cf35609ecdd55c1ff03e32e0cd87ae41ebe4ef3747a8e09ead4d
-  md5: 8d900b7079a00969d70305e9aad550b7
+  size: 16621
+  timestamp: 1738114033763
+- conda: https://conda.anaconda.org/conda-forge/linux-aarch64/libblas-3.9.0-28_h1a9f1db_openblas.conda
+  build_number: 28
+  sha256: a50dc7ed1f49789aab4ffb560d9a46b5dc3f059a925282f699c1a96fa566a1a0
+  md5: 88dfbb3875d62b431aa676b4a54734bf
   depends:
   - libopenblas >=0.3.28,<0.3.29.0a0
   - libopenblas >=0.3.28,<1.0a0
   constrains:
-  - blas * openblas
-  - liblapacke 3.9.0 26_linuxaarch64_openblas
-  - libcblas 3.9.0 26_linuxaarch64_openblas
-  - liblapack 3.9.0 26_linuxaarch64_openblas
+  - liblapack =3.9.0=28*_openblas
+  - libcblas =3.9.0=28*_openblas
+  - blas =2.128=openblas
+  - liblapacke =3.9.0=28*_openblas
   arch: aarch64
   platform: linux
   license: BSD-3-Clause
-  license_family: BSD
   purls: []
-  size: 16477
-  timestamp: 1734432576699
-- conda: https://conda.anaconda.org/conda-forge/osx-64/libblas-3.9.0-26_osx64_openblas.conda
-  build_number: 26
-  sha256: 4e860b60c06be04f2c37c45def870e4ea5268f568547b80a8f69ad6ecddb6f31
-  md5: 2f03da7a6d52d98bbea1f7390d6997bf
+  size: 16697
+  timestamp: 1738114082682
+- conda: https://conda.anaconda.org/conda-forge/osx-64/libblas-3.9.0-28_h7f60823_openblas.conda
+  build_number: 28
+  sha256: c44341975c7d0b4b02c2676af30a723b109698b2939928b80c45efc2aa36ef2d
+  md5: c9f0b30e5ab2f4ddc450b95743d2070d
   depends:
   - libopenblas >=0.3.28,<0.3.29.0a0
   - libopenblas >=0.3.28,<1.0a0
   constrains:
-  - libcblas 3.9.0 26_osx64_openblas
-  - liblapack 3.9.0 26_osx64_openblas
-  - blas * openblas
-  - liblapacke 3.9.0 26_osx64_openblas
+  - liblapacke =3.9.0=28*_openblas
+  - libcblas =3.9.0=28*_openblas
+  - blas =2.128=openblas
+  - liblapack =3.9.0=28*_openblas
   arch: x86_64
   platform: osx
   license: BSD-3-Clause
-  license_family: BSD
   purls: []
-  size: 16611
-  timestamp: 1734432938741
-- conda: https://conda.anaconda.org/conda-forge/osx-arm64/libblas-3.9.0-26_osxarm64_openblas.conda
-  build_number: 26
-  sha256: 597f9c3779caa979c8c6abbb3ba8c7191b84e1a910d6b0d10e5faf35284c450c
-  md5: 21be102c9ae80a67ba7de23b129aa7f6
+  size: 16854
+  timestamp: 1738114357360
+- conda: https://conda.anaconda.org/conda-forge/osx-arm64/libblas-3.9.0-28_h10e41b3_openblas.conda
+  build_number: 28
+  sha256: 5bea855a1a7435ce2238535aa4b13db8af8ee301d99a42b083b63fa64c1ea144
+  md5: 166166d84a0e9571dc50210baf993b46
   depends:
   - libopenblas >=0.3.28,<0.3.29.0a0
   - libopenblas >=0.3.28,<1.0a0
   constrains:
-  - liblapack 3.9.0 26_osxarm64_openblas
-  - liblapacke 3.9.0 26_osxarm64_openblas
-  - libcblas 3.9.0 26_osxarm64_openblas
-  - blas * openblas
+  - liblapack =3.9.0=28*_openblas
+  - liblapacke =3.9.0=28*_openblas
+  - blas =2.128=openblas
+  - libcblas =3.9.0=28*_openblas
   arch: arm64
   platform: osx
   license: BSD-3-Clause
-  license_family: BSD
   purls: []
-  size: 16714
-  timestamp: 1734433054681
-- conda: https://conda.anaconda.org/conda-forge/win-64/libblas-3.9.0-26_win64_mkl.conda
-  build_number: 26
-  sha256: d631993a5cf5b8d3201f881084fce7ff6a26cd49883e189bf582cd0b7975c80a
-  md5: ecfe732dbad1be001826fdb7e5e891b5
+  size: 16840
+  timestamp: 1738114389937
+- conda: https://conda.anaconda.org/conda-forge/win-64/libblas-3.9.0-28_h576b46c_mkl.conda
+  build_number: 28
+  sha256: 664fac202fb0f48f11538863f78128cc95e72fbf75fa7d037ddea7c497c0df5d
+  md5: eb97c3ea4cc02e42c01bc6c928094037
   depends:
   - mkl 2024.2.2 h66d3029_15
   constrains:
-  - liblapacke 3.9.0 26_win64_mkl
-  - liblapack 3.9.0 26_win64_mkl
-  - blas * mkl
-  - libcblas 3.9.0 26_win64_mkl
+  - liblapack =3.9.0=28*_mkl
+  - blas =2.128=mkl
+  - liblapacke =3.9.0=28*_mkl
+  - libcblas =3.9.0=28*_mkl
   arch: x86_64
   platform: win
   license: BSD-3-Clause
-  license_family: BSD
   purls: []
-  size: 3733122
-  timestamp: 1734432745507
-- conda: https://conda.anaconda.org/conda-forge/linux-64/libcblas-3.9.0-26_linux64_openblas.conda
-  build_number: 26
-  sha256: 9c74e536c9bc868e356ffd43f81c2cb398aec84b40fcadc312315b164a5500ee
-  md5: ebcc5f37a435aa3c19640533c82f8d76
+  size: 3732428
+  timestamp: 1738114465076
+- conda: https://conda.anaconda.org/conda-forge/linux-64/libcblas-3.9.0-28_he106b2a_openblas.conda
+  build_number: 28
+  sha256: de293e117db53e5d78b579136509c35a5e4ad11529c05f9af83cf89be4d30de1
+  md5: 4e20a1c00b4e8a984aac0f6cce59e3ac
   depends:
-  - libblas 3.9.0 26_linux64_openblas
+  - libblas 3.9.0 28_h59b9bed_openblas
   constrains:
-  - liblapack 3.9.0 26_linux64_openblas
-  - liblapacke 3.9.0 26_linux64_openblas
-  - blas * openblas
+  - blas =2.128=openblas
+  - liblapack =3.9.0=28*_openblas
+  - liblapacke =3.9.0=28*_openblas
   arch: x86_64
   platform: linux
   license: BSD-3-Clause
-  license_family: BSD
   purls: []
-  size: 16336
-  timestamp: 1734432570482
-- conda: https://conda.anaconda.org/conda-forge/linux-aarch64/libcblas-3.9.0-26_linuxaarch64_openblas.conda
-  build_number: 26
-  sha256: 521e78be0c4170f229c43e1a6c94337a72db3ebcbe6e5960f8413aa438dcb8f9
-  md5: d77f943ae4083f3aeddca698f2d28262
+  size: 16539
+  timestamp: 1738114043618
+- conda: https://conda.anaconda.org/conda-forge/linux-aarch64/libcblas-3.9.0-28_hab92f65_openblas.conda
+  build_number: 28
+  sha256: ed62f13a85726f568e17ad569b5cc01a49a6c7bd334802cf1c1b15e9d10e7e93
+  md5: 8cff453f547365131be5647c7680ac6d
   depends:
-  - libblas 3.9.0 26_linuxaarch64_openblas
+  - libblas 3.9.0 28_h1a9f1db_openblas
   constrains:
-  - blas * openblas
-  - liblapacke 3.9.0 26_linuxaarch64_openblas
-  - liblapack 3.9.0 26_linuxaarch64_openblas
+  - liblapack =3.9.0=28*_openblas
+  - blas =2.128=openblas
+  - liblapacke =3.9.0=28*_openblas
   arch: aarch64
   platform: linux
   license: BSD-3-Clause
-  license_family: BSD
   purls: []
-  size: 16398
-  timestamp: 1734432580937
-- conda: https://conda.anaconda.org/conda-forge/osx-64/libcblas-3.9.0-26_osx64_openblas.conda
-  build_number: 26
-  sha256: 4d5dd9aeca2fa37f01d6c0bdbafba0e4f8b6601758239fa85d0640d012a151d6
-  md5: 8726a2949c303b23da89be658a19675c
+  size: 16655
+  timestamp: 1738114088527
+- conda: https://conda.anaconda.org/conda-forge/osx-64/libcblas-3.9.0-28_hff6cab4_openblas.conda
+  build_number: 28
+  sha256: 3940ad1fe20fac8a21fe699ade336a649d0509bc6ff9bfc080b258f68cd056df
+  md5: bf672fd5b62c531028cda585c6ee91b1
   depends:
-  - libblas 3.9.0 26_osx64_openblas
+  - libblas 3.9.0 28_h7f60823_openblas
   constrains:
-  - liblapack 3.9.0 26_osx64_openblas
-  - blas * openblas
-  - liblapacke 3.9.0 26_osx64_openblas
+  - liblapacke =3.9.0=28*_openblas
+  - blas =2.128=openblas
+  - liblapack =3.9.0=28*_openblas
   arch: x86_64
   platform: osx
   license: BSD-3-Clause
-  license_family: BSD
   purls: []
-  size: 16579
-  timestamp: 1734432954376
-- conda: https://conda.anaconda.org/conda-forge/osx-arm64/libcblas-3.9.0-26_osxarm64_openblas.conda
-  build_number: 26
-  sha256: 27a29ef6b2fd2179bc3a0bb9db351f078ba140ca10485dca147c399639f84c93
-  md5: a0e9980fe12d42f6d0c0ec009f67e948
+  size: 16772
+  timestamp: 1738114371625
+- conda: https://conda.anaconda.org/conda-forge/osx-arm64/libcblas-3.9.0-28_hb3479ef_openblas.conda
+  build_number: 28
+  sha256: f08adea59381babb3568e6d23e52aff874cbc25f299821647ab1127d1e1332ca
+  md5: 30942dea911ce333765003a8adec4e8a
   depends:
-  - libblas 3.9.0 26_osxarm64_openblas
+  - libblas 3.9.0 28_h10e41b3_openblas
   constrains:
-  - liblapack 3.9.0 26_osxarm64_openblas
-  - liblapacke 3.9.0 26_osxarm64_openblas
-  - blas * openblas
+  - blas =2.128=openblas
+  - liblapacke =3.9.0=28*_openblas
+  - liblapack =3.9.0=28*_openblas
   arch: arm64
   platform: osx
   license: BSD-3-Clause
-  license_family: BSD
   purls: []
-  size: 16628
-  timestamp: 1734433061517
-- conda: https://conda.anaconda.org/conda-forge/win-64/libcblas-3.9.0-26_win64_mkl.conda
-  build_number: 26
-  sha256: 66699c4f84fd36b67a34a7ac59fb86e73ee0c5b3c3502441041c8dd51f0a7d49
-  md5: 652f3adcb9d329050a325416edb14246
+  size: 16788
+  timestamp: 1738114399962
+- conda: https://conda.anaconda.org/conda-forge/win-64/libcblas-3.9.0-28_h7ad3364_mkl.conda
+  build_number: 28
+  sha256: affd4330721e0dadeefb31cd8191478772f75643db6bef485309782be689c52f
+  md5: fc67cf6a19301fc7d6eb83949abce428
   depends:
-  - libblas 3.9.0 26_win64_mkl
+  - libblas 3.9.0 28_h576b46c_mkl
   constrains:
-  - liblapacke 3.9.0 26_win64_mkl
-  - liblapack 3.9.0 26_win64_mkl
-  - blas * mkl
+  - liblapack =3.9.0=28*_mkl
+  - blas =2.128=mkl
+  - liblapacke =3.9.0=28*_mkl
   arch: x86_64
   platform: win
   license: BSD-3-Clause
-  license_family: BSD
   purls: []
   size: 3732146
   timestamp: 1734432785653
@@ -8119,91 +8127,86 @@ packages:
   purls: []
   size: 636146
   timestamp: 1702682547199
-- conda: https://conda.anaconda.org/conda-forge/linux-64/liblapack-3.9.0-26_linux64_openblas.conda
-  build_number: 26
-  sha256: b76458c36331376911e0f98fa68109e02f4d5e5ebfffa79587ac69cef748bba1
-  md5: 3792604c43695d6a273bc5faaac47d48
+- conda: https://conda.anaconda.org/conda-forge/linux-64/liblapack-3.9.0-28_h7ac8fdf_openblas.conda
+  build_number: 28
+  sha256: 9530e6840690b78360946390a1d29624734a6b624f02c26631fb451592cbb8ef
+  md5: 069f40bfbf1dc55c83ddb07fc6a6ef8d
   depends:
-  - libblas 3.9.0 26_linux64_openblas
+  - libblas 3.9.0 28_h59b9bed_openblas
   constrains:
-  - libcblas 3.9.0 26_linux64_openblas
-  - liblapacke 3.9.0 26_linux64_openblas
-  - blas * openblas
+  - libcblas =3.9.0=28*_openblas
+  - blas =2.128=openblas
+  - liblapacke =3.9.0=28*_openblas
   arch: x86_64
   platform: linux
   license: BSD-3-Clause
-  license_family: BSD
   purls: []
-  size: 16338
-  timestamp: 1734432576650
-- conda: https://conda.anaconda.org/conda-forge/linux-aarch64/liblapack-3.9.0-26_linuxaarch64_openblas.conda
-  build_number: 26
-  sha256: a42bd01498efe2ccf6d08d56ac3cbd3ceab79e06699ff5aac3da8e45a66738f7
-  md5: a5d4e18876393633da62fd8492c00156
+  size: 16553
+  timestamp: 1738114053556
+- conda: https://conda.anaconda.org/conda-forge/linux-aarch64/liblapack-3.9.0-28_h411afd4_openblas.conda
+  build_number: 28
+  sha256: 1290ce1071a586e22bdd7d8f4c48000cc0005f0a67660be150d1ea5c6092129f
+  md5: bc4c5ee31476521e202356b56bba6077
   depends:
-  - libblas 3.9.0 26_linuxaarch64_openblas
+  - libblas 3.9.0 28_h1a9f1db_openblas
   constrains:
-  - blas * openblas
-  - liblapacke 3.9.0 26_linuxaarch64_openblas
-  - libcblas 3.9.0 26_linuxaarch64_openblas
+  - liblapacke =3.9.0=28*_openblas
+  - libcblas =3.9.0=28*_openblas
+  - blas =2.128=openblas
   arch: aarch64
   platform: linux
   license: BSD-3-Clause
-  license_family: BSD
   purls: []
-  size: 16403
-  timestamp: 1734432585123
-- conda: https://conda.anaconda.org/conda-forge/osx-64/liblapack-3.9.0-26_osx64_openblas.conda
-  build_number: 26
-  sha256: 166b07a129d122dbe90b06b582b5c29fbe5b958547fb474ca497cb084846810d
-  md5: c0c54bb6382ff1e52bf08f1da539e9b4
+  size: 16637
+  timestamp: 1738114094310
+- conda: https://conda.anaconda.org/conda-forge/osx-64/liblapack-3.9.0-28_h236ab99_openblas.conda
+  build_number: 28
+  sha256: 862267d20bd7a248cef3dad1fefe5b31d44503943bd9745de42e8be17c86c806
+  md5: edbfe8906ba99637eebb9ebe675a57d3
   depends:
-  - libblas 3.9.0 26_osx64_openblas
+  - libblas 3.9.0 28_h7f60823_openblas
   constrains:
-  - libcblas 3.9.0 26_osx64_openblas
-  - blas * openblas
-  - liblapacke 3.9.0 26_osx64_openblas
+  - liblapacke =3.9.0=28*_openblas
+  - libcblas =3.9.0=28*_openblas
+  - blas =2.128=openblas
   arch: x86_64
   platform: osx
   license: BSD-3-Clause
-  license_family: BSD
   purls: []
-  size: 16588
-  timestamp: 1734432968940
-- conda: https://conda.anaconda.org/conda-forge/osx-arm64/liblapack-3.9.0-26_osxarm64_openblas.conda
-  build_number: 26
-  sha256: dd6d9a21e672aee4332f019c8229ce70cf5eaf6c2f4cbd1443b105fb66c00dc5
-  md5: cebad79038a75cfd28fa90d147a2d34d
+  size: 16758
+  timestamp: 1738114383382
+- conda: https://conda.anaconda.org/conda-forge/osx-arm64/liblapack-3.9.0-28_hc9a63f6_openblas.conda
+  build_number: 28
+  sha256: 79c75a02bff20f8b001e6aecfee8d22a51552c3986e7037fca68e5ed071cc213
+  md5: 45f26652530b558c21083ceb7adaf273
   depends:
-  - libblas 3.9.0 26_osxarm64_openblas
+  - libblas 3.9.0 28_h10e41b3_openblas
   constrains:
-  - liblapacke 3.9.0 26_osxarm64_openblas
-  - libcblas 3.9.0 26_osxarm64_openblas
-  - blas * openblas
+  - blas =2.128=openblas
+  - liblapacke =3.9.0=28*_openblas
+  - libcblas =3.9.0=28*_openblas
   arch: arm64
   platform: osx
   license: BSD-3-Clause
-  license_family: BSD
   purls: []
-  size: 16624
-  timestamp: 1734433068120
-- conda: https://conda.anaconda.org/conda-forge/win-64/liblapack-3.9.0-26_win64_mkl.conda
-  build_number: 26
-  sha256: 6701bd162d105531b75d05acf82b4ad9fbc5a24ffbccf8c66efa9e72c386b33c
-  md5: 0a717f5fda7279b77bcce671b324408a
+  size: 16793
+  timestamp: 1738114407021
+- conda: https://conda.anaconda.org/conda-forge/win-64/liblapack-3.9.0-28_hacfb0e4_mkl.conda
+  build_number: 28
+  sha256: 4b4bb704f46d12f56c1dcf5525bb97aea53a110e6bde6b8d588bf43b773500da
+  md5: 5aa8e62e29e0d76b0b99b79a739cd2dd
   depends:
-  - libblas 3.9.0 26_win64_mkl
+  - libblas 3.9.0 28_h576b46c_mkl
   constrains:
-  - liblapacke 3.9.0 26_win64_mkl
-  - blas * mkl
-  - libcblas 3.9.0 26_win64_mkl
+  - blas =2.128=mkl
+  - liblapacke =3.9.0=28*_mkl
+  - libcblas =3.9.0=28*_mkl
   arch: x86_64
   platform: win
   license: BSD-3-Clause
-  license_family: BSD
   purls: []
-  size: 3732160
-  timestamp: 1734432822278
+  size: 3732321
+  timestamp: 1738114541347
 - conda: https://conda.anaconda.org/conda-forge/linux-64/liblzma-5.6.3-hb9d3cd8_1.conda
   sha256: e6e425252f3839e2756e4af1ea2074dffd3396c161bf460629f9dfd6a65f15c6
   md5: 2ecf2f1c7e4e21fcfe6423a51a992d84
@@ -14994,6 +14997,19 @@ packages:
   - pytest-regressions ; extra == 'test'
   - sphinx-thebe ; extra == 'test'
   requires_python: '>=3.9'
+- pypi: https://files.pythonhosted.org/packages/9e/48/1ea60e74949eecb12cdd6ac43987f9fd331156388dcc2319b45e2ebb81bf/sphinx_copybutton-0.5.2-py3-none-any.whl
+  name: sphinx-copybutton
+  version: 0.5.2
+  sha256: fb543fd386d917746c9a2c50360c7905b605726b9355cd26e9974857afeae06e
+  requires_dist:
+  - sphinx>=1.8
+  - pre-commit==2.12.1 ; extra == 'code-style'
+  - sphinx ; extra == 'rtd'
+  - ipython ; extra == 'rtd'
+  - myst-nb ; extra == 'rtd'
+  - sphinx-book-theme ; extra == 'rtd'
+  - sphinx-examples ; extra == 'rtd'
+  requires_python: '>=3.7'
 - pypi: https://files.pythonhosted.org/packages/c6/43/65c0acbd8cc6f50195a3a1fc195c404988b15c67090e73c7a41a9f57d6bd/sphinx_design-0.6.1-py3-none-any.whl
   name: sphinx-design
   version: 0.6.1

@@ -8,8 +8,9 @@ from .space import Space
 
 @dataclass
 class SplitArrayMeta:
-    """
-        Internal helper class for the metadata after a reduction operation.
+    """Internal helper class for the metadata after a reduction operation.
+
+    :meta private:
     """
     axis: List[int]
     eager: Tuple[bool, ...]

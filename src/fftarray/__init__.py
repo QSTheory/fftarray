@@ -146,11 +146,11 @@ from ._src.elementwise_functions import (
     trunc as trunc,
 )
 
-from typing import Optional, Literal, Union, List
 try:
    from ._src.constraint_solver import dim_from_constraints as dim_from_constraints
 except ModuleNotFoundError:
-   def dim_from_constraints(
+    from typing import Optional, Literal, Union, List
+    def dim_from_constraints(
          name: str,
          *,
          n: Union[int, Literal["power_of_two", "even"]] = "power_of_two",
@@ -170,5 +170,8 @@ except ModuleNotFoundError:
       raise ModuleNotFoundError("You need to install `fftarray[helpers]` to use the constraint solver.")
 
 
-
-
+__all__ = [
+    g for g in globals() if (
+       not g.startswith("_") and g not in ["Optional", "List", "Union", "Literal"]
+    )
+]

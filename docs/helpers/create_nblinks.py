@@ -14,7 +14,7 @@ example_filenames = sorted([e.split("/")[-1].split(".")[0] for e in examples])
 for example_filename in example_filenames:
     out_file_name = example_filename + ".nblink"
     with open(EXAMPLES_DIR+out_file_name, "w") as nblink_file:
-        nblink_file.write('{\n\t"path": "../../../examples/'+example_filename+'.ipynb"\n}')
+        nblink_file.write('{\n\t"path": "../../../examples/'+example_filename+'.ipynb",\n\t"extra-media": ["../../../examples/helpers.py"]\n}')
 
 INDEX_FILE_HEADER = """Examples
 ========
