@@ -170,10 +170,8 @@ except ModuleNotFoundError:
       raise ModuleNotFoundError("You need to install `fftarray[helpers]` to use the constraint solver.")
 
 
-
 __all__ = [
     g for g in globals() if (
-       (not g.startswith("_"))
-       or (g not in ["Optional", "List", "Union", "Literal"])
+       not g.startswith("_") and g not in ["Optional", "List", "Union", "Literal"]
     )
 ]

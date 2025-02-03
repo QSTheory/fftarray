@@ -1,5 +1,5 @@
 import inspect
-from fftarray import Array, Dimension
+import fftarray as fa
 
 RST_FILE_TEMPLATE = """{name}
 {underline}
@@ -23,7 +23,7 @@ RST_FILE_TEMPLATE = """{name}
         {attributes}
 """
 
-for cls, name in [[Array, "Array"], [Dimension, "Dimension"]]:
+for cls, name in [[fa.Array, "Array"], [fa.Dimension, "Dimension"]]:
 
     members = inspect.getmembers(cls)
 
