@@ -160,6 +160,10 @@ def elementwise_two_operands(
         transforms_lut: TwoOperandTransforms = default_transforms_lut,
         is_on_self: bool = False,
     ): # This type makes problem for the dunder methods -> Callable[[Any, Any], Array]:
+    """Helper function handling elementwise functions for two operands.
+
+    :meta private:
+    """
 
     def fun(x1, x2, /) -> Array:
         unp_inp: UnpackedValues = unpack_arrays([x1, x2])
@@ -188,6 +192,11 @@ def elementwise_one_operand(
         name: str,
         is_on_self: bool = False,
     ) -> Callable[[Array], Array]:
+    """Helper function handling elementwise functions for a single operand.
+
+    :meta private:
+    """
+
     def single_element_func(x: Array, /) -> Array:
         assert isinstance(x, Array)
         if is_on_self:
@@ -216,7 +225,57 @@ def elementwise_one_operand(
 
 
 class Array:
-    """A single class implementing FFTs."""
+    """The Array class facilitates the generalized Discrete Fourier transform
+    and all scientific operations on its values while retaining coordinate grid
+    information.
+
+    Parameters
+    ----------
+    values : Any
+        The values array with respect to the dimensions.
+    dims : Tuple[Dimension, ...]
+        Dimensions defining the coordinates of the values.
+    spaces : Tuple[Space, ...]
+        Space of the given values per Dimension.
+    eager : Tuple[bool, ...]
+        Whether the factors should be applied to the internal values after
+        performing a space transition.
+    factors_applied : Tuple[bool, ...]
+        Whether the lazy factors have been applied to the given values.
+    xp : Any
+        The array API namespace.
+
+    Examples
+    --------
+    First, we initialize the dimensions using `fa.dim_from_constraints`:
+
+    >>> import fftarray as fa
+    >>> x_dim: fa.Dimension = fa.dim_from_constraints("x", pos_min=-1, pos_max=1., n=64, freq_middle=0.)
+    >>> y_dim: fa.Dimension = fa.dim_from_constraints("y", pos_min=-10, pos_max=10., n=128, freq_middle=0.)
+
+    Based on these, the coordinates can be retrieved in form of 1D Arrays. These
+    can be combined to a 2D Array via automatic broadcasting:
+
+    >>> x: fa.Array = fa.coords_from_dim(x_dim, "pos")
+    >>> y: fa.Array = fa.coords_from_dim(y_dim, "pos")
+    >>> xy = x**2 * fa.sin(y)
+
+    The space (as well as other attributes such as xp, eager and
+    factors_applied) via respective `into` functions.
+
+    >>> xy_freq: fa.Array = xy.into_space("freq")
+
+    Integrate the Array from x=-0.2 to x=0.2 by indexing the given region before
+    intgrating it via `fa.integrate`:
+
+    >>> res = fa.integrate(xy.sel(x=slice(-0.2,0.2)))
+
+    See Also
+    --------
+    array
+    coords_from_dim
+    full
+    """
 
     # _dims are stored as a sequence and not by name because their oder needs
     # to match the order of dimensions in _values.
@@ -247,38 +306,6 @@ class Array:
             factors_applied: Tuple[bool, ...],
             xp,
         ):
-        """
-        Construct a new instance of Array from raw values.
-        For normal usage it is recommended to construct
-        new instances via the `array` function of `fftarray`
-        since this ensures that all values match and are valid.
-
-        Parameters
-        ----------
-        values :
-            The values to initialize the `Array` with.
-            For performance reasons they are assumed to not be aliased (or immutable)
-            and therefore do not get copied during construction.
-            If any 'factors_applied' is 'False', the dtype has to be of kind 'complex floating',
-            because the factor which needs to be multiplied onto the values is also a complex number.
-        dims : Tuple[Dimension, ...]
-            The Dimensions for each dimension of the passed in values.
-        space: Tuple[Space, ...]
-            Specify the space of the coordinates and in which space the returned Array is intialized.
-        eager: Tuple[bool, ...]
-            The eager-mode to use for the returned Array.
-        factors_applied: Tuple[bool, ...]
-            Whether the fft-factors are applied are already applied for the various dimensions.
-
-        Returns
-        -------
-        Array
-            The grid coordinates of the chosen space packed into an Array with self as only dimension.
-
-        See Also
-        --------
-        array
-        """
 
         self._dims = dims
         self._values = values
@@ -522,6 +549,7 @@ class Array:
 
     @property
     def loc(self):
+        """Attribute for location based indexing like xarray."""
         return LocArrayIndexer(self)
 
     def isel(
@@ -530,15 +558,29 @@ class Array:
             missing_dims: Literal["raise", "warn", "ignore"] = 'raise',
             **indexers_kwargs: Union[int, slice],
         ) -> Array:
-        """
-        Inspired by xarray.DataArray.isel
+        """Select specific values along respective dimension names by indices.
+        Inspired by `xarray.DataArray.isel`.
+
+        Parameters
+        ----------
+        indexers : Optional[Mapping[str, Union[int, slice]]], optional
+            Mappping from Dimension name to the index which can be an int or a
+            slice, by default None
+        missing_dims : Literal[&quot;raise&quot;, &quot;warn&quot;, &quot;ignore&quot;], optional
+            Behavior, if selected Dimensions are not part of the Array, by
+            default 'raise'
+
+        Returns
+        -------
+        Array
+            Indexed Array.
         """
 
         # Check for correct use of indexers (either via positional
         # indexers arg or via indexers_kwargs)
         if indexers is not None and indexers_kwargs:
             raise ValueError(
-                "cannot specify both keyword arguments and "
+                "Cannot specify both keyword arguments and "
                 + "positional arguments to Array.isel"
             )
 
@@ -552,7 +594,7 @@ class Array:
 
         if not isinstance(final_indexers, dict):
             raise ValueError(
-                "indexers must be a dictionary or keyword arguments"
+                "Indexers must be a dictionary or keyword arguments"
             )
 
         # handle case of empty indexers via supplying indexers={} or nothing at all
@@ -582,9 +624,37 @@ class Array:
             method: Optional[Literal["nearest", "pad", "ffill", "backfill", "bfill"]] = None,
             **indexers_kwargs: Union[float, slice],
         ) -> Array:
-        """Inspired by xarray.DataArray.sel
+        """Select specific values along respective dimension names by
+        label/coordinate.
+        Inspired by xarray.DataArray.sel
+
+        Parameters
+        ----------
+        indexers : Optional[Mapping[str, Union[float, slice]]], optional
+            Mappping from Dimension name to the coordinate/label which can be a
+            float or a slice, by default None
+        missing_dims : Literal[&quot;raise&quot;, &quot;warn&quot;, &quot;ignore&quot;], optional
+            Behavior, if selected Dimensions are not part of the Array, by
+            default 'raise'
+        method : Optional[Literal[&quot;nearest&quot;, &quot;pad&quot;, &quot;ffill&quot;, &quot;backfill&quot;, &quot;bfill&quot;]], optional
+            Method to use for inexact matches
+
+            - None (default): only exact matches
+            - pad / ffill: propagate last valid index value forward
+            - backfill / bfill: propagate next valid index value backward
+            - nearest: use nearest valid index value
+
+        Returns
+        -------
+        Array
+            Indexed Array.
+
+        Notes
+        -----
         In comparison to its xarray implementation, there is an add-on:
+
         - Implements missing_dims arg and accordingly raises errors
+
         """
 
         # Check for correct use of indexers (either via positional
@@ -663,37 +733,41 @@ class Array:
 
     @property
     def dims_dict(self) -> Dict[str, Dimension]:
+        """Dictionary mapping each dimension name to the Array's Dimension."""
         # TODO Ordered Mapping?
         return {dim.name: dim for dim in self._dims}
 
     @property
     def sizes(self) -> Dict[str, int]:
+        """Dictionary mapping each dimension name to the number of grid points.
+        """
         # TODO Ordered Mapping?
         return {dim.name: dim.n for dim in self._dims}
 
     @property
     def dims(self) -> Tuple[Dimension, ...]:
+        """Tuple of the Array's Dimensions."""
         return tuple(self._dims)
 
     @property
     def shape(self: Array) -> Tuple[int, ...]:
-        """..
-
-        Returns
-        -------
-        Tuple[int, ...]
-            Shape of the wavefunction's values.
-        """
+        """Shape of the Array's values."""
         return self._values.shape
 
     def values(self, space: Union[Space, Iterable[Space]], /) -> Any:
-        """
-            Return the values with all lazy state applied.
-            Does not mutate self.
-            Therefore each call evaluates its lazy state again.
-            Use `.into_factors_applied(True)` if you want to evaluate it once and reuse it multiple times.
-        """
+        """The raw values with all lazy fft factors applied.
 
+        Parameters
+        ----------
+        space : Union[Space, Iterable[Space]]
+            The space in which the values should be returned. Can be specified
+            per dimension.
+
+        Returns
+        -------
+        Any
+            The Array's values.
+        """
         space_norm: Tuple[Space, ...] = norm_space(space, len(self.dims))
         if space_norm != self.spaces or not all(self._factors_applied):
             # Setting eager before-hand allows copy-elision without the move option.
@@ -703,9 +777,22 @@ class Array:
 
     @property
     def xp(self):
+        """The array API namespace driving the mathematical operations."""
         return self._xp
 
-    def into_xp(self, xp, /):
+    def into_xp(self, xp, /) -> Array:
+        """Change the array API namespace.
+
+        Parameters
+        ----------
+        xp : Any
+            The new array API namespace.
+
+        Returns
+        -------
+        Array
+            A new Array with the new array API namespace.
+        """
         # Since Array is immutable, this does not necessarily need to copy.
         values = xp.asarray(self._values, copy=None)
         return Array(
@@ -719,9 +806,22 @@ class Array:
 
     @property
     def dtype(self):
+        """The dtype of the Array's values."""
         return self._values.dtype
 
-    def into_dtype(self, dtype, /):
+    def into_dtype(self, dtype, /) -> Array:
+        """Change the values' dtype.
+
+        Parameters
+        ----------
+        dtype : Any
+            The new dtype.
+
+        Returns
+        -------
+        Array
+            A new Array whose values have the new dtype.
+        """
         # Hard-code this special case (which also exists in numpy)
         # in order to give an Array API compatible way to upcast
         # to complex without explicitly handling precision in user code.
@@ -747,10 +847,28 @@ class Array:
         )
 
     @property
-    def factors_applied(self):
+    def factors_applied(self) -> Tuple[bool, ...]:
+        """Whether the lazy fft factors have been applied to the internal
+        values.
+        """
         return self._factors_applied
 
     def into_factors_applied(self, factors_applied: Union[bool, Iterable[bool]], /) -> Array:
+        """Change the factors_applied state.
+        Note that the values of the returned Array will be of dtype complex, no
+        matter if the factors_applied state changed.
+
+        Parameters
+        ----------
+        factors_applied : Union[bool, Iterable[bool]]
+            The new factors_applied state.
+
+        Returns
+        -------
+        Array
+            A new Array whose values correspond to the new factors_applied
+            state.
+        """
         factors_applied_norm = norm_param(factors_applied, len(self._dims), bool)
 
         signs = get_transform_signs(
@@ -786,13 +904,28 @@ class Array:
 
     @property
     def eager(self) -> Tuple[bool, ...]:
-        """
-            If eager is False, the phase factors are not directly applied after an FFT.
-            Otherwise they are always left as is and eager does not have any impact on the behavior of this class.
+        """Whether the space transformation should be lazy or not.
+
+        - `eager=False`: The fft factors are not directly applied after a space
+          transformation but only when needed, i.e., lazily.
+        - `eager=True`: The fft factors are always directly applied after a
+          space transformation.
         """
         return self._eager
 
     def into_eager(self, eager: Union[bool, Iterable[bool]], /) -> Array:
+        """Change the eager state.
+
+        Parameters
+        ----------
+        eager : Union[bool, Iterable[bool]]
+            New eager state.
+
+        Returns
+        -------
+        Array
+            A new Array with the new eager settings.
+        """
         eager_norm = norm_param(eager, len(self.dims), bool)
 
         # Can just reuse everything since all attributes are immutable.
@@ -807,15 +940,26 @@ class Array:
 
     @property
     def spaces(self) -> Tuple[Space, ...]:
-        """
-            Enables automatically and easily detecting in which spaces a generic Array currently is.
-        """
+        """The spaces in which the values currently are in, per dimension."""
         return self._spaces
 
     def into_space(self, space: Union[Space, Iterable[Space]], /) -> Array:
-        """
-            values must be real floating or complex floating.
-            Always upcasts to complex floating even if no transform is done.
+        """Transform the space(s) of the Array's values.
+
+        Parameters
+        ----------
+        space : Union[Space, Iterable[Space]]
+            The new space(s).
+
+        Returns
+        -------
+        Array
+            A new Array whose values are in the new space.
+
+        Raises
+        ------
+        ValueError
+            If the Array does not have a float dtype.
         """
 
         values = self._values
@@ -869,21 +1013,26 @@ class Array:
         )
 
     def np_array(self: Array, space: Union[Space, Iterable[Space]], /, *, dtype = None):
-        """..
+        """The Array's values as bare numpy array in the specified space(s).
+
+        Parameters
+        ----------
+        space : Union[Space, Iterable[Space]]
+            The space(s) in which the returned values will be.
+        dtype : _type_, optional
+            The dtype of the returned values, by default None
 
         Returns
         -------
         NDArray
-            The values of this Array in the specified space as a bare numpy array.
+            Bare NumPy array.
         """
 
         values = self.values(space)
         return np.array(values, dtype=dtype)
 
     def _check_consistency(self) -> None:
-        """
-            Check some invariants of Array.
-        """
+        """Check some invariants of Array."""
 
         assert isinstance(self._dims, tuple)
         assert isinstance(self._spaces, tuple)
