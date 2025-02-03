@@ -42,7 +42,7 @@ def test_transpose(xp, ndims: int, permutation: List[int], space: fa.Space) -> N
 
     ref_res = xp.permute_dims(input_values, axes=tuple(permutation))
 
-    fa_res = arr.transpose(*[str(i) for i in permutation])
+    fa_res = fa.permute_dims(arr, tuple(str(i) for i in permutation))
     np.testing.assert_equal(
         np.array(fa_res.values(space)),
         np.array(ref_res),

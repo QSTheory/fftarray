@@ -34,7 +34,7 @@ def align_named_arrays(
                 arr = xp.reshape(arr, (-1, *arr.shape))
                 old_dim_names_filled_up.insert(0, target_dim)
         # TODO the list conversion of keys should not be necessary but is needed for mypy
-        arr = transpose_array(
+        arr = permute_array(
             arr,
             old_dim_names=old_dim_names_filled_up,
             new_dim_names=list(target_shape.keys()),
@@ -52,7 +52,7 @@ class FillDim:
     def __hash__(self):
         return hash(self.index)
 
-def get_axes_transpose(
+def get_axes_permute(
             old_dim_names: Sequence[str],
             new_dim_names: Sequence[str]
         ) -> Tuple[int, ...]:
@@ -61,7 +61,7 @@ def get_axes_transpose(
     return tuple(dim_index_lut[target_dim_name] for target_dim_name in new_dim_names)
 
 
-def transpose_array(
+def permute_array(
         array: Any,
         xp,
         old_dim_names: Sequence[str],
@@ -71,6 +71,6 @@ def transpose_array(
         `old_dims` and `new_dims` must be a transpose of one another.
         They may be shorter than array.shape. The last dims are left untouched.
     """
-    axes_transpose = get_axes_transpose(old_dim_names, new_dim_names)
+    axes_transpose = get_axes_permute(old_dim_names, new_dim_names)
     array = xp.permute_dims(array, tuple(axes_transpose))
     return array
