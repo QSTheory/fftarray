@@ -41,6 +41,7 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
 ]
 "helpers" = [
     "z3-solver",
+    "scipy",
 ]
 "dashboards" = [
     "fftarray[helpers]",

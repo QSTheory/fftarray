@@ -1,13 +1,14 @@
-from typing import List, Optional
+from typing import List, Optional, Any
+from typing_extensions import assert_never
 
 import numpy as np
 from bokeh.plotting import figure, row, column, show
-from bokeh.models import LinearColorMapper
+from bokeh.models import LinearColorMapper, PrintfTickFormatter
 
-from fftarray import Array, Space
+import fftarray as fa
 
 def plt_array(
-        arr: Array,
+        arr: fa.Array,
         data_name: Optional[str] = None,
         show_plot: bool = True,
     ):
@@ -18,17 +19,21 @@ def plt_array(
         p_pos.line(dim.np_array("pos"), np.real(pos_values), line_width=2, color = "navy", legend_label="real")
         p_pos.line(dim.np_array("pos"), np.imag(pos_values), line_width=2, color = "firebrick", legend_label="imag")
         p_pos.title.text = f"{data_name or 'Array values'} shown in position space" # type: ignore
+        p_pos.xaxis[0].formatter = PrintfTickFormatter(format="%.1e")
+        p_pos.yaxis[0].formatter = PrintfTickFormatter(format="%.1e")
 
         p_freq = figure(width=450, height=400, x_axis_label = f"{dim.name} freq coordinate", min_border=50)
         freq_values = arr.values("freq")
         p_freq.line(dim.np_array("freq"), np.real(freq_values), line_width=2, color = "navy", legend_label="real")
         p_freq.line(dim.np_array("freq"), np.imag(freq_values), line_width=2, color = "firebrick", legend_label="imag")
         p_freq.title.text = f"{data_name or 'Array values'} shown in frequency space" # type: ignore
+        p_freq.xaxis[0].formatter = PrintfTickFormatter(format="%.1e")
+        p_freq.yaxis[0].formatter = PrintfTickFormatter(format="%.1e")
 
         plot = row([p_pos, p_freq], sizing_mode="stretch_width") # type: ignore
     elif len(arr.dims) == 2:
         row_plots = []
-        spaces: List[Space] = ["pos", "freq"]
+        spaces: List[fa.Space] = ["pos", "freq"]
         for space in spaces:
             # Dimension properties
             dim_names = [dim.name for dim in arr.dims]
@@ -85,9 +90,13 @@ def plt_array(
                 **image_props
             )
             colorbar = image_real_part.construct_color_bar()
+            colorbar.formatter = PrintfTickFormatter(format="%.1e")
 
-            fig_real_part.add_layout(colorbar, "right")
-            fig_imag_part.add_layout(colorbar, "right")
+            for fig in [fig_real_part, fig_imag_part]:
+
+                fig.add_layout(colorbar, "right")
+                fig.xaxis[0].formatter = PrintfTickFormatter(format="%.1e")
+                fig.yaxis[0].formatter = PrintfTickFormatter(format="%.1e")
 
             space_name = "position" if space == "pos" else "frequency"
             fig_real_part.title.text = f"Real part of {data_name or 'Array values'} shown in {space_name} space" # type: ignore
@@ -103,3 +112,52 @@ def plt_array(
         show(plot)
     else:
         return plot
+
+def plt_array_values_space_time(
+        pos_values: Any,
+        freq_values: Any,
+        pos_grid: Any,
+        freq_grid: Any,
+        time: Any,
+        pos_unit: str = "m",
+        freq_unit: str = "1/m",
+    ):
+    """Plot the one-dimensional values in space-time as a image.
+    """
+    plots = []
+    for space, values, grid in [["pos", pos_values, pos_grid], ["freq", freq_values, freq_grid]]:
+        color_mapper = LinearColorMapper(palette="Viridis256", low=np.min(values), high=np.max(values))
+        match space:
+            case "pos":
+                unit = pos_unit
+                variable = "x"
+            case "freq":
+                unit = freq_unit
+                variable = "f"
+            case _:
+                assert_never(space)
+
+        plot = figure(
+            x_axis_label = "time [s]",
+            y_axis_label = f"{space} coordinate [{unit}]",
+            x_range=(float(time[0]), float(time[-1])),
+            y_range=(float(grid[0]), float(grid[-1]))
+        )
+        r = plot.image(
+            image=[np.transpose(values)],
+            x = time[0],
+            y = grid[0],
+            dw = time[-1] - time[0],
+            dh = grid[-1] - grid[0],
+            color_mapper=color_mapper
+        )
+        color_bar = r.construct_color_bar(padding=1)
+        color_bar.formatter = PrintfTickFormatter(format="%.1e")
+        plot.add_layout(color_bar, "right")
+        plot.xaxis[0].formatter = PrintfTickFormatter(format="%.1e")
+        plot.yaxis[0].formatter = PrintfTickFormatter(format="%.1e")
+        plot.title.text = f"$$|\Psi({variable})|^2$$ in {space} space" # type: ignore
+        plots.append(plot)
+
+    row_plot = row(plots, sizing_mode="stretch_width")
+    show(row_plot)
