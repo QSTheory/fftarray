@@ -8,8 +8,9 @@ from .space import Space
 
 @dataclass
 class SplitArrayMeta:
-    """
-        Internal helper class for the metadata after a reduction operation.
+    """Internal helper class for the metadata after a reduction operation.
+
+    :meta private:
     """
     axis: List[int]
     eager: Tuple[bool, ...]
@@ -78,6 +79,27 @@ def sum(
         xp=x.xp,
     )
 
+def prod(
+        x: Array,
+        /,
+        *,
+        dim_name: Optional[Union[str, Iterable[str]]] = None,
+        dtype = None,
+    ) -> Array:
+
+    res_meta = _named_dims_to_axis(x, dim_name)
+
+    reduced_values = x.xp.prod(x.values(x.spaces), axis=tuple(res_meta.axis), dtype=dtype)
+
+    return Array(
+        values=reduced_values,
+        spaces=res_meta.spaces,
+        dims=res_meta.dims,
+        eager=res_meta.eager,
+        factors_applied=(True,)*len(res_meta.dims),
+        xp=x.xp,
+    )
+
 def max(
         x: Array,
         /,
@@ -88,6 +110,46 @@ def max(
     res_meta = _named_dims_to_axis(x, dim_name)
 
     reduced_values = x.xp.max(x.values(x.spaces), axis=tuple(res_meta.axis))
+
+    return Array(
+        values=reduced_values,
+        spaces=res_meta.spaces,
+        dims=res_meta.dims,
+        eager=res_meta.eager,
+        factors_applied=(True,)*len(res_meta.dims),
+        xp=x.xp,
+    )
+
+def min(
+        x: Array,
+        /,
+        *,
+        dim_name: Optional[Union[str, Iterable[str]]] = None,
+    ) -> Array:
+
+    res_meta = _named_dims_to_axis(x, dim_name)
+
+    reduced_values = x.xp.min(x.values(x.spaces), axis=tuple(res_meta.axis))
+
+    return Array(
+        values=reduced_values,
+        spaces=res_meta.spaces,
+        dims=res_meta.dims,
+        eager=res_meta.eager,
+        factors_applied=(True,)*len(res_meta.dims),
+        xp=x.xp,
+    )
+
+def mean(
+        x: Array,
+        /,
+        *,
+        dim_name: Optional[Union[str, Iterable[str]]] = None,
+    ) -> Array:
+
+    res_meta = _named_dims_to_axis(x, dim_name)
+
+    reduced_values = x.xp.mean(x.values(x.spaces), axis=tuple(res_meta.axis))
 
     return Array(
         values=reduced_values,

@@ -1,4 +1,4 @@
-# Installing fftarray
+# Installation
 
 There are different versions of fftarray available for installation, enabling different capabilities and thus, coming with different external packages as requirements.
 The bare version features the core capabilities. For example, there is no helper methods to define a `Dimension`. There is also no automatic installation of required packages for accelerated FFT implementations on GPUs (`jax`). Additionally, there is a version to enable the execution of the examples.
