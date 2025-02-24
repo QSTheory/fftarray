@@ -12,7 +12,7 @@ for current_version in $versions; do
 	echo "Version: $current_version"
 	export current_version
 
-	git checkout -b temp-$current_version "$current_version" || git checkout "$current_version"
+	git checkout "$current_version"
 
 	rm -rf source/api/generated/*
 
@@ -24,5 +24,3 @@ for current_version in $versions; do
 done
 
 git checkout "$current_branch"
-
-git branch -D $(git branch | grep temp-) || echo "No temporary branches to delete"
