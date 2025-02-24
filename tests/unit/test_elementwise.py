@@ -6,7 +6,7 @@ import numpy as np
 
 import fftarray as fa
 
-from tests.helpers  import XPS, assert_fa_array_exact_equal
+from tests.helpers import XPS, assert_fa_array_exact_equal
 
 def get_test_array(
         xp,
@@ -694,8 +694,6 @@ def elementwise_arr_scalar(
         .into_eager(eager)
     )
 
-    dtype = getattr(xp, dtype_name)
-
     op_lambda = two_operand_lambdas[op_name]
 
     input_raw_arr: List[Any] = [None, None]
@@ -746,3 +744,34 @@ def test_clip(xp) -> None:
     assert xp.all(fa.clip(arr1, min=None, max=3).values("pos") == xp.clip(vals, min=None, max=3))
     assert xp.all(fa.clip(arr1).values("pos") == xp.clip(vals))
 
+@pytest.mark.parametrize("xp", XPS[1:]) # exclude array_api_strict
+@pytest.mark.parametrize("precision", ["float32", "float64"])
+@pytest.mark.parametrize("complex", [True, False])
+@pytest.mark.parametrize("factors_applied", [True, False])
+def test_angle(
+    xp,
+    precision: str,
+    complex: bool,
+    factors_applied: bool
+) -> None:
+    dtype = getattr(xp, precision)
+    dim = fa.dim("x", 4, 0.1, 0., 0.)
+    arr = fa.coords_from_dim(dim, "pos", dtype=dtype, xp=xp)
+    arr = arr.into_factors_applied(factors_applied)
+    if complex:
+        arr = fa.exp(1.j*arr)
+
+    # We perform the baseline angle calculation with numpy as
+    # angle is not part of the Python Array API standard.
+    arr_values = arr.values("pos")
+    np_angles = np.angle(arr_values)
+
+    arr_angles = fa.angle(arr)
+
+    assert arr_angles.spaces == arr.spaces
+    assert arr_angles.dims == arr.dims
+    assert arr_angles.eager == arr.eager
+    assert arr_angles.factors_applied == (True,)
+    assert arr_angles.xp == arr.xp
+
+    np.testing.assert_allclose(arr_angles.values("pos"), np_angles)
