@@ -32,7 +32,7 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_design",
     "nbsphinx",
-    "nbsphinx_link"
+    "nbsphinx_link",
 ]
 
 add_module_names = False
@@ -78,14 +78,35 @@ html_theme = 'sphinx_book_theme'
 
 html_theme_options = dict(
     repository_url='https://github.com/QSTheory/fftarray',
-    repository_branch='main',
-    navigation_with_keys=False,  # pydata/pydata-sphinx-theme#1492
-    navigation_depth=4,
+    collapse_navigation=True,
+    navigation_with_keys=False,
+    show_navbar_depth=4,
+    collapse_navbar=True,
     path_to_docs='docs',
     use_edit_page_button=True,
     use_repository_button=True,
     use_issues_button=True,
     home_page_in_toc=False,
+    primary_sidebar_end=["version-switcher"],
+    switcher=dict(
+        json_url="http://localhost:8000/versions.json",  # for local testing
+        # json_url="https://QSTheory.github.io/fftarray/versions.json", # when published
+        version_match=os.getenv("current_version", "latest"),
+    ),
+    icon_links=[
+        {
+            "name": "GitHub",
+            "url": "https://github.com/QSTheory/fftarray",
+            "icon": "fa-brands fa-github",
+            "type": "fontawesome",
+        },
+        {
+            "name": "Research Group",
+            "url": "https://www.iqo.uni-hannover.de/de/arbeitsgruppen/theory-of-quantum-sensors",
+            "icon": "https://www.uni-hannover.de/fileadmin/site-templates/logos/luh_logo_196.png",
+            "type": "url",
+        },
+    ],
 )
 
 html_static_path = ['_static']
