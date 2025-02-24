@@ -164,17 +164,17 @@ div_transforms_lut = TwoOperandTransforms(
     This table shows the results of this function for different ``factors_applied``.
     A scalar input has always ``factors_applied=True``.
 
-    +--------+--------+-----------+-------------------+-------------------+-------+
-    |factors1|factors2| LUT Index |x1 sign (to target)|x2 sign (to target)| res   |
-    +========+========+===========+===================+===================+=======+
-    | False  | False  | 0/4       | -1(True)          | 0(False)          | False |
-    +--------+--------+-----------+-------------------+-------------------+-------+
-    | False  | True   | 1/5       | -1(True)          | 0(True)           | True  |
-    +--------+--------+-----------+-------------------+-------------------+-------+
-    | True   | False  | 2/6       | 0(True)           | 0(False)          | False |
-    +--------+--------+-----------+-------------------+-------------------+-------+
-    | True   | True   | 3/7       | 0(True)           | 0(True)           | True  |
-    +--------+--------+-----------+-------------------+-------------------+-------+
+    +------------+--------+--------+-----------+-------------------+-------------------+-------+
+    |   eager    |factors1|factors2| LUT Index |x1 sign (to target)|x2 sign (to target)| res   |
+    +============+========+========+===========+===================+===================+=======+
+    | False/True | False  | False  | 0/4       | -1(True)          | 0(False)          | False |
+    +------------+--------+--------+-----------+-------------------+-------------------+-------+
+    | False/True | False  | True   | 1/5       | -1(True)          | 0(True)           | True  |
+    +------------+--------+--------+-----------+-------------------+-------------------+-------+
+    | False/True | True   | False  | 2/6       | 0(True)           | 0(False)          | False |
+    +------------+--------+--------+-----------+-------------------+-------------------+-------+
+    | False/True | True   | True   | 3/7       | 0(True)           | 0(True)           | True  |
+    +------------+--------+--------+-----------+-------------------+-------------------+-------+
 
     The choice between the operands in the first table entry is arbitrary for multiplication
     but is the necessary choice for division.
@@ -276,17 +276,17 @@ add_transforms_lut = TwoOperandTransforms(
     This tables shows the results of this function for different ``factors_applied``.
     A scalar input has always ``factor_applied=True``.
 
-    +--------+--------+-----------+-------------------+-------------------+-------+
-    |factors1|factors2| LUT Index |x1 sign (to target)|x2 sign (to target)| res   |
-    +========+========+===========+===================+===================+=======+
-    | False  | False  | 0/4       |-1(True)           |-1(True)           | True  |
-    +--------+--------+-----------+-------------------+-------------------+-------+
-    | False  | True   | 1/5       |-1(True)           | 0(True)           | True  |
-    +--------+--------+-----------+-------------------+-------------------+-------+
-    | True   | False  | 2/6       | 0(True)           |-1(True)           | True  |
-    +--------+--------+-----------+-------------------+-------------------+-------+
-    | True   | True   | 3/7       | 0(True)           | 0(True)           | True  |
-    +--------+--------+-----------+-------------------+-------------------+-------+
+    +------------+--------+--------+-----------+-------------------+-------------------+-------+
+    |   eager    |factors1|factors2| LUT Index |x1 sign (to target)|x2 sign (to target)| res   |
+    +============+========+========+===========+===================+===================+=======+
+    | False/True | False  | False  | 0/4       |-1(True)           |-1(True)           | True  |
+    +------------+--------+--------+-----------+-------------------+-------------------+-------+
+    | False/True | False  | True   | 1/5       |-1(True)           | 0(True)           | True  |
+    +------------+--------+--------+-----------+-------------------+-------------------+-------+
+    | False/True | True   | False  | 2/6       | 0(True)           |-1(True)           | True  |
+    +------------+--------+--------+-----------+-------------------+-------------------+-------+
+    | False/True | True   | True   | 3/7       | 0(True)           | 0(True)           | True  |
+    +------------+--------+--------+-----------+-------------------+-------------------+-------+
 """
 default_transforms_lut = TwoOperandTransforms(
     factor_application_signs=np.array([
