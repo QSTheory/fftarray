@@ -4,8 +4,6 @@ echo "Current branch: $current_branch"
 versions=($(git tag --sort=-v:refname))
 versions+=("main")
 
-# git checkout main -- helpers/ || echo "Using existing helpers"
-
 python helpers/generate_versions.py
 
 for current_version in "${versions[@]}"; do
@@ -23,6 +21,8 @@ for current_version in "${versions[@]}"; do
 
 	rm -rf source/api/generated/*
 
+	# change documentation-versions with main before merging
+	git checkout documentation-versions -- helpers/ || echo "Using existing helpers"
 	python helpers/create_nblinks.py
 	python helpers/parse_classes.py
 
