@@ -52,6 +52,6 @@ try:
 except Exception as e:
     if os.getenv("current_version") == "0.4a0":
         # old version 0.4a0 do not support this parsing
-        raise NotImplementedError("Parsing of classes not supported for version 0.4a0.") from e
+        print("Parsing of classes not supported for version 0.4a0. Skipping...")
     else:
         raise e
