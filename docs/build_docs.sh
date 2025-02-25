@@ -1,10 +1,11 @@
 current_branch=$(git rev-parse --abbrev-ref HEAD)
 echo "Current branch: $current_branch"
 
-versions=($(git tag --sort=-v:refname))
-versions+=("main")
-
+# generate docs/versions.json
 python helpers/generate_versions.py
+
+versions=($(jq -r '.[].version' docs/versions.json))
+echo "Building docs for versions: ${versions[*]}"
 
 for current_version in "${versions[@]}"; do
 
@@ -21,8 +22,8 @@ for current_version in "${versions[@]}"; do
 
 	rm -rf source/api/generated/*
 
-	# change documentation-versions with main before merging
-	git checkout documentation-versions -- . || echo "Using existing helpers"
+	# replace with main before merging
+	git checkout "$current_branch" -- . || echo "Using existing helpers"
 	python helpers/create_nblinks.py
 	python helpers/parse_classes.py
 

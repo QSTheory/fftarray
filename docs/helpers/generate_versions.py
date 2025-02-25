@@ -7,21 +7,24 @@ versions = sorted(
     reverse=True  # Show latest version first
 )
 
+exclude_versions = ["0.4a0"]
+
 formatted_versions = []
 for version in versions:
-    version_entry = {
-        "version": version,
-        # "url": f"https://QSTheory.github.io/fftarray/{version}/"
-        "url": f"http://localhost:8000/{version}/"
-    }
+    if version not in exclude_versions:
+        version_entry = {
+            "version": version,
+            # "url": f"https://QSTheory.github.io/fftarray/{version}/"
+            "url": f"http://localhost:8000/{version}/"
+        }
 
-    if version == versions[0]:
-        version_entry["name"] = f"dev"
+        if version == versions[0]:
+            version_entry["name"] = f"dev"
 
-    if version == versions[1]:
-        version_entry["name"] = f"{version} (stable)"
+        if version == versions[1]:
+            version_entry["name"] = f"{version} (stable)"
 
-    formatted_versions.append(version_entry)
+        formatted_versions.append(version_entry)
 
 
 # Save the versions as a JSON file in the root of the build

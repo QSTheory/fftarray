@@ -23,35 +23,28 @@ RST_FILE_TEMPLATE = """{name}
 
         {attributes}
 """
-try:
-    for cls, name in [[fa.Array, "Array"], [fa.Dimension, "Dimension"]]:
+for cls, name in [[fa.Array, "Array"], [fa.Dimension, "Dimension"]]:
 
-        members = inspect.getmembers(cls)
+    members = inspect.getmembers(cls)
 
-        methods = [name for name, obj in members if inspect.isroutine(obj) and not name.startswith('_')]
+    methods = [name for name, obj in members if inspect.isroutine(obj) and not name.startswith('_')]
 
-        attributes = [name for name, obj in members if not inspect.isroutine(obj) and not name.startswith('_')]
+    attributes = [name for name, obj in members if not inspect.isroutine(obj) and not name.startswith('_')]
 
-        methods_str = f"\t{name}.{methods[0]}\n"
-        for m in methods[1:]:
-            methods_str += f"\t\t\t{name}.{m}\n"
+    methods_str = f"\t{name}.{methods[0]}\n"
+    for m in methods[1:]:
+        methods_str += f"\t\t\t{name}.{m}\n"
 
-        attributes_str = f"\t{name}.{attributes[0]}\n"
-        for a in attributes[1:]:
-            attributes_str += f"\t\t\t{name}.{a}\n"
+    attributes_str = f"\t{name}.{attributes[0]}\n"
+    for a in attributes[1:]:
+        attributes_str += f"\t\t\t{name}.{a}\n"
 
-        cls_rst_file = RST_FILE_TEMPLATE.format(
-            name=name,
-            underline="="*len(name),
-            methods=methods_str,
-            attributes=attributes_str
-        )
+    cls_rst_file = RST_FILE_TEMPLATE.format(
+        name=name,
+        underline="="*len(name),
+        methods=methods_str,
+        attributes=attributes_str
+    )
 
-        with open(f"source/api/{name.lower()}.rst", "w") as index_file:
-            index_file.write(cls_rst_file)
-except Exception as e:
-    if os.getenv("current_version") == "0.4a0":
-        # old version 0.4a0 do not support this parsing
-        print("Parsing of classes not supported for version 0.4a0. Skipping...")
-    else:
-        raise e
+    with open(f"source/api/{name.lower()}.rst", "w") as index_file:
+        index_file.write(cls_rst_file)
