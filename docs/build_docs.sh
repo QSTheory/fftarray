@@ -1,3 +1,5 @@
+set -e  # Stop on first error
+
 current_branch=$(git rev-parse --abbrev-ref HEAD)
 echo "Current branch: $current_branch"
 
