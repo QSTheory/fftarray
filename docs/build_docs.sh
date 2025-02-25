@@ -22,7 +22,7 @@ for current_version in "${versions[@]}"; do
 	rm -rf source/api/generated/*
 
 	# change documentation-versions with main before merging
-	git checkout documentation-versions -- helpers/ || echo "Using existing helpers"
+	git checkout documentation-versions -- . || echo "Using existing helpers"
 	python helpers/create_nblinks.py
 	python helpers/parse_classes.py
 
