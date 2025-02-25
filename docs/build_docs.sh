@@ -4,7 +4,7 @@ echo "Current branch: $current_branch"
 # generate docs/versions.json
 python helpers/generate_versions.py
 
-versions=($(jq -r '.[].version' docs/versions.json))
+versions=($(jq -r '.[].version' build/html/versions.json))
 echo "Building docs for versions: ${versions[*]}"
 
 for current_version in "${versions[@]}"; do
