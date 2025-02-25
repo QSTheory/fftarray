@@ -162,23 +162,23 @@ def test_sel_order(xp, space) -> None:
 def test_defaults() -> None:
     assert fa.get_default_eager() is False
     assert fa.get_default_xp() == array_api_compat.array_namespace(np.asarray(0.))
-    assert fa.get_default_dtype_name() == "float64"
+    assert fa.get_default_precision() == "float64"
 
     xdim = fa.dim("x", n=4, d_pos=0.1, pos_min=0., freq_min=0.)
 
-    check_defaults(xdim, xp=np, dtype_name="float64", eager=False)
+    check_defaults(xdim, xp=np, precision="float64", eager=False)
 
     fa.set_default_xp(jnp)
-    fa.set_default_dtype_name("float32")
-    check_defaults(xdim, xp=jnp, dtype_name="float32", eager=False)
+    fa.set_default_precision("float32")
+    check_defaults(xdim, xp=jnp, precision="float32", eager=False)
 
     fa.set_default_eager(True)
-    check_defaults(xdim, xp=jnp, dtype_name="float32", eager=True)
+    check_defaults(xdim, xp=jnp, precision="float32", eager=True)
 
     # Reset global state for other tests
     fa.set_default_eager(False)
     fa.set_default_xp(np)
-    fa.set_default_dtype_name("float64")
+    fa.set_default_precision("float64")
 
 
 
@@ -186,19 +186,19 @@ def test_defaults_context() -> None:
     xdim = fa.dim("x", n=4, d_pos=0.1, pos_min=0., freq_min=0.)
 
     with fa.default_xp(jnp):
-        with fa.default_dtype_name("float32"):
-            check_defaults(xdim, xp=jnp, dtype_name="float32", eager=False)
-    check_defaults(xdim, xp=np, dtype_name="float64", eager=False)
+        with fa.default_precision("float32"):
+            check_defaults(xdim, xp=jnp, precision="float32", eager=False)
+    check_defaults(xdim, xp=np, precision="float64", eager=False)
     with fa.default_xp(jnp):
-        with fa.default_dtype_name("float32"):
+        with fa.default_precision("float32"):
             with fa.default_eager(eager=True):
-                check_defaults(xdim, xp=jnp, dtype_name="float32", eager=True)
-            check_defaults(xdim, xp=jnp, dtype_name="float32", eager=False)
+                check_defaults(xdim, xp=jnp, precision="float32", eager=True)
+            check_defaults(xdim, xp=jnp, precision="float32", eager=False)
 
 
-def check_defaults(dim: fa.Dimension, xp, dtype_name: fa.DEFAULT_DTYPE, eager: bool) -> None:
+def check_defaults(dim: fa.Dimension, xp, precision: fa.DEFAULT_PRECISION, eager: bool) -> None:
     xp_compat = array_api_compat.array_namespace(xp.asarray(0))
-    values = 0.1*xp.arange(4, dtype=dtype_name)
+    values = 0.1*xp.arange(4, dtype=precision)
     arr_from_dim = fa.coords_from_dim(dim, "pos")
     arr_direct = fa.array(values, dim, "pos")
     manual_arr = fa.Array(
@@ -211,14 +211,14 @@ def check_defaults(dim: fa.Dimension, xp, dtype_name: fa.DEFAULT_DTYPE, eager: b
     )
 
     assert fa.get_default_xp() == xp_compat
-    assert fa.get_default_dtype_name() == dtype_name
+    assert fa.get_default_precision() == precision
     assert fa.get_default_eager() == eager
 
     for arr in [arr_from_dim, arr_direct]:
         assert (manual_arr==arr).values("pos").all()
         assert arr.eager == (eager,)
         assert arr.xp == xp_compat
-        assert arr.values("pos").dtype == dtype_name
+        assert arr.values("pos").dtype == precision
 
 
 def test_bool() -> None:
