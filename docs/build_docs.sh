@@ -31,5 +31,6 @@ for current_version in "${versions[@]}"; do
 
 done
 
+git stash push -u -m "Temporary changes for documentation build"
 git checkout "$current_branch"
 git branch -D $(git branch | grep temp-) || echo "No temporary branches to delete"
