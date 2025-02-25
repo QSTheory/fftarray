@@ -365,13 +365,13 @@ def test_coords_from_dim(
     # Early exit if default_dtype_name is not supported
     if default_dtype_name not in get_args(fa.DEFAULT_PRECISION):
         with pytest.raises(ValueError):
-            with fa.default_precision(default_dtype_name):
+            with fa.default_precision(default_dtype_name): # type: ignore
                 pass
         return
 
     with fa.default_eager(eager):
         with fa.default_xp(default_xp):
-            with fa.default_precision(default_dtype_name):
+            with fa.default_precision(default_dtype_name): # type: ignore
                 if not xp_target.isdtype(dtype_target, ("real floating", "complex floating")):
                     with pytest.raises(ValueError):
                         arr = fa.coords_from_dim(dim, space, **array_args)
