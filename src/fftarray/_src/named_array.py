@@ -43,15 +43,6 @@ def align_named_arrays(
         aligned_arrays.append(arr)
     return list(target_indices.keys()), aligned_arrays
 
-
-@dataclass
-class FillDim:
-
-    index: int
-
-    def __hash__(self):
-        return hash(self.index)
-
 def get_axes_permute(
             old_dim_names: Sequence[str],
             new_dim_names: Sequence[str]
