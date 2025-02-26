@@ -1,5 +1,4 @@
 from typing import Sequence, Tuple, Any, List, Dict
-from dataclasses import dataclass
 
 def align_named_arrays(
         arrays: Sequence[Tuple[Sequence[str], Any]],
