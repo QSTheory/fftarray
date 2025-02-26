@@ -118,6 +118,7 @@ ruff_all = { cmd = ["ruff", "check", "examples", "tests", "src/fftarray"]}
 mypy_nb = { cmd = ["nbqa", "mypy", "examples"]}
 mypy = { cmd = ["mypy", "examples", "src/fftarray", "tests"], depends-on = ["mypy_nb"]}
 check = { depends-on = ["mypy", "ruff_all", "test"]}
+check_all = { depends-on = ["mypy", "ruff_all", "test_all"]}
 cov_html = { cmd = ["python", "-m", "pytest", "--cov=./src", "--cov=./examples", "--cov-report=html", "-n", "auto"]}
 cov_xml = { cmd = ["python", "-m", "pytest", "--cov=./src", "--cov=./examples", "--cov-report=xml", "-n", "auto"]}
 doc = { cmd = ["make"], "cwd" = "docs" }
