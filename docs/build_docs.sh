@@ -1,11 +1,11 @@
 set -e  # Stop on first error
 
-current_branch=$(git rev-parse --abbrev-ref HEAD)
-echo "Current branch: $current_branch"
+rm -rf build
 
-# generate docs/versions.json
+# creates build/html/versions.py
 python helpers/generate_versions.py
 
+# get all branches and versions
 versions=($(jq -r '.[].version' build/html/versions.json))
 echo "Building docs for versions: ${versions[*]}"
 
@@ -14,25 +14,23 @@ for current_version in "${versions[@]}"; do
 	echo "Version: $current_version"
 	export current_version
 
-	# Checkout the version safely (handle detached HEAD state for tags)
+	# double check that version exists
     if git rev-parse --verify "$current_version" >/dev/null 2>&1; then
-        git checkout -b temp-$current_version "$current_version" || git checkout "$current_version"
+		# load data from branch/version tag to folder in build/src
+		(
+			cd ..
+			git archive --format=tar --prefix=docs/build/src/"$current_version"/ "$current_version" | tar -x
+		)
+		# build docs for this version
+		(
+			cd build/src/"$current_version"/docs
+			make local
+		)
+		# move the generated html to the collective docs
+		mv build/src/"$current_version"/docs/build/html/local build/html/"$current_version"
     else
         echo "Warning: Version $current_version not found. Skipping."
         continue
     fi
 
-	rm -rf source/api/generated/*
-
-	# replace with main before merging
-	git checkout "$current_branch" -- . || echo "Using existing helpers"
-	python helpers/create_nblinks.py
-	python helpers/parse_classes.py
-
-	sphinx-build --color -b html source -t "$current_version" build/html/${current_version} -v
-
 done
-
-git stash push -u -m "Temporary changes for documentation build"
-git checkout "$current_branch"
-git branch -D $(git branch | grep temp-) || echo "No temporary branches to delete"
