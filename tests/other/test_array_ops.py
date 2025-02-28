@@ -9,7 +9,9 @@ import jax.numpy as jnp
 
 import fftarray as fa
 
-from tests.helpers import XPS, get_other_space, get_dims, get_arr_from_dims
+from tests.helpers import (
+    XPS, get_other_space, get_dims, get_arr_from_dims, get_test_array
+)
 
 PrecisionSpec = Literal["float32", "float64"]
 
@@ -116,26 +118,77 @@ def test_backend_override(xp, xp_override) -> None:
 
 
 def test_broadcasting() -> None:
-    x_dim = fa.dim("x", n=4, d_pos=1, pos_min=0., freq_min=0.)
-    y_dim = fa.dim("y", n=8, d_pos=1, pos_min=0., freq_min=0.)
+    """Test Array's automatic Dimension broadcasting"""
+    x_dim = fa.dim("x", n=4, d_pos=0.1, pos_min=-3., freq_min=0.)
+    y_dim = fa.dim("y", n=8, d_pos=1.2, pos_min=-1.5, freq_min=0.)
+    z_dim = fa.dim("z", n=2, d_pos=0.3, pos_min=4., freq_min=0.)
 
-    x_ref = np.arange(0., 4.)
-    y_ref = np.arange(0., 8.)
-    np.testing.assert_array_almost_equal_nulp(fa.coords_from_dim(x_dim, "pos", xp=np).np_array("pos"), x_ref, nulp = 0)
-    np.testing.assert_array_almost_equal_nulp(fa.coords_from_dim(y_dim, "pos", xp=np).np_array("pos"), y_ref, nulp = 0)
+    x = get_test_array(np, x_dim, "pos", np.int32, True)
+    y = get_test_array(np, y_dim, "pos", np.int32, True)
+    z = get_test_array(np, z_dim, "pos", np.int32, True)
 
-    x_ref_broadcast = x_ref.reshape(1,-1)
-    y_ref_broadcast = y_ref.reshape(-1,1)
-    np.testing.assert_array_almost_equal_nulp(
-        fa.permute_dims(fa.coords_from_dim(x_dim, "pos", xp=np) + fa.coords_from_dim(y_dim, "pos", xp=np), ("x", "y")).values("pos"),
-        (x_ref_broadcast+y_ref_broadcast).transpose(),
-        nulp = 0
-    )
-    np.testing.assert_array_almost_equal_nulp(
-        fa.permute_dims(fa.coords_from_dim(x_dim, "pos", xp=np) + fa.coords_from_dim(y_dim, "pos", xp=np), ("y", "x")).values("pos"),
-        x_ref_broadcast+y_ref_broadcast,
-        nulp = 0
-    )
+    x_ref = x.np_array("pos")
+    y_ref = y.np_array("pos")
+    z_ref = z.np_array("pos")
+
+    # check if numpy refs equal Array values
+    np.testing.assert_equal(x.np_array("pos"), x_ref, strict=True)
+    np.testing.assert_equal(y.np_array("pos"), y_ref, strict=True)
+    np.testing.assert_equal(z.np_array("pos"), z_ref, strict=True)
+
+    # --- broadcasting of two 1d Arrays: (x,) + (y,) = (x,y) ---
+
+    xy = fa.permute_dims(x+y, ("x", "y"))
+    assert xy.shape == (x_dim.n, y_dim.n)
+
+    yx = fa.permute_dims(y+x, ("y", "x"))
+    assert yx.shape == (y_dim.n, x_dim.n)
+
+    # create numpy reference values, broadcast (x,) and (y,) to (x,y)
+    x_ref_xy = x_ref.reshape(-1, 1)
+    assert x_ref_xy.shape == (x_dim.n, 1)
+    y_ref_xy = y_ref.reshape(1, -1)
+    assert y_ref_xy.shape == (1, y_dim.n)
+
+    xy_ref = x_ref_xy + y_ref_xy
+    assert xy_ref.shape == (x_dim.n, y_dim.n)
+
+    np.testing.assert_equal(xy.values("pos"), xy_ref, strict=True)
+
+    # (y,x) is the transpose of (x,y)
+    yx_ref = xy_ref.transpose()
+    assert yx_ref.shape == (y_dim.n, x_dim.n)
+
+    np.testing.assert_equal(yx.values("pos"), yx_ref, strict=True)
+
+    # --- broadcasting of two 2d Arrays: (x,y) + (y,x) ---
+
+    xy_yx = fa.permute_dims(xy + yx, ("x", "y"))
+    assert xy_yx.shape == (x_dim.n, y_dim.n)
+
+    # result should be twice xy
+    np.testing.assert_equal(xy_yx.values("pos"), 2*xy.values("pos"), strict=True)
+
+    # --- broadcasting of a 3d and 2d Array: (x,z,y) + (y,x) ---
+
+    xzy = fa.permute_dims(x * z * y, ("x", "z", "y"))
+    assert xzy.shape == (x_dim.n, z_dim.n, y_dim.n)
+
+    xzy_yx = fa.permute_dims(xzy + yx, ("x", "z", "y"))
+    assert xzy_yx.shape == (x_dim.n, z_dim.n, y_dim.n)
+
+    # all numpy arrays will be broadcast to match the axes of xzy
+    # all references should be compatible with shape (x_dim.n, z_dim.n, y_dim.n)
+    xzy_ref_xzy = xzy.np_array("pos")
+    assert xzy_ref_xzy.shape == (x_dim.n, z_dim.n, y_dim.n)
+    # broadcast yx to match (x,z,y): add axis in between (x,y)
+    yx_ref_xzy = np.expand_dims(xy.np_array("pos"), axis=1)
+    assert yx_ref_xzy.shape == (x_dim.n, 1, y_dim.n)
+
+    xzy_yx_ref_xzy = xzy_ref_xzy + yx_ref_xzy
+    assert xzy_yx_ref_xzy.shape == (x_dim.n, z_dim.n, y_dim.n)
+
+    np.testing.assert_equal(xzy_yx.values("pos"), xzy_yx_ref_xzy, strict=True)
 
 
 @pytest.mark.parametrize("xp", XPS)
