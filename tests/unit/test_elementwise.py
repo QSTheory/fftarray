@@ -8,6 +8,51 @@ import fftarray as fa
 
 from tests.helpers  import XPS, assert_fa_array_exact_equal
 
+def get_test_array(
+        xp,
+        dim: fa.Dimension,
+        space: fa.Space,
+        dtype,
+        factors_applied: bool,
+    ) -> fa.Array:
+    """ Generates a test array for a given dimension, space and dtype.
+
+    Parameters
+    ----------
+    xp : Array API namespace
+
+    dim : fa.Dimension
+
+    space : fa.Space
+
+    dtype : dtype of the test data as a member of xp
+
+    factors_applied : bool
+
+
+    Returns
+    -------
+    fa.Array
+
+    Raises
+    ------
+    ValueError
+        Raises on unsupported dtype.
+    """
+    if xp.isdtype(dtype, "bool"):
+        assert factors_applied
+        return fa.array(xp.arange(dim.n)%2==0, dim, space)
+    elif xp.isdtype(dtype, "integral"):
+        assert factors_applied
+        return fa.array(xp.arange(dim.n)+1, dim, space)
+    elif xp.isdtype(dtype, "real floating"):
+        assert factors_applied
+        return fa.coords_from_dim(dim, space, xp=xp)+1.
+    elif xp.isdtype(dtype, "complex floating"):
+        arr = (fa.coords_from_dim(dim, space, xp=xp)+1.)*(1.+1.2j)
+        return arr.into_factors_applied(factors_applied)
+
+    raise ValueError(f"Unsupported dtype {dtype}")
 
 # List all element-wise ops with the the data types which they support at minimum
 # as mandated by the Pthon Array API Standard.
@@ -21,7 +66,7 @@ elementwise_ops_single_arg = {
     "atanh": ("real floating", "complex floating"),
     "bitwise_invert": ("bool", "integral"),
     "ceil": ("integral", "real floating"),
-    "conj": ("complex floating"),
+    "conj": ("integral", "real floating", "complex floating"),
     "cos": ("real floating", "complex floating"),
     "cosh": ("real floating", "complex floating"),
     "exp": ("real floating", "complex floating"),
@@ -38,7 +83,7 @@ elementwise_ops_single_arg = {
     "logical_not": ("bool"),
     "negative": ("integral", "real floating", "complex floating"),
     "positive": ("integral", "real floating", "complex floating"),
-    "real": ("complex floating"),
+    "real": ("integral", "real floating", "complex floating"),
     "round": ("integral", "real floating", "complex floating"),
     "sign": ("integral", "real floating", "complex floating"),
     "signbit": ("real floating"),
@@ -300,9 +345,14 @@ def elementwise_single_arg(
     x_dim = fa.dim("x", n=5, d_pos=0.1, pos_min=0, freq_min=0)
 
     arr1 = (
-        fa.coords_from_dim(x_dim, space, xp=xp)
+        get_test_array(
+            xp=xp,
+            dim=x_dim,
+            space=space,
+            dtype=dtype,
+            factors_applied=factors_applied,
+        )
         .into_eager(eager)
-        .into_factors_applied(factors_applied)
     )
 
     if not xp.isdtype(dtype, "complex floating") and not factors_applied:
@@ -329,12 +379,12 @@ def elementwise_single_arg(
     xp_res = getattr(xp, op_name)(arr1_xp)
     assert fa_res.factors_applied == (True,)
 
-    np.testing.assert_equal(
+    np.testing.assert_allclose(
         np.array(fa_res._values),
         np.array(xp_res),
     )
 
-    np.testing.assert_equal(
+    np.testing.assert_allclose(
         np.array(fa_res.values(space)),
         np.array(xp_res),
     )
@@ -428,24 +478,35 @@ def elementwise_two_arrs(
     y_dim = fa.dim("y", n=8, d_pos=0.1, pos_min=0, freq_min=0)
 
     x_arr = (
-        fa.coords_from_dim(x_dim, space, xp=xp)
+        get_test_array(
+            xp=xp,
+            dim=x_dim,
+            space=space,
+            dtype=dtype,
+            factors_applied=factors_applied_1,
+        )
         .into_eager(eager)
-        .into_factors_applied(factors_applied_1)
-        .into_dtype(dtype)
-
     )
     x2_arr = (
-        fa.coords_from_dim(x_dim, space, xp=xp)
+        get_test_array(
+            xp=xp,
+            dim=x_dim,
+            space=space,
+            dtype=dtype,
+            factors_applied=factors_applied_2,
+        )
         .into_eager(eager)
-        .into_factors_applied(factors_applied_2)
-        .into_dtype(dtype)
     )
 
     y_arr = (
-        fa.coords_from_dim(y_dim, space, xp=xp)
+        get_test_array(
+            xp=xp,
+            dim=y_dim,
+            space=space,
+            dtype=dtype,
+            factors_applied=factors_applied_2,
+        )
         .into_eager(eager)
-        .into_factors_applied(factors_applied_2)
-        .into_dtype(dtype)
     )
 
     if not is_op_valid_for_dtype:
@@ -487,11 +548,13 @@ def elementwise_two_arrs(
 
     np.testing.assert_allclose(
         fa_x2.values(space),
-        ref_x2_values
+        ref_x2_values,
+        atol=1e-15,
     )
     np.testing.assert_allclose(
         fa_xy.values(space),
         ref_xy_values,
+        atol=1e-15,
     )
 
 # This limit the number of combinations where an upcasting
@@ -621,10 +684,14 @@ def elementwise_arr_scalar(
     x_dim = fa.dim("x", n=5, d_pos=0.1, pos_min=0, freq_min=0)
 
     x_arr = (
-        fa.coords_from_dim(x_dim, space, xp=xp)
+        get_test_array(
+            xp=xp,
+            dim=x_dim,
+            space=space,
+            dtype=dtype,
+            factors_applied=factors_applied,
+        )
         .into_eager(eager)
-        .into_factors_applied(factors_applied)
-        .into_dtype(dtype)
     )
 
     dtype = getattr(xp, dtype_name)
