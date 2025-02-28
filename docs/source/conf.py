@@ -48,13 +48,14 @@ autosummary_import_members = True
 autodoc_typehints = "both"
 autodoc_typehints_format = "short"
 
+nbsphinx_execute = "always"
 nbsphinx_allow_errors = True
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
-    "jax": ("https://jax.readthedocs.io/en/latest/", None),
-    "xarray": ("https://docs.xarray.dev/en/stable/generated/", None),
+    "jax": ("https://docs.jax.dev/en/latest", None),
+    "xarray": ("https://docs.xarray.dev/en/stable/", None),
 }
 
 templates_path = ['_templates']
@@ -64,12 +65,12 @@ source_suffix = ['.rst', '.ipynb', '.md']
 exclude_patterns = [
     '_build',
     'Thumbs.db',
-    '.DS_Store'
+    '.DS_Store',
     'build/html',
     'build/jupyter_execute',
     'notebooks/README.md',
     'README.md',
-    'notebooks/*.md'
+    'notebooks/*.md',
 ]
 
 pygments_style = None
@@ -124,6 +125,6 @@ nb_execution_allow_errors = False
 nb_merge_streams = True
 
 # TODO: copied from jax, test if needed
-nb_execution_timeout = 100
+# nb_execution_timeout = 100
 
 

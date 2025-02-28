@@ -156,7 +156,7 @@ def plt_array_values_space_time(
         plot.add_layout(color_bar, "right")
         plot.xaxis[0].formatter = PrintfTickFormatter(format="%.1e")
         plot.yaxis[0].formatter = PrintfTickFormatter(format="%.1e")
-        plot.title.text = f"$$|\Psi({variable})|^2$$ in {space} space" # type: ignore
+        plot.title.text = fr"$$|\Psi({variable})|^2$$ in {space} space" # type: ignore
         plots.append(plot)
 
     row_plot = row(plots, sizing_mode="stretch_width")
