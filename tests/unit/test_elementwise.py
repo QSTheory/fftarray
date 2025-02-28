@@ -6,57 +6,10 @@ import numpy as np
 
 import fftarray as fa
 
-from tests.helpers import XPS, assert_fa_array_exact_equal
+from tests.helpers import (
+    XPS, assert_fa_array_exact_equal, get_test_array
+)
 from fftarray._src.transform_application import complex_type
-
-def get_test_array(
-        xp,
-        dim: fa.Dimension,
-        space: fa.Space,
-        dtype,
-        factors_applied: bool,
-    ) -> fa.Array:
-    """ Generates a test array for a given dimension, space and dtype.
-
-    Parameters
-    ----------
-    xp : Array API namespace
-
-    dim : fa.Dimension
-
-    space : fa.Space
-
-    dtype : dtype of the test data as a member of xp
-
-    factors_applied : bool
-
-
-    Returns
-    -------
-    fa.Array
-
-    Raises
-    ------
-    ValueError
-        Raises on unsupported dtype.
-    """
-
-    offset = xp.asarray(1. + getattr(dim, f"{space}_middle"))
-    offset = xp.astype(offset, dtype)
-    if xp.isdtype(dtype, "bool"):
-        assert factors_applied
-        return fa.array(xp.arange(dim.n)%2==0, dim, space)
-    elif xp.isdtype(dtype, "integral"):
-        assert factors_applied
-        return fa.array(xp.astype(xp.arange(dim.n), dtype)+offset, dim, space)
-    elif xp.isdtype(dtype, "real floating"):
-        assert factors_applied
-        return fa.coords_from_dim(dim, space, xp=xp).into_dtype(dtype)+offset
-    elif xp.isdtype(dtype, "complex floating"):
-        arr = (fa.coords_from_dim(dim, space, xp=xp).into_dtype(dtype)+offset)*(1.+1.2j)
-        return arr.into_factors_applied(factors_applied)
-
-    raise ValueError(f"Unsupported dtype {dtype}")
 
 # List all element-wise ops with the the data types which they support at minimum
 # as mandated by the Pthon Array API Standard.
