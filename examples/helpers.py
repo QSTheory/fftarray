@@ -1,4 +1,4 @@
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Tuple
 from typing_extensions import assert_never
 
 import numpy as np
@@ -121,8 +121,10 @@ def plt_array_values_space_time(
         time: Any,
         pos_unit: str = "m",
         freq_unit: str = "1/m",
+        pos_range: Optional[Tuple[float, float]] = None,
+        freq_range: Optional[Tuple[float, float]] = None,
     ):
-    """Plot the one-dimensional values in space-time as a image.
+    """Plot the one-dimensional values in space-time as an image.
     """
     plots = []
     for space, values, grid in [["pos", pos_values, pos_grid], ["freq", freq_values, freq_grid]]:
@@ -131,9 +133,17 @@ def plt_array_values_space_time(
             case "pos":
                 unit = pos_unit
                 variable = "x"
+                if pos_range is None:
+                    plt_range = (float(grid[0]), float(grid[-1]))
+                else:
+                    plt_range = pos_range
             case "freq":
                 unit = freq_unit
                 variable = "f"
+                if freq_range is None:
+                    plt_range = (float(grid[0]), float(grid[-1]))
+                else:
+                    plt_range = freq_range
             case _:
                 assert_never(space)
 
@@ -141,7 +151,7 @@ def plt_array_values_space_time(
             x_axis_label = "time [s]",
             y_axis_label = f"{space} coordinate [{unit}]",
             x_range=(float(time[0]), float(time[-1])),
-            y_range=(float(grid[0]), float(grid[-1]))
+            y_range=plt_range
         )
         r = plot.image(
             image=[np.transpose(values)],

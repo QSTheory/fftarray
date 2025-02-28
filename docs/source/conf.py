@@ -122,9 +122,7 @@ myst_heading_anchors = 3  # auto-generate 3 levels of heading anchors
 myst_enable_extensions = ['dollarmath', 'colon_fence']
 nb_execution_mode = "force"
 nb_execution_allow_errors = False
+nb_execution_raise_on_error = True
 nb_merge_streams = True
-
-# TODO: copied from jax, test if needed
-# nb_execution_timeout = 100
-
+nb_execution_timeout = 100
 
