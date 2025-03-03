@@ -122,7 +122,6 @@ def apply_lazy(
             indices = xp.reshape(indices, shape=tuple(extended_shape))
 
             if dim_space == "pos":
-                # x = indices * dim.d_pos + dim.pos_min
                 per_idx_values = -sign*2*np.pi*dim.freq_min*dim.d_pos*indices
             else:
                 # f = indices * dim.d_freq + dim.freq_min
