@@ -744,22 +744,22 @@ def test_clip(xp) -> None:
     assert xp.all(fa.clip(arr1, min=None, max=3).values("pos") == xp.clip(vals, min=None, max=3))
     assert xp.all(fa.clip(arr1).values("pos") == xp.clip(vals))
 
-@pytest.mark.parametrize("xp", XPS[1:]) # exclude array_api_strict
+@pytest.mark.parametrize("xp", XPS) # exclude array_api_strict
 @pytest.mark.parametrize("precision", ["float32", "float64"])
-@pytest.mark.parametrize("complex", [True, False])
 @pytest.mark.parametrize("factors_applied", [True, False])
 def test_angle(
     xp,
     precision: str,
-    complex: bool,
     factors_applied: bool
 ) -> None:
     dtype = getattr(xp, precision)
-    dim = fa.dim("x", 4, 0.1, 0., 0.)
+    dim = fa.dim("x", 4, 0.1, 0., 1)
     arr = fa.coords_from_dim(dim, "pos", dtype=dtype, xp=xp)
-    arr = arr.into_factors_applied(factors_applied)
-    if complex:
-        arr = fa.exp(1.j*arr)
+
+    # For factors_applied == False, this tests a real-valued Array
+    if factors_applied:
+        # This tests both, complex values + factors_applied handling
+        arr = arr.into_factors_applied(factors_applied)
 
     # We perform the baseline angle calculation with numpy as
     # angle is not part of the Python Array API standard.
