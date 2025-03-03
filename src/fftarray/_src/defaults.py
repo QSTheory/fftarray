@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, get_args
 
 import numpy as np
 
@@ -37,36 +37,44 @@ def default_xp(xp) -> DefaultArrayNamespaceContext:
     Only floating types are allowed as default dtypes
     because only those make sense to initialize coordinate arrays.
 """
-DEFAULT_DTYPE = Literal[
+DEFAULT_PRECISION = Literal[
     "float32",
     "float64",
-    "complex64",
-    "complex128",
 ]
 
 # stores the name of the attribute
-_DEFAULT_DTYPE_NAME: DEFAULT_DTYPE = "float64"
+_DEFAULT_PRECISION: DEFAULT_PRECISION = "float64"
 
-def set_default_dtype_name(dtype: DEFAULT_DTYPE) -> None:
-    global _DEFAULT_DTYPE_NAME
-    _DEFAULT_DTYPE_NAME= dtype
+def check_precision(precision: DEFAULT_PRECISION):
+    """Helper function checking whether the provided precision is supported."""
+    if precision not in get_args(DEFAULT_PRECISION):
+        raise ValueError(
+            f"Precision '{precision}' is not supported. " +
+            f"Choose one from {get_args(DEFAULT_PRECISION)}."
+        )
 
-def get_default_dtype_name() -> DEFAULT_DTYPE:
-    return _DEFAULT_DTYPE_NAME
+def set_default_precision(precision: DEFAULT_PRECISION) -> None:
+    check_precision(precision)
+    global _DEFAULT_PRECISION
+    _DEFAULT_PRECISION = precision
 
-class DefaultDTypeContext:
-    def __init__(self, dtype: DEFAULT_DTYPE):
-        self.override = dtype
+def get_default_precision() -> DEFAULT_PRECISION:
+    return _DEFAULT_PRECISION
+
+class DefaultPrecisionContext:
+    def __init__(self, precision: DEFAULT_PRECISION):
+        self.override = precision
 
     def __enter__(self):
-        self.previous = get_default_dtype_name()
-        set_default_dtype_name(self.override)
+        self.previous = get_default_precision()
+        set_default_precision(self.override)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        set_default_dtype_name(self.previous)
+        set_default_precision(self.previous)
 
-def default_dtype_name(dtype: DEFAULT_DTYPE) -> DefaultDTypeContext:
-    return DefaultDTypeContext(dtype=dtype)
+def default_precision(precision: DEFAULT_PRECISION) -> DefaultPrecisionContext:
+    check_precision(precision)
+    return DefaultPrecisionContext(precision=precision)
 
 
 _DEFAULT_EAGER: bool = False

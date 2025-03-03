@@ -33,13 +33,13 @@ from ._src.defaults import (
     set_default_xp as set_default_xp,
     get_default_xp as get_default_xp,
     default_xp as default_xp,
-    set_default_dtype_name as set_default_dtype_name,
-    get_default_dtype_name as get_default_dtype_name,
-    default_dtype_name as default_dtype_name,
+    set_default_precision as set_default_precision,
+    get_default_precision as get_default_precision,
+    default_precision as default_precision,
     set_default_eager as set_default_eager,
     get_default_eager as get_default_eager,
     default_eager as default_eager,
-    DEFAULT_DTYPE as DEFAULT_DTYPE,
+    DEFAULT_PRECISION as DEFAULT_PRECISION,
 )
 
 from ._src.space import Space as Space
