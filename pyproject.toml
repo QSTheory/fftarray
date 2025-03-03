@@ -23,7 +23,7 @@ classifiers = [
 ]
 dependencies = [
     "numpy>=1.25",
-    "array-api-compat>=1.9.1",
+    "array-api-compat>=1.11.0",
     "typing-extensions>=4.1",
 ]
 
@@ -67,7 +67,7 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
     "pytest-cov",
     "pytest-xdist[psutil]",
     "pytest-split",
-    "array-api-strict",
+    "array-api-strict>=2.3.0",
     "ruff",
     "xarray",
 ]

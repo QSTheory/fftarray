@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .defaults import get_default_dtype_name
+from .defaults import get_default_precision
 from .formatting import dim_table, format_n
 from .indexing import check_substepping, remap_index_check_int
 
@@ -590,5 +590,5 @@ class Dimension:
                 assert_never(space)
 
     def np_array(self: Dimension, space: Space):
-        return self._raw_coord_array(xp=np, dtype=getattr(np, get_default_dtype_name()), space=space)
+        return self._raw_coord_array(xp=np, dtype=getattr(np, get_default_precision()), space=space)
 
