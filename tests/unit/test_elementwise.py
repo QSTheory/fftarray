@@ -7,6 +7,7 @@ import numpy as np
 import fftarray as fa
 
 from tests.helpers import XPS, assert_fa_array_exact_equal
+from fftarray._src.transform_application import complex_type
 
 def get_test_array(
         xp,
@@ -746,24 +747,30 @@ def test_clip(xp) -> None:
 
 @pytest.mark.parametrize("xp", XPS)
 @pytest.mark.parametrize("precision", ["float32", "float64"])
-@pytest.mark.parametrize("factors_applied", [True, False])
+@pytest.mark.parametrize("type, factors_applied", [
+    pytest.param("real", True),
+    pytest.param("complex", True),
+    pytest.param("complex", False),
+])
 def test_angle(
     xp,
     precision: str,
+    type: Literal["real", "complex"],
     factors_applied: bool
 ) -> None:
+
+    dtype = getattr(xp, precision)
+
+    if type == "complex":
+        dtype = complex_type(xp, dtype)
+
     arr = get_test_array(
         xp=xp,
-        dim=fa.dim("x", 4, 0.1, 0., 1),
+        dim=fa.dim("x", 4, 0.1, 0., 1.),
         space="pos",
-        dtype=getattr(xp, precision),
-        factors_applied=True,
+        dtype=dtype,
+        factors_applied=factors_applied,
     )
-
-    # For factors_applied == False, this tests a real-valued Array
-    if not factors_applied:
-        # This tests both, complex values + factors_applied handling
-        arr = arr.into_factors_applied(factors_applied)
 
     # We perform the baseline angle calculation with numpy as
     # angle is not part of the Python Array API standard.
