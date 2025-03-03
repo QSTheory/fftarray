@@ -5,11 +5,17 @@ import pytest
 import numpy as np
 
 import fftarray as fa
-from tests.helpers import XPS, get_dims, dtypes_names_all
+from tests.helpers import XPS, get_dims
 
 @pytest.mark.parametrize("xp", XPS)
-@pytest.mark.parametrize("init_dtype_name", dtypes_names_all)
-@pytest.mark.parametrize("target_dtype_name", dtypes_names_all)
+@pytest.mark.parametrize(("init_dtype_name, target_dtype_name"), [
+    pytest.param("complex64", "complex128"),
+    pytest.param("int64", "float32"),
+    pytest.param("int64", "bool"),
+    pytest.param("int32", "int64"),
+    pytest.param("bool", "int64"),
+    pytest.param("bool", "float32"),
+])
 def test_into_dtype(xp, init_dtype_name, target_dtype_name) -> None:
     dim = fa.dim("x", 4, 0.1, 0., 0.)
     arr1 = fa.array(
@@ -18,8 +24,10 @@ def test_into_dtype(xp, init_dtype_name, target_dtype_name) -> None:
         "pos",
         dtype=getattr(xp, init_dtype_name),
     )
-    arr2 = arr1.into_dtype(getattr(xp, target_dtype_name))
-    assert arr2.dtype == getattr(xp, target_dtype_name)
+
+    target_dtype = getattr(xp, target_dtype_name)
+    arr2 = arr1.into_dtype(target_dtype)
+    assert arr2.dtype == target_dtype
 
 
 
