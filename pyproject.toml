@@ -126,7 +126,7 @@ cov_xml = { cmd = ["python", "-m", "pytest", "--cov=./src", "--cov=./examples", 
 # The following command builds the docs of all released versions
 # and the tips of the branches defined in docs/helpers/generate_versions.py
 # and combines them into a single doc with a version switcher.
-doc_all_versions = { cmd = ["make all_versions"], "cwd" = "docs" }
+doc_all_versions = { cmd = ["make", "all_versions"], "cwd" = "docs" }
 doc_local = { cmd = ["make", "local"], "cwd" = "docs" }
 # TODO: Currently only tested on macOS. Would be nice to make it an --open option like in cargo.
 doc_open = { cmd = ["open", "docs/build/html/local/index.html"], depends-on = ["doc_local"] }
