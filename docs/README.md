@@ -14,10 +14,10 @@ python -m pip install -e ".[doc]"
 folder:
 ```shell
 cd docs
-make
+make all_versions
 ```
-By default, this will build the documentation for all versions (see next
-section). To only build it for your current version, execute `make local`.
+This will build the documentation for all versions (see next section).
+To only build it for your current version, execute `make local`.
 The homepage of the documentation can be found in `build/html/local/index.html`.
 
 ### Building for all versions
