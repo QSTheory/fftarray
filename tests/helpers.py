@@ -1,4 +1,4 @@
-from typing import Iterable, List, Literal, Union, Tuple, get_args
+from typing import Iterable, List, Literal, Union, Tuple
 
 import array_api_strict
 import array_api_compat
@@ -48,7 +48,6 @@ DTYPE_NAME = Literal[
     "complex64",
     "complex128",
 ]
-dtypes_names_all = get_args(DTYPE_NAME)
 dtype_names_numeric_core = [
     "int32",
     "int64",
