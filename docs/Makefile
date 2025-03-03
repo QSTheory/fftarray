@@ -42,7 +42,7 @@ all_versions: clean versions_list
 			$(MAKE) local; \
 			cd ../../../.. && \
 			mkdir -p $(HTML_DIR)/$$VERSION; \
-			mv $(SRC_DIR)/$$VERSION/docs/build/html/local $(HTML_DIR)/$$VERSION; \
+			mv $(SRC_DIR)/$$VERSION/docs/build/html/local/* $(HTML_DIR)/$$VERSION; \
 		else \
 			echo "Warning: Version $$VERSION not found. Skipping."; \
 		fi; \
