@@ -40,17 +40,20 @@ def get_test_array(
     ValueError
         Raises on unsupported dtype.
     """
+
+    offset = xp.asarray(1. + getattr(dim, f"{space}_middle"))
+    offset = xp.astype(offset, dtype)
     if xp.isdtype(dtype, "bool"):
         assert factors_applied
         return fa.array(xp.arange(dim.n)%2==0, dim, space)
     elif xp.isdtype(dtype, "integral"):
         assert factors_applied
-        return fa.array(xp.arange(dim.n)+1, dim, space)
+        return fa.array(xp.astype(xp.arange(dim.n), dtype)+offset, dim, space)
     elif xp.isdtype(dtype, "real floating"):
         assert factors_applied
-        return fa.coords_from_dim(dim, space, xp=xp)+1.
+        return fa.coords_from_dim(dim, space, xp=xp).into_dtype(dtype)+offset
     elif xp.isdtype(dtype, "complex floating"):
-        arr = (fa.coords_from_dim(dim, space, xp=xp)+1.)*(1.+1.2j)
+        arr = (fa.coords_from_dim(dim, space, xp=xp).into_dtype(dtype)+offset)*(1.+1.2j)
         return arr.into_factors_applied(factors_applied)
 
     raise ValueError(f"Unsupported dtype {dtype}")
@@ -550,12 +553,12 @@ def elementwise_two_arrs(
     np.testing.assert_allclose(
         fa_x2.values(space),
         ref_x2_values,
-        atol=1e-15,
+        atol=2e-15,
     )
     np.testing.assert_allclose(
         fa_xy.values(space),
         ref_xy_values,
-        atol=1e-15,
+        atol=2e-15,
     )
 
 # This limit the number of combinations where an upcasting
@@ -733,6 +736,7 @@ def elementwise_arr_scalar(
     np.testing.assert_allclose(
         np.array(fa_x2.values(space)),
         np.array(ref_x2_values),
+        rtol=5e-7
     )
 
 

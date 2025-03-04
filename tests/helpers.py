@@ -7,7 +7,10 @@ import pytest
 
 import fftarray as fa
 
-XPS = [array_api_strict, array_api_compat.get_namespace(np.asarray(1.))]
+XPS = [
+    array_api_strict,
+    array_api_compat.get_namespace(np.asarray(1.)),
+]
 
 try:
     import jax
