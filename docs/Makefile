@@ -39,6 +39,7 @@ all_versions: clean versions_list
 			cd .. && \
 			git archive --format=tar --prefix=docs/$(SRC_DIR)/$$VERSION/ $$VERSION | tar -x; \
 			cd docs/$(SRC_DIR)/$$VERSION/docs && \
+			export VERSION=$$VERSION; \
 			$(MAKE) local; \
 			cd ../../../.. && \
 			mkdir -p $(HTML_DIR)/$$VERSION; \
