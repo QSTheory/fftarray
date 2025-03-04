@@ -32,7 +32,7 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_design",
     "nbsphinx",
-    "nbsphinx_link"
+    "nbsphinx_link",
 ]
 
 add_module_names = False
@@ -48,13 +48,14 @@ autosummary_import_members = True
 autodoc_typehints = "both"
 autodoc_typehints_format = "short"
 
+nbsphinx_execute = "always"
 nbsphinx_allow_errors = True
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
-    "jax": ("https://jax.readthedocs.io/en/latest/", None),
-    "xarray": ("https://docs.xarray.dev/en/stable/generated/", None),
+    "jax": ("https://docs.jax.dev/en/latest", None),
+    "xarray": ("https://docs.xarray.dev/en/stable/", None),
 }
 
 templates_path = ['_templates']
@@ -64,12 +65,12 @@ source_suffix = ['.rst', '.ipynb', '.md']
 exclude_patterns = [
     '_build',
     'Thumbs.db',
-    '.DS_Store'
+    '.DS_Store',
     'build/html',
     'build/jupyter_execute',
     'notebooks/README.md',
     'README.md',
-    'notebooks/*.md'
+    'notebooks/*.md',
 ]
 
 pygments_style = None
@@ -78,14 +79,35 @@ html_theme = 'sphinx_book_theme'
 
 html_theme_options = dict(
     repository_url='https://github.com/QSTheory/fftarray',
-    repository_branch='main',
-    navigation_with_keys=False,  # pydata/pydata-sphinx-theme#1492
-    navigation_depth=4,
+    collapse_navigation=True,
+    navigation_with_keys=False,
+    show_navbar_depth=4,
+    collapse_navbar=True,
     path_to_docs='docs',
     use_edit_page_button=True,
     use_repository_button=True,
     use_issues_button=True,
     home_page_in_toc=False,
+    primary_sidebar_end=["version-switcher"],
+    switcher=dict(
+        json_url="http://localhost:8000/versions.json",  # for local testing
+        # json_url="https://QSTheory.github.io/fftarray/versions.json", # when published
+        version_match=os.getenv("VERSION", "main"),
+    ),
+    icon_links=[
+        {
+            "name": "GitHub",
+            "url": "https://github.com/QSTheory/fftarray",
+            "icon": "fa-brands fa-github",
+            "type": "fontawesome",
+        },
+        {
+            "name": "Research Group",
+            "url": "https://www.iqo.uni-hannover.de/de/arbeitsgruppen/theory-of-quantum-sensors",
+            "icon": "https://www.uni-hannover.de/fileadmin/site-templates/logos/luh_logo_196.png",
+            "type": "url",
+        },
+    ],
 )
 
 html_static_path = ['_static']
@@ -100,9 +122,7 @@ myst_heading_anchors = 3  # auto-generate 3 levels of heading anchors
 myst_enable_extensions = ['dollarmath', 'colon_fence']
 nb_execution_mode = "force"
 nb_execution_allow_errors = False
+nb_execution_raise_on_error = True
 nb_merge_streams = True
-
-# TODO: copied from jax, test if needed
 nb_execution_timeout = 100
-
 
