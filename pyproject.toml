@@ -73,17 +73,20 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
 ]
 
 "doc" = [
-    "fftarray[jax, helpers, dashboards]",
+    "fftarray[jax, helpers]",
     "sphinx>=6.1",
     "sphinx-book-theme>=1.0.1",
     "sphinx-design",
     "sphinx-copybutton",
     "lxml_html_clean",
     "nbsphinx",
+    "nbconvert>=7.16.5",
     "nbsphinx-link",
     "myst-nb",
     "m2r2",
     "matplotlib",
+    "ipython",
+    "bokeh",
 ]
 
 [tool.ruff]
@@ -121,9 +124,13 @@ check = { depends-on = ["mypy", "ruff_all", "test"]}
 check_all = { depends-on = ["mypy", "ruff_all", "test_all"]}
 cov_html = { cmd = ["python", "-m", "pytest", "--cov=./src", "--cov=./examples", "--cov-report=html", "-n", "auto"]}
 cov_xml = { cmd = ["python", "-m", "pytest", "--cov=./src", "--cov=./examples", "--cov-report=xml", "-n", "auto"]}
-doc = { cmd = ["make"], "cwd" = "docs" }
+# The following command builds the docs of all released versions
+# and the tips of the branches defined in docs/helpers/generate_versions.py
+# and combines them into a single doc with a version switcher.
+doc_all_versions = { cmd = ["make", "all_versions"], "cwd" = "docs" }
+doc_local = { cmd = ["make", "local"], "cwd" = "docs" }
 # TODO: Currently only tested on macOS. Would be nice to make it an --open option like in cargo.
-doc_open = { cmd = ["open", "docs/build/html/development/index.html"], depends-on = ["doc"] }
+doc_open = { cmd = ["open", "docs/build/html/local/index.html"], depends-on = ["doc_local"] }
 
 [tool.pixi.project]
 channels = ["conda-forge"]

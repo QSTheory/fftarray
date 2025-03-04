@@ -22,7 +22,6 @@ RST_FILE_TEMPLATE = """{name}
 
         {attributes}
 """
-
 for cls, name in [[fa.Array, "Array"], [fa.Dimension, "Dimension"]]:
 
     members = inspect.getmembers(cls)
