@@ -154,49 +154,6 @@ div_transforms_lut = TwoOperandTransforms(
     final_factor_state=np.array([False, False, True, True])
 )
 
-"""
-    Generates the required phase factor applications and factors_applied result required
-    for division from the right (``__rfloordiv__`` and ``rtruediv__``) while keeping
-    factors_applied correct.
-    The general rule here is that the divisor always needs to have ``factors_applied=True``,
-    because the inverse phase factors cannot be represented as lazy state.
-
-    This table shows the results of this function for different ``factors_applied``.
-    A scalar input has always ``factors_applied=True``.
-
-    +------------+--------+--------+-----------+-------------------+-------------------+-------+
-    |   eager    |factors1|factors2| LUT Index |x1 sign (to target)|x2 sign (to target)| res   |
-    +============+========+========+===========+===================+===================+=======+
-    | False/True | False  | False  | 0/4       | -1(True)          | 0(False)          | False |
-    +------------+--------+--------+-----------+-------------------+-------------------+-------+
-    | False/True | False  | True   | 1/5       | -1(True)          | 0(True)           | True  |
-    +------------+--------+--------+-----------+-------------------+-------------------+-------+
-    | False/True | True   | False  | 2/6       | 0(True)           | 0(False)          | False |
-    +------------+--------+--------+-----------+-------------------+-------------------+-------+
-    | False/True | True   | True   | 3/7       | 0(True)           | 0(True)           | True  |
-    +------------+--------+--------+-----------+-------------------+-------------------+-------+
-
-    The choice between the operands in the first table entry is arbitrary for multiplication
-    but is the necessary choice for division.
-    In order to maximise consistency the choice for division is also used in
-    multiplication.
-"""
-rdiv_transforms_lut = TwoOperandTransforms(
-    factor_application_signs=np.array([
-        # The choice between the operands is arbitrary for multiplication
-        # but is the necessary choice for division.
-        # (False, False)
-        [-1, 0],
-        # (False, True)
-        [-1, 0],
-        # (True,  False)
-        [0,  0],
-        # (True,  True)
-        [0,  0],
-    ]),
-    final_factor_state=np.array([False, True, False, True])
-)
-
 
 """
     Defines the required phase factor applications and factors_applied result required

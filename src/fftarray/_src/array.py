@@ -7,7 +7,6 @@ from typing import (
 from numbers import Number
 from dataclasses import dataclass
 import textwrap
-from functools import partial
 
 import numpy as np
 import numpy.typing as npt
@@ -30,7 +29,6 @@ from .op_lazy_luts import (
     add_transforms_lut,
     mul_transforms_lut,
     div_transforms_lut,
-    rdiv_transforms_lut,
 )
 from .transform_application import do_fft, get_transform_signs, apply_lazy, complex_type
 
@@ -152,30 +150,35 @@ def two_inputs_func(
         xp=unp_inp.xp,
     )
 
-def _two_elem_self(x1: Array, x2: Array, name: str) -> Array:
-    return getattr(x1, name)(x2)
-
 def elementwise_two_operands(
         name: str,
         transforms_lut: TwoOperandTransforms = default_transforms_lut,
-        is_on_self: bool = False,
+        swap_operands: bool = False,
     ): # This type makes problem for the dunder methods -> Callable[[Any, Any], Array]:
     """Helper function handling elementwise functions for two operands.
 
     :meta private:
     """
 
-    def fun(x1, x2, /) -> Array:
-        unp_inp: UnpackedValues = unpack_arrays([x1, x2])
-        if is_on_self:
-            op_norm = partial(_two_elem_self, name=name)
-        else:
+    if swap_operands:
+        def fun(x1, x2, /) -> Array:
+            unp_inp: UnpackedValues = unpack_arrays([x2, x1])
             op_norm = getattr(unp_inp.xp, name)
-        return two_inputs_func(
-            unp_inp=unp_inp,
-            op=op_norm,
-            transforms_lut=transforms_lut,
-        )
+            return two_inputs_func(
+                unp_inp=unp_inp,
+                op=op_norm,
+                transforms_lut=transforms_lut,
+            )
+    else:
+        def fun(x1, x2, /) -> Array:
+            unp_inp: UnpackedValues = unpack_arrays([x1, x2])
+            op_norm = getattr(unp_inp.xp, name)
+            return two_inputs_func(
+                unp_inp=unp_inp,
+                op=op_norm,
+                transforms_lut=transforms_lut,
+            )
+
     fun.__doc__ = textwrap.dedent(
         f"""..
 
@@ -185,12 +188,9 @@ def elementwise_two_operands(
     )
     return fun
 
-def _single_elem_self(x1: Array, name: str) -> Array:
-    return getattr(x1, name)()
 
 def elementwise_one_operand(
         name: str,
-        is_on_self: bool = False,
     ) -> Callable[[Array], Array]:
     """Helper function handling elementwise functions for a single operand.
 
@@ -199,10 +199,7 @@ def elementwise_one_operand(
 
     def single_element_func(x: Array, /) -> Array:
         assert isinstance(x, Array)
-        if is_on_self:
-            op_norm = partial(_single_elem_self, name=name)
-        else:
-            op_norm = getattr(x.xp, name)
+        op_norm = getattr(x.xp, name)
 
         values = op_norm(x.values(x.spaces))
         return Array(
@@ -357,84 +354,79 @@ class Array:
     # current (v2023.12) edition of the Array API standard.
 
     # Arithemtic Operators
-    __pos__ = elementwise_one_operand("__pos__", is_on_self=True)
-    __neg__ = elementwise_one_operand("__neg__", is_on_self=True)
+    __pos__ = elementwise_one_operand("positive")
+    __neg__ = elementwise_one_operand("negative")
     __add__ = elementwise_two_operands(
-        name="__add__",
+        name="add",
         transforms_lut=add_transforms_lut,
-        is_on_self=True,
     )
     __radd__ = elementwise_two_operands(
-        name="__radd__",
+        name="add",
         transforms_lut=add_transforms_lut,
-        is_on_self=True,
+        swap_operands=True,
     )
     __sub__ = elementwise_two_operands(
-        name="__sub__",
+        name="subtract",
         transforms_lut=add_transforms_lut,
-        is_on_self=True,
     )
     __rsub__ = elementwise_two_operands(
-        name="__rsub__",
+        name="subtract",
         transforms_lut=add_transforms_lut,
-        is_on_self=True,
+        swap_operands=True,
     )
     __mul__ = elementwise_two_operands(
-        name="__mul__",
+        name="multiply",
         transforms_lut=mul_transforms_lut,
-        is_on_self=True,
     )
     __rmul__ = elementwise_two_operands(
-        name="__rmul__",
+        name="multiply",
         transforms_lut=mul_transforms_lut,
-        is_on_self=True,
+        swap_operands=True,
     )
     __truediv__ = elementwise_two_operands(
-        name="__truediv__",
+        name="divide",
         transforms_lut=div_transforms_lut,
-        is_on_self=True,
     )
     __rtruediv__ = elementwise_two_operands(
-        name="__rtruediv__",
-        transforms_lut=rdiv_transforms_lut,
-        is_on_self=True,
+        name="divide",
+        transforms_lut=div_transforms_lut,
+        swap_operands=True,
     )
     # floor div should only support real inputs, just always apply all phase factors
     __floordiv__ = elementwise_two_operands(
-        name="__floordiv__",
+        name="floor_divide",
         transforms_lut=default_transforms_lut,
-        is_on_self=True,
     )
     __rfloordiv__ = elementwise_two_operands(
-        name="__rfloordiv__",
+        name="floor_divide",
         transforms_lut=default_transforms_lut,
-        is_on_self=True,
+        swap_operands=True,
     )
-    __mod__ = elementwise_two_operands("__mod__", is_on_self=True)
-    __rmod__ = elementwise_two_operands("__rmod__", is_on_self=True)
-    __pow__ = elementwise_two_operands("__pow__", is_on_self=True)
-    __rpow__ = elementwise_two_operands("__rpow__", is_on_self=True)
+    __mod__ = elementwise_two_operands("remainder")
+    __rmod__ = elementwise_two_operands("remainder", swap_operands=True)
+    __pow__ = elementwise_two_operands("pow")
+    __rpow__ = elementwise_two_operands("pow", swap_operands=True)
 
     # Bitwise Operators
-    __invert__ = elementwise_one_operand("__invert__", is_on_self=True)
-    __and__ = elementwise_two_operands("__and__", is_on_self=True)
-    __rand__ = elementwise_two_operands("__rand__", is_on_self=True)
-    __or__ = elementwise_two_operands("__or__", is_on_self=True)
-    __ror__ = elementwise_two_operands("__ror__", is_on_self=True)
-    __xor__ = elementwise_two_operands("__xor__", is_on_self=True)
-    __rxor__ = elementwise_two_operands("__rxor__", is_on_self=True)
-    __lshift__ = elementwise_two_operands("__lshift__", is_on_self=True)
-    __rlshift__ = elementwise_two_operands("__rlshift__", is_on_self=True)
-    __rshift__ = elementwise_two_operands("__rshift__", is_on_self=True)
-    __rrshift__ = elementwise_two_operands("__rrshift__", is_on_self=True)
+    __invert__ = elementwise_one_operand("bitwise_invert")
+    __and__ = elementwise_two_operands("bitwise_and")
+    __rand__ = elementwise_two_operands("bitwise_and", swap_operands=True)
+    __or__ = elementwise_two_operands("bitwise_or")
+    __ror__ = elementwise_two_operands("bitwise_or", swap_operands=True)
+    __xor__ = elementwise_two_operands("bitwise_xor")
+    __rxor__ = elementwise_two_operands("bitwise_xor", swap_operands=True)
+    __lshift__ = elementwise_two_operands("bitwise_left_shift")
+    __rlshift__ = elementwise_two_operands("bitwise_left_shift", swap_operands=True)
+    __rshift__ = elementwise_two_operands("bitwise_right_shift")
+    __rrshift__ = elementwise_two_operands("bitwise_right_shift", swap_operands=True)
 
     # Comparison Operators
-    __lt__ = elementwise_two_operands("__lt__", is_on_self=True)
-    __le__ = elementwise_two_operands("__le__", is_on_self=True)
-    __gt__ = elementwise_two_operands("__gt__", is_on_self=True)
-    __ge__ = elementwise_two_operands("__ge__", is_on_self=True)
-    __eq__ = elementwise_two_operands("__eq__", is_on_self=True)
-    __ne__ = elementwise_two_operands("__ne__", is_on_self=True)
+    __lt__ = elementwise_two_operands("less")
+    __le__ = elementwise_two_operands("less_equal")
+    __gt__ = elementwise_two_operands("greater")
+    __ge__ = elementwise_two_operands("greater_equal")
+    __eq__ = elementwise_two_operands("equal")
+    __ne__ = elementwise_two_operands("not_equal")
 
     # Other Operators
     __abs__ = abs
