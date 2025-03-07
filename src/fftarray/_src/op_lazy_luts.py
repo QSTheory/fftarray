@@ -90,11 +90,7 @@ class TwoOperandTransforms:
     | False/True | True   | True   | 3/7       | 0(True)           | 0(True)           | True  |
     +------------+--------+--------+-----------+-------------------+-------------------+-------+
 
-    The choice between the operands in the first line is arbitrary for multiplication
-    but is the necessary choice for division (without reversed operand order like
-    in ``__rfloordiv__`` and ``__rtruediv__``).
-    In order to maximise consistency the choice for division is also used in
-    multiplication.
+    The choice between the operands in the first line is arbitrary.
 """
 mul_transforms_lut = TwoOperandTransforms(
     factor_application_signs=np.array([
@@ -115,8 +111,6 @@ mul_transforms_lut = TwoOperandTransforms(
 """
     Generates the required phase factor applications and factors_applied result required
     for division while keeping factors_applied correct.
-    The general rule here is that the divisor always needs to have ``factors_applied=True``,
-    because the inverse phase factors cannot be represented as lazy state.
 
     This table shows the results of this function for different ``factors_applied``.
     A scalar input has always ``factors_applied=True``.
@@ -124,7 +118,7 @@ mul_transforms_lut = TwoOperandTransforms(
     +------------+--------+--------+-----------+-------------------+-------------------+-------+
     |   eager    |factors1|factors2| LUT Index |x1 sign (to target)|x2 sign (to target)| res   |
     +============+========+========+===========+===================+===================+=======+
-    | False/True | False  | False  | 0/4       | 0(False)          |-1(True)           | False |
+    | False/True | False  | False  | 0/4       | 0(False)          | 0(False)          | True  |
     +------------+--------+--------+-----------+-------------------+-------------------+-------+
     | False/True | False  | True   | 1/5       | 0(False)          | 0(True)           | False |
     +------------+--------+--------+-----------+-------------------+-------------------+-------+
@@ -133,17 +127,12 @@ mul_transforms_lut = TwoOperandTransforms(
     | False/True | True   | True   | 3/7       | 0(True)           | 0(True)           | True  |
     +------------+--------+--------+-----------+-------------------+-------------------+-------+
 
-    The choice between the operands in the first table entry is arbitrary for multiplication
-    but is the necessary choice for division.
-    In order to maximise consistency the choice for division is also used in
-    multiplication.
+    The choice between the operands in the third table entry is arbitrary.
 """
 div_transforms_lut = TwoOperandTransforms(
     factor_application_signs=np.array([
-        # The choice between the operands is arbitrary for multiplication
-        # but is the necessary choice for division.
         # (False, False)
-        [0, -1],
+        [0, 0],
         # (False, True)
         [0, 0],
         # (True,  False)
@@ -151,7 +140,7 @@ div_transforms_lut = TwoOperandTransforms(
         # (True,  True)
         [0,  0],
     ]),
-    final_factor_state=np.array([False, False, True, True])
+    final_factor_state=np.array([True, False, True, True])
 )
 
 
