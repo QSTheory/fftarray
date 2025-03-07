@@ -83,6 +83,7 @@ from ._src.elementwise_functions import (
     acos as acos,
     acosh as acosh,
     add as add,
+    angle as angle,
     asin as asin,
     asinh as asinh,
     atan as atan,

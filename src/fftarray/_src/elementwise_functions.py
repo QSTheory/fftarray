@@ -26,6 +26,33 @@ def clip(x: Array, /, *, min=None, max=None) -> Array:
         xp=x.xp,
     )
 
+# Not part of Array API standard but implemented in an Array API compatible way
+def angle(x: Array) -> Array:
+    """
+    Return the angle of the floating-point fa.Array values in radians.
+    This implementation follows numpy.angle without the deg argument.
+    """
+    assert isinstance(x, Array)
+
+    values = x.values(x.spaces)
+
+    if x.xp.isdtype(values.dtype, "complex floating"):
+        ximag = x.xp.imag(values)
+        xreal = x.xp.real(values)
+    else:
+        ximag = x.xp.zeros_like(values)
+        xreal = values
+
+    angles = x.xp.atan2(ximag, xreal)
+
+    return Array(
+        values=angles,
+        spaces=x.spaces,
+        dims=x.dims,
+        eager=x.eager,
+        factors_applied=(True,)*len(x.dims),
+        xp=x.xp,
+    )
 
 
 # These use special shortcuts in the phase application.
