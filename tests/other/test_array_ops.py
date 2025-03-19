@@ -1,6 +1,7 @@
 from typing import List, Literal, Any, Callable, Union, Tuple
 
 import array_api_compat
+import array_api_strict
 import pytest
 
 from hypothesis import given, strategies as st, note, settings
@@ -116,25 +117,25 @@ def test_backend_override(xp, xp_override) -> None:
     assert type(fa.coords_from_dim(x_dim, "pos", xp=xp).into_xp(xp_override).into_space("freq").values("freq")) is type(fa.coords_from_dim(x_dim, "freq", xp=xp_override).values("freq"))
     assert type(fa.coords_from_dim(x_dim, "freq", xp=xp).into_xp(xp_override).into_space("pos").values("pos")) is type(fa.coords_from_dim(x_dim, "pos", xp=xp_override).values("pos"))
 
-
-def test_broadcasting() -> None:
+@pytest.mark.parametrize("xp", [array_api_compat.get_namespace(np.array(1)), array_api_strict])
+def test_broadcasting(xp) -> None:
     """Test Array's automatic Dimension broadcasting"""
     x_dim = fa.dim("x", n=4, d_pos=0.1, pos_min=-3., freq_min=0.)
     y_dim = fa.dim("y", n=8, d_pos=1.2, pos_min=-1.5, freq_min=0.)
     z_dim = fa.dim("z", n=2, d_pos=0.3, pos_min=4., freq_min=0.)
 
-    x = get_test_array(np, x_dim, "pos", np.int32, True)
-    y = get_test_array(np, y_dim, "pos", np.int32, True)
-    z = get_test_array(np, z_dim, "pos", np.int32, True)
+    x = get_test_array(xp, x_dim, "pos", xp.int32, True)
+    y = get_test_array(xp, y_dim, "pos", xp.int32, True)
+    z = get_test_array(xp, z_dim, "pos", xp.int32, True)
 
     x_ref = x.np_array("pos")
     y_ref = y.np_array("pos")
     z_ref = z.np_array("pos")
 
     # check if numpy refs equal Array values
-    np.testing.assert_equal(x.np_array("pos"), x_ref, strict=True)
-    np.testing.assert_equal(y.np_array("pos"), y_ref, strict=True)
-    np.testing.assert_equal(z.np_array("pos"), z_ref, strict=True)
+    np.testing.assert_array_equal(x.np_array("pos"), x_ref, strict=True)
+    np.testing.assert_array_equal(y.np_array("pos"), y_ref, strict=True)
+    np.testing.assert_array_equal(z.np_array("pos"), z_ref, strict=True)
 
     # --- broadcasting of two 1d Arrays: (x,) + (y,) = (x,y) ---
 
@@ -153,13 +154,13 @@ def test_broadcasting() -> None:
     xy_ref = x_ref_xy + y_ref_xy
     assert xy_ref.shape == (x_dim.n, y_dim.n)
 
-    np.testing.assert_equal(xy.values("pos"), xy_ref, strict=True)
+    np.testing.assert_array_equal(xy.values("pos"), xy_ref, strict=True)
 
     # (y,x) is the transpose of (x,y)
     yx_ref = xy_ref.transpose()
     assert yx_ref.shape == (y_dim.n, x_dim.n)
 
-    np.testing.assert_equal(yx.values("pos"), yx_ref, strict=True)
+    np.testing.assert_array_equal(yx.values("pos"), yx_ref, strict=True)
 
     # --- broadcasting of two 2d Arrays: (x,y) + (y,x) ---
 
@@ -167,7 +168,7 @@ def test_broadcasting() -> None:
     assert xy_yx.shape == (x_dim.n, y_dim.n)
 
     # result should be twice xy
-    np.testing.assert_equal(xy_yx.values("pos"), 2*xy.values("pos"), strict=True)
+    np.testing.assert_array_equal(xy_yx.values("pos"), 2*xy.values("pos"), strict=True)
 
     # --- broadcasting of a 3d and 2d Array: (x,z,y) + (y,x) ---
 
@@ -188,7 +189,7 @@ def test_broadcasting() -> None:
     xzy_yx_ref_xzy = xzy_ref_xzy + yx_ref_xzy
     assert xzy_yx_ref_xzy.shape == (x_dim.n, z_dim.n, y_dim.n)
 
-    np.testing.assert_equal(xzy_yx.values("pos"), xzy_yx_ref_xzy, strict=True)
+    np.testing.assert_array_equal(xzy_yx.values("pos"), xzy_yx_ref_xzy, strict=True)
 
 
 @pytest.mark.parametrize("xp", XPS)
