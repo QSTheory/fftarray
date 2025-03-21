@@ -1146,7 +1146,7 @@ def unpack_arrays(
                     raise ValueError(
                         "Tried to call ufunc on Arrays with " +
                         "different spaces in dimension of name " +
-                        f"{dim.name}." +
+                        f"{dim.name}. " +
                         "They have to be explicitly converted " +
                         "into an identical space."
                     ) from None
