@@ -156,11 +156,7 @@ def coords_from_dim(
     if not xp.isdtype(dtype, ("real floating", "complex floating")):
         raise ValueError(f"Coordinates can only be initialized as real or complex numbers but got passed dtype '{dtype}'")
 
-    values = dim._raw_coord_array(
-        xp=xp,
-        dtype=dtype,
-        space=space,
-    )
+    values = dim.values(space, xp=xp, dtype=dtype)
 
     return Array(
         values=values,

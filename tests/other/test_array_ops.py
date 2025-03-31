@@ -35,8 +35,8 @@ def test_comparison(xp, space) -> None:
     x = fa.coords_from_dim(x_dim, space, xp=xp)
     x_sq = x**2
 
-    x = x.np_array(space)
-    x_sq = x_sq.np_array(space)
+    x = x.values(space, xp=np)
+    x_sq = x_sq.values(space, xp=np)
 
     # Eplicitly test the operators to check that the forwarding to array_ufunc is correct
     for a, b in [(0.5, x), (x, x_sq), (x, 0.5), (x, x_sq)]:
@@ -128,14 +128,14 @@ def test_broadcasting(xp) -> None:
     y = get_test_array(xp, y_dim, "pos", xp.int32, True)
     z = get_test_array(xp, z_dim, "pos", xp.int32, True)
 
-    x_ref = x.np_array("pos")
-    y_ref = y.np_array("pos")
-    z_ref = z.np_array("pos")
+    x_ref = x.values("pos", xp=np)
+    y_ref = y.values("pos", xp=np)
+    z_ref = z.values("pos", xp=np)
 
     # check if numpy refs equal Array values
-    np.testing.assert_array_equal(x.np_array("pos"), x_ref, strict=True)
-    np.testing.assert_array_equal(y.np_array("pos"), y_ref, strict=True)
-    np.testing.assert_array_equal(z.np_array("pos"), z_ref, strict=True)
+    np.testing.assert_array_equal(x.values("pos", xp=np), x_ref, strict=True)
+    np.testing.assert_array_equal(y.values("pos", xp=np), y_ref, strict=True)
+    np.testing.assert_array_equal(z.values("pos", xp=np), z_ref, strict=True)
 
     # --- broadcasting of two 1d Arrays: (x,) + (y,) = (x,y) ---
 
@@ -180,10 +180,10 @@ def test_broadcasting(xp) -> None:
 
     # all numpy arrays will be broadcast to match the axes of xzy
     # all references should be compatible with shape (x_dim.n, z_dim.n, y_dim.n)
-    xzy_ref_xzy = xzy.np_array("pos")
+    xzy_ref_xzy = xzy.values("pos", xp=np)
     assert xzy_ref_xzy.shape == (x_dim.n, z_dim.n, y_dim.n)
     # broadcast yx to match (x,z,y): add axis in between (x,y)
-    yx_ref_xzy = np.expand_dims(xy.np_array("pos"), axis=1)
+    yx_ref_xzy = np.expand_dims(xy.values("pos", xp=np), axis=1)
     assert yx_ref_xzy.shape == (x_dim.n, 1, y_dim.n)
 
     xzy_yx_ref_xzy = xzy_ref_xzy + yx_ref_xzy
@@ -638,20 +638,20 @@ def test_fft_ifft_invariance(xp, space: fa.Space):
 @pytest.mark.parametrize("xp", XPS)
 @pytest.mark.parametrize("spaces", [("pos", "freq"), ("freq", "pos")])
 @pytest.mark.parametrize("precision", ("float32", "float64"))
-def test_np_array(xp, spaces: Tuple[fa.Space, fa.Space], precision: PrecisionSpec):
-    """Tests if `Array.np_array` returns the values as a NumPy array and if it has the correct precision.
+def test_values_np_dtype(xp, spaces: Tuple[fa.Space, fa.Space], precision: PrecisionSpec):
+    """Tests if `Array.values` returns the values with the correct precision.
     """
     xdim = fa.dim("x", n=4, d_pos=0.1, pos_min=-0.2, freq_min=-2.1)
     arr = fa.coords_from_dim(xdim, spaces[0], xp=xp, dtype=getattr(xp, precision))
 
-    np_arr_same = arr.np_array(spaces[0])
+    np_arr_same = arr.values(spaces[0], xp=np)
     assert isinstance(np_arr_same, np.ndarray)
     if precision == "float32":
         assert np_arr_same.dtype == np.float32
     elif precision == "float64":
         assert np_arr_same.dtype == np.float64
 
-    np_arr_other = arr.np_array(spaces[1])
+    np_arr_other = arr.values(spaces[1], xp=np)
     assert isinstance(np_arr_other, np.ndarray)
     if precision == "float32":
         assert np_arr_other.dtype == np.complex64

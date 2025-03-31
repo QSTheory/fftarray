@@ -80,8 +80,8 @@ def test_valid_dim_dim_from_slice(space: fa.Space, valid_slice: slice) -> None:
     result_dim = TEST_DIM._dim_from_slice(range=valid_slice, space=space)
 
     np.testing.assert_array_equal(
-        result_dim.np_array(space),
-        TEST_DIM.np_array(space)[valid_slice],
+        result_dim.values(space, xp=np),
+        TEST_DIM.values(space, xp=np)[valid_slice],
         strict=True
     )
 
@@ -541,11 +541,11 @@ def generate_test_array_xrdataset(
     arr = reduce(lambda x,y: x+y, [fa.coords_from_dim(dim, "pos", xp=xp) for dim in dims])
 
     pos_coords = {
-        f"{dim.name}_pos": dim.np_array("pos")
+        f"{dim.name}_pos": dim.values("pos", xp=np)
         for dim in dims
     }
     freq_coords = {
-        f"{dim.name}_freq": dim.np_array("freq")
+        f"{dim.name}_freq": dim.values("freq", xp=np)
         for dim in dims
     }
 

@@ -746,7 +746,14 @@ class Array:
         """Shape of the Array's values."""
         return self._values.shape
 
-    def values(self, space: Union[Space, Iterable[Space]], /) -> Any:
+    def values(
+            self: Array,
+            space: Union[Space, Iterable[Space]],
+            /,
+            *,
+            xp: Optional[Any] = None,
+            dtype: Optional[Any] = None,
+        ) -> Any:
         """The raw values with all lazy fft factors applied.
 
         Parameters
@@ -754,18 +761,28 @@ class Array:
         space : Union[Space, Iterable[Space]]
             The space in which the values should be returned. Can be specified
             per dimension.
+        xp : Optional[Any], optional
+            The array API namespace to use for the returned values. If it is
+            None, the array namespace from self is used.
+        dtype : Optional[Any], optional
+            The dtype to use for the returned values. If it is None, the dtype
+            of self is used.
 
         Returns
         -------
         Any
             The Array's values.
         """
+        if xp is None:
+            xp = self.xp
+        else:
+            xp = array_api_compat.array_namespace(xp.asarray(1))
         space_norm: Tuple[Space, ...] = norm_space(space, len(self.dims))
         if space_norm != self.spaces or not all(self._factors_applied):
             # Setting eager before-hand allows copy-elision without the move option.
             arr = self.into_eager(True).into_space(space).into_factors_applied(True)
-            return arr._values
-        return self.xp.asarray(self._values, copy=True)
+            return xp.asarray(arr._values, dtype=dtype)
+        return xp.asarray(self._values, dtype=dtype, copy=True)
 
     @property
     def xp(self):
@@ -1003,25 +1020,6 @@ class Array:
             factors_applied=factors_applied_after,
             xp=self.xp,
         )
-
-    def np_array(self: Array, space: Union[Space, Iterable[Space]], /, *, dtype = None):
-        """The Array's values as bare numpy array in the specified space(s).
-
-        Parameters
-        ----------
-        space : Union[Space, Iterable[Space]]
-            The space(s) in which the returned values will be.
-        dtype : _type_, optional
-            The dtype of the returned values, by default None
-
-        Returns
-        -------
-        NDArray
-            Bare NumPy array.
-        """
-
-        values = self.values(space)
-        return np.array(values, dtype=dtype)
 
     def _check_consistency(self) -> None:
         """Check some invariants of Array."""

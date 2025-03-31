@@ -343,7 +343,7 @@ def test_coords_from_dim(
 
     dtype_target = getattr(xp_target, dtype_name_target)
     dim = fa.dim("x", n=3, d_pos=0.1, pos_min=0, freq_min=0)
-    ref_values = xp_target.asarray(dim.np_array(space), dtype=dtype_target)
+    ref_values = dim.values(space, xp=xp_target, dtype=dtype_target)
 
     array_args = {}
 
