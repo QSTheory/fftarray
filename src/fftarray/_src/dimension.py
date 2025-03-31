@@ -614,9 +614,9 @@ class Dimension:
 
         match space:
             case "pos":
-                return indices * self.d_pos + self.pos_min
+                return xp.asarray(indices * self.d_pos + self.pos_min, dtype=dtype)
             case "freq":
-                return indices * self.d_freq + self.freq_min
+                return xp.asarray(indices * self.d_freq + self.freq_min, dtype=dtype)
             case _:
                 assert_never(space)
 

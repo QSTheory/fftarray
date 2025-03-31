@@ -343,7 +343,7 @@ def test_coords_from_dim(
 
     dtype_target = getattr(xp_target, dtype_name_target)
     dim = fa.dim("x", n=3, d_pos=0.1, pos_min=0, freq_min=0)
-    ref_values = dim.values(space, xp=xp_target, dtype=dtype_target)
+    ref_values = xp_target.asarray(dim.values(space, xp=np), dtype=dtype_target)
 
     array_args = {}
 
@@ -378,7 +378,7 @@ def test_coords_from_dim(
                     return
                 arr = fa.coords_from_dim(dim, space, **array_args)
 
-    arr_values = np.array(arr.values(space))
+    arr_values = arr.values(space, xp=np)
     np.testing.assert_equal(arr_values, ref_values)
     assert arr.shape == (dim.n,)
     assert arr.xp == xp_target
