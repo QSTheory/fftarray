@@ -507,7 +507,7 @@ def assert_equal_op(
         np.testing.assert_allclose(_arr_op, values_op, rtol=rtol, atol=1e-38)
     else:
         # arr._values can differ from arr.values()
-        if internal_and_public_values_should_differ(arr):
+        if internal_and_public_values_should_differ(f_arr_op):
             with pytest.raises(AssertionError):
                 np.testing.assert_allclose(_arr_op, values_op, rtol=rtol)
         else:

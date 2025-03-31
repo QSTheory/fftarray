@@ -256,7 +256,10 @@ def get_two_operand_same_dim_transform_factors(
                 return (False,)
 
         case "divide":
-            return (factors_applied_1,)
+            if (not factors_applied_1) and factors_applied_2:
+                return (False,)
+            else:
+                return (True,)
 
         case _:
             return (True,)
