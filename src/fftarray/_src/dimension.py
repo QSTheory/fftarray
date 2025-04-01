@@ -590,7 +590,8 @@ class Dimension:
             None, the default namespace from ``get_default_xp()`` is used.
         dtype : Optional[Any], optional
             The dtype to use for the returned values. If it is None, the
-            precision from ``get_default_precision()`` is used.
+            corresponding real floating point dtype with precision from
+            ``get_default_precision()`` is used.
 
         Returns
         -------
