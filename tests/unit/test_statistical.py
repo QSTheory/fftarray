@@ -300,8 +300,8 @@ def check_integrate(
     assert fa_res.eager == ref_attributes
     # This will be changed at a later point to actually be conserved.
     assert fa_res.factors_applied == (True,)*len(ref_attributes)
-    assert ref_res.dtype == fa_res_values.dtype
-    np.testing.assert_equal(
+    np.testing.assert_array_equal(
         np.array(ref_res),
         np.array(fa_res_values),
+        strict=True,
     )
