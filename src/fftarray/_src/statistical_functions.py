@@ -185,8 +185,11 @@ def integrate(
             case _:
                 assert_never(space)
 
+    if dtype is None:
+        dtype = x.dtype
+
     reduced_values = x.xp.sum(x.values(x.spaces), axis=tuple(res_meta.axis), dtype=dtype)
-    reduced_values *= integration_element
+    reduced_values *= x.xp.asarray(integration_element, dtype=dtype)
 
     return Array(
         values=reduced_values,

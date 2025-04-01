@@ -300,17 +300,8 @@ def check_integrate(
     assert fa_res.eager == ref_attributes
     # This will be changed at a later point to actually be conserved.
     assert fa_res.factors_applied == (True,)*len(ref_attributes)
-
-    if len(fa_res_values.shape) > 0:
-        assert type(ref_res) is type(fa_res_values)
-        np.testing.assert_equal(
-            np.array(ref_res),
-            np.array(fa_res_values),
-        )
-    else:
-        # fa_res_values is a python scalar and does not have a dtype, so the
-        # test failes in numpy 1.25 without explicitly setting the dtype
-        np.testing.assert_equal(
-            np.array(ref_res),
-            np.array(fa_res_values, dtype=type(ref_res)),
-        )
+    np.testing.assert_array_equal(
+        np.array(ref_res),
+        np.array(fa_res_values),
+        strict=True,
+    )
