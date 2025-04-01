@@ -1,11 +1,12 @@
 from __future__ import annotations
-from typing import Optional, Union, Literal
+from typing import Optional, Union, Literal, Any
 from typing_extensions import assert_never
 from dataclasses import dataclass
 
 import numpy as np
+import array_api_compat
 
-from .defaults import get_default_precision
+from .defaults import get_default_precision, get_default_xp
 from .formatting import dim_table, format_n
 from .indexing import check_substepping, remap_index_check_int
 
@@ -568,12 +569,43 @@ class Dimension:
         """
         return (self.n - 1) * self.d_freq
 
-    def _raw_coord_array(
-                self: Dimension,
-                xp,
-                dtype,
-                space: Space,
-            ):
+    def values(
+            self: Dimension,
+            space: Space,
+            /,
+            *,
+            xp: Optional[Any] = None,
+            dtype: Optional[Any] = None,
+        ):
+        """Returns the Dimension values for the respective space.
+
+        Parameters
+        ----------
+        self : Dimension
+            Dimension providing the parameters.
+        space : Space
+            The space for which the values are returned.
+        xp : Optional[Any], optional
+            The Array API namespace to use for the returned values. If it is
+            None, the default namespace from ``get_default_xp()`` is used.
+        dtype : Optional[Any], optional
+            The dtype to use for the returned values. If it is None, the
+            corresponding real floating point dtype with precision from
+            ``get_default_precision()`` is used.
+
+        Returns
+        -------
+        Any
+            The Dimension's values.
+        """
+
+        if xp is None:
+            xp = get_default_xp()
+        else:
+            xp = array_api_compat.array_namespace(xp.asarray(1))
+
+        if dtype is None:
+            dtype = getattr(xp, get_default_precision())
 
         indices = xp.arange(
             0,
@@ -583,12 +615,9 @@ class Dimension:
 
         match space:
             case "pos":
-                return indices * self.d_pos + self.pos_min
+                return xp.asarray(indices * self.d_pos + self.pos_min, dtype=dtype)
             case "freq":
-                return indices * self.d_freq + self.freq_min
+                return xp.asarray(indices * self.d_freq + self.freq_min, dtype=dtype)
             case _:
                 assert_never(space)
-
-    def np_array(self: Dimension, space: Space):
-        return self._raw_coord_array(xp=np, dtype=getattr(np, get_default_precision()), space=space)
 

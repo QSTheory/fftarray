@@ -66,14 +66,14 @@ def test_arrays(xp) -> None:
         n = n,
     )
 
-    pos_grid = fa.coords_from_dim(dim, "pos", xp=xp).np_array("pos")
+    pos_grid = fa.coords_from_dim(dim, "pos", xp=xp).values("pos", xp=np)
     assert_scalars_almost_equal_nulp(dim.pos_min, np.min(pos_grid))
     assert_scalars_almost_equal_nulp(dim.pos_min, pos_grid[0])
     assert_scalars_almost_equal_nulp(dim.pos_max, np.max(pos_grid))
     assert_scalars_almost_equal_nulp(dim.pos_max, pos_grid[-1])
     assert_scalars_almost_equal_nulp(dim.pos_middle, pos_grid[int(n/2)])
 
-    freq_grid = fa.coords_from_dim(dim, "freq", xp=xp).np_array("freq")
+    freq_grid = fa.coords_from_dim(dim, "freq", xp=xp).values("freq", xp=np)
     assert_scalars_almost_equal_nulp(dim.freq_min, np.min(freq_grid))
     assert_scalars_almost_equal_nulp(dim.freq_min, freq_grid[0])
     assert_scalars_almost_equal_nulp(dim.freq_max, np.max(freq_grid))
