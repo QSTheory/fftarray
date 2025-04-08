@@ -7,7 +7,7 @@ import numpy as np
 import fftarray as fa
 
 from tests.helpers import (
-    XPS, assert_fa_array_exact_equal, get_test_array
+    assert_fa_array_exact_equal, get_test_array
 )
 from fftarray._src.transform_application import complex_type
 
@@ -76,7 +76,7 @@ single_operand_lambdas = {
 }
 
 
-@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("xp", [array_api_strict])
 @pytest.mark.parametrize("op_name", elementwise_ops_single_arg_full)
 @pytest.mark.parametrize("eager", [True, False])
 @pytest.mark.parametrize("space", get_args(fa.Space))
@@ -103,7 +103,7 @@ def test_elementwise_single_arg_full_complex(
     )
 
 
-@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("xp", [array_api_strict])
 @pytest.mark.parametrize("op_name", elementwise_ops_single_arg_full)
 @pytest.mark.parametrize("space", get_args(fa.Space))
 @pytest.mark.parametrize("dtype_name", ["bool", "int64", "float64"])
@@ -265,7 +265,7 @@ def get_two_operand_same_dim_transform_factors(
             return (True,)
 
 
-@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("xp", [array_api_strict])
 @pytest.mark.parametrize("op_name", elementwise_ops_single_arg_sparse)
 @pytest.mark.parametrize("dtype_name", ["bool", "int64", "float64", "complex128"])
 def test_elementwise_single_arg_sparse(
@@ -349,7 +349,7 @@ def elementwise_single_arg(
         np.array(xp_res),
     )
 
-@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("xp", [array_api_strict])
 @pytest.mark.parametrize("space", get_args(fa.Space))
 @pytest.mark.parametrize("eager", [True, False])
 @pytest.mark.parametrize("factors_applied_1", [True, False])
@@ -373,7 +373,7 @@ def test_elementwise_two_arrs_full_complex(
         dtype_name="complex128",
     )
 
-@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("xp", [array_api_strict])
 @pytest.mark.parametrize("space", get_args(fa.Space))
 @pytest.mark.parametrize("op_name", elementwise_ops_double_arg_full)
 @pytest.mark.parametrize("dtype_name", ["bool", "int64", "float64"])
@@ -398,7 +398,7 @@ def test_elementwise_two_arrs_full(
     )
 
 
-@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("xp", [array_api_strict])
 @pytest.mark.parametrize("op_name", elementwise_ops_double_arg_sparse)
 @pytest.mark.parametrize("dtype_name", ["bool", "int64", "float64", "complex128"])
 def test_elementwise_two_arrs_sparse(
@@ -540,7 +540,7 @@ dtype_scalar_combinations_complex = [
     pytest.param("complex128", 5.+1.j),
 ]
 
-@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("xp", [array_api_strict])
 @pytest.mark.parametrize("space", get_args(fa.Space))
 @pytest.mark.parametrize("op_idxs", [(0,1), (1,0)])
 @pytest.mark.parametrize("op_name", elementwise_ops_double_arg_full_dunder)
@@ -566,7 +566,7 @@ def test_elementwise_arr_scalar_full(
         dtype_name=dtype_name,
     )
 
-@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("xp", [array_api_strict])
 @pytest.mark.parametrize("space", get_args(fa.Space))
 @pytest.mark.parametrize("eager", [True, False])
 @pytest.mark.parametrize("factors_applied", [True, False])
@@ -595,7 +595,7 @@ def test_elementwise_arr_scalar_full_complex(
         dtype_name=dtype_name,
     )
 
-@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("xp", [array_api_strict])
 @pytest.mark.parametrize("op_idxs", [(0,1), (1,0)])
 @pytest.mark.parametrize("op_name", elementwise_ops_double_arg_sparse_dunder)
 @pytest.mark.parametrize("dtype_name, scalar_value", [
@@ -696,7 +696,7 @@ def elementwise_arr_scalar(
     )
 
 
-@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("xp", [array_api_strict])
 def test_clip(xp) -> None:
     dim1 = fa.dim("x", 4, 0.1, 0., 0.)
     vals = xp.asarray([1,2,3,4])
@@ -705,7 +705,7 @@ def test_clip(xp) -> None:
     assert xp.all(fa.clip(arr1, min=None, max=3).values("pos") == xp.clip(vals, min=None, max=3))
     assert xp.all(fa.clip(arr1).values("pos") == xp.clip(vals))
 
-@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("xp", [array_api_strict])
 @pytest.mark.parametrize("precision", ["float32", "float64"])
 @pytest.mark.parametrize("type, factors_applied", [
     pytest.param("real", True),

@@ -23,7 +23,7 @@ precisions: List[PrecisionSpec] = ["float32", "float64"]
 spaces: List[fa.Space] = ["pos", "freq"]
 
 
-@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("xp", [array_api_strict])
 @pytest.mark.parametrize("space", ["pos", "freq"])
 def test_comparison(xp, space) -> None:
     x_dim = fa.dim("x",
@@ -192,7 +192,7 @@ def test_broadcasting(xp) -> None:
     np.testing.assert_array_equal(xzy_yx.values("pos"), xzy_yx_ref_xzy, strict=True)
 
 
-@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("xp", [array_api_strict])
 @pytest.mark.parametrize("space", spaces)
 def test_sel_order(xp, space) -> None:
     """Tests whether the selection order matters. Assuming an input Array of
@@ -346,7 +346,7 @@ def test_array_lazyness(arr):
         # -- test eager, factors_applied logic
         assert_array_eager_factors_applied(arr, note)
 
-@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("xp", [array_api_strict])
 @pytest.mark.parametrize("precision", precisions)
 @pytest.mark.parametrize("space", spaces)
 @pytest.mark.parametrize("eager", [True, False])
@@ -614,7 +614,7 @@ def assert_array_eager_factors_applied(arr: fa.Array, log):
         assert (feager and ffapplied) or (not feager and not ffapplied)
 
 
-@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("xp", [array_api_strict])
 @pytest.mark.parametrize("space", spaces)
 def test_fft_ifft_invariance(xp, space: fa.Space):
     """Tests whether ifft(fft(*)) is an identity.

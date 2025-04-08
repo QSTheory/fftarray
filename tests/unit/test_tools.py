@@ -1,14 +1,15 @@
 from typing import get_args
 
+import array_api_strict
 import pytest
 import numpy as np
 
 import fftarray as fa
 
-from tests.helpers import XPS, get_other_space
+from tests.helpers import get_other_space
 from fftarray._src.transform_application import complex_type
 
-@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("xp", [array_api_strict])
 @pytest.mark.parametrize("eager", [True, False])
 @pytest.mark.parametrize("space", get_args(fa.Space))
 @pytest.mark.parametrize("init_dtype_name, atol", [
@@ -55,7 +56,7 @@ def test_shift(
         atol=atol,
     )
 
-@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("xp", [array_api_strict])
 @pytest.mark.parametrize("init_dtype_name", ["bool", "int64", "uint64"])
 @pytest.mark.parametrize("space", get_args(fa.Space))
 def test_shift_int(

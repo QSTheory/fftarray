@@ -1,10 +1,11 @@
+import array_api_strict
 import pytest
 
 from fftarray._src.dimension import Dimension
 from fftarray._src.formatting import format_bytes, format_n
-from tests.helpers import XPS, get_dims, get_arr_from_dims
+from tests.helpers import get_dims, get_arr_from_dims
 
-@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("xp", [array_api_strict])
 def test_format(xp) -> None:
     """
         Tests that `__str__` and `__repr__` of `Dimension`

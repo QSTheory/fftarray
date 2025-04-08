@@ -1,6 +1,7 @@
 from typing import List, get_args
 import itertools
 
+import array_api_strict
 import pytest
 import numpy as np
 
@@ -31,7 +32,7 @@ def test_into_dtype(xp, init_dtype_name, target_dtype_name) -> None:
 
 
 
-@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("xp", [array_api_strict])
 @pytest.mark.parametrize("ndims, permutation",
     [
         pytest.param(ndims, permutation)

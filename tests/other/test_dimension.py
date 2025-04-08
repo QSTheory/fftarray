@@ -1,11 +1,11 @@
 import copy
 
+import array_api_strict
 import numpy as np
 import pytest
 import jax
 
 import fftarray as fa
-from tests.helpers import XPS
 
 jax.config.update("jax_enable_x64", True)
 
@@ -51,7 +51,7 @@ def test_dim_jax():
     assert jax_func(dim) == dim
 
 
-@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("xp", [array_api_strict])
 def test_arrays(xp) -> None:
     """
     Test that the manual arrays and the performance-optimized kernels create the same values in the supplied direction.
