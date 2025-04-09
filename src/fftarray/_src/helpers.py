@@ -1,7 +1,7 @@
-from typing import TypeVar, Union, Iterable, Tuple, get_args, cast
+from typing import TypeVar, Union, Optional, Any, Iterable, Tuple, get_args, cast
 
-import array_api_compat
-
+from .compat_namespace import get_compat_namespace, get_array_compat_namespace
+from .defaults import get_default_xp
 from .space import Space
 
 T = TypeVar("T")
@@ -48,24 +48,51 @@ def norm_param(val: Union[T, Iterable[T]], n: int, types) -> Tuple[T, ...]:
     return tuple(val) # type: ignore
 
 
-def get_compat_namespace(xp):
-    """
-        Wraps a namespace in a compatibility wrapper if necessary.
-    """
-    return get_array_compat_namespace(xp.asarray(1))
 
-def get_array_compat_namespace(x):
+def norm_xp_with_values(
+            arg_xp: Optional[Any],
+            values,
+        ) -> Tuple[Any, bool]:
     """
-        Get the Array API compatible namespace of x.
-        This is basically a single array version of `array_api_compat.array_namespace`.
-        But it has a special case for torch because `array_api_compat.array_namespace`
-        is currently incompatible with `torch.compile`.
+        Determine xp from passed in values and explicit xp argument.
+        An implied xp conversion raises a ``ValueError``.
     """
-    # Special case torch array.
-    # As of pytorch 2.6.0 and array_api_compat 1.11.0
-    # torch.compile is not compatible with `array_api_compat.array_namespace`.
-    if array_api_compat.is_torch_array(x):
-        import array_api_compat.torch as torch_namespace
-        return torch_namespace
+    used_default_xp = False
 
-    return array_api_compat.array_namespace(x)
+    if arg_xp is not None:
+        arg_xp = get_compat_namespace(arg_xp)
+
+    try:
+        derived_xp = get_array_compat_namespace(values)
+    except(TypeError):
+        derived_xp = None
+
+    match (arg_xp, derived_xp):
+        case (None, None):
+            xp = get_default_xp()
+            used_default_xp = True
+        case (None, _):
+            xp = derived_xp
+        case (_, None):
+            xp = arg_xp
+        case (_,_):
+            if derived_xp != arg_xp:
+                raise ValueError("Got passed different explicit xp than the xp of the array." \
+                    "Cross-library conversion is not supported as it is not mandated to work properly by the Python Array API standard."
+                )
+            xp = derived_xp
+
+    return xp, used_default_xp
+
+def norm_xp(
+            xp_arg: Optional[Any],
+        ) -> Any:
+    """
+        Normalize xp_arg with potentially using the default_xp
+    """
+    if xp_arg is None:
+        xp = get_default_xp()
+    else:
+        xp = get_compat_namespace(xp_arg)
+
+    return xp

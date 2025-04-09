@@ -5,21 +5,9 @@ from .dimension import Dimension
 from .array import Array
 from .space import Space
 from .transform_application import real_type
-from .defaults import get_default_eager, get_default_xp
-from .helpers import norm_space, get_compat_namespace, get_array_compat_namespace
+from .defaults import get_default_eager
+from .helpers import norm_space, norm_xp, norm_xp_with_values
 
-def _get_xp(xp: Optional[Any], values) -> Tuple[Any, bool]:
-    used_default_xp = False
-    if xp is None:
-        try:
-            xp = get_array_compat_namespace(values)
-        except(TypeError):
-            xp = get_default_xp()
-            used_default_xp = True
-    else:
-        xp = get_compat_namespace(xp)
-
-    return xp, used_default_xp
 
 def array(
         values,
@@ -68,12 +56,15 @@ def array(
         Array
     """
 
+    xp, used_default_xp = norm_xp_with_values(
+        arg_xp=xp,
+        values=values,
+    )
+
     if isinstance(dim, Dimension):
         dims_tuple: Tuple[Dimension, ...] = (dim,)
     else:
         dims_tuple = tuple(dim)
-
-    xp, used_default_xp = _get_xp(xp, values)
 
     if defensive_copy:
         copy = True
@@ -144,12 +135,13 @@ def coords_from_dim(
         set_default_eager, get_default_eager
     """
 
-    if xp is None:
-        xp = get_default_xp()
-    else:
-        xp = get_compat_namespace(xp)
+    xp = norm_xp(xp)
 
-    values = dim.values(space, xp=xp, dtype=dtype)
+    values = dim.values(
+        space,
+        xp=xp,
+        dtype=dtype,
+    )
 
     return Array(
         values=values,
@@ -200,18 +192,27 @@ def coords_from_arr(
     --------
     """
 
+    xp, _ = norm_xp_with_values(
+        arg_xp=xp,
+        values=x._values,
+    )
+
     if dtype is None:
-        dtype = real_type(x.xp, x.dtype)
+        dtype = x.dtype
+
+        if not xp.isdtype(dtype, ("real floating", "complex floating")):
+            raise ValueError(
+                "Coordinates can only have a real-valued floating point dtype. " \
+                f"Unable to infer data type from {dtype}."
+            )
+
+        dtype = real_type(x.xp, dtype)
+
 
     for dim_idx, dim in enumerate(x.dims):
         if dim.name == dim_name:
-            if xp is None:
-                xp_norm = x.xp
-            else:
-                xp_norm = get_compat_namespace(xp)
-
             return coords_from_dim(
-                dim, space, xp=xp_norm, dtype=dtype
+                dim, space, xp=xp, dtype=dtype
             ).into_eager(x.eager[dim_idx])
     raise ValueError("Specified dim_name not part of the Array's dimensions.")
 
@@ -252,7 +253,10 @@ def full(
         set_default_eager, get_default_eager
     """
 
-    xp, _ = _get_xp(xp, fill_value)
+    xp, _ = norm_xp_with_values(
+        arg_xp=xp,
+        values=fill_value,
+    )
 
     if isinstance(dim, Dimension):
         dims: Tuple[Dimension, ...] = (dim,)
@@ -261,9 +265,7 @@ def full(
 
     n_dims = len(dims)
     shape = tuple(dim.n for dim in dims)
-    # Convert the fill_value from a potentially different array API implementation.
-    fill_value = xp.asarray(fill_value, dtype=dtype)
-    values = xp.full(shape, fill_value)
+    values = xp.full(shape, fill_value, dtype=dtype)
 
     arr = Array(
         values=values,

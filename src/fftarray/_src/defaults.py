@@ -1,7 +1,6 @@
-
 import numpy as np
 
-from .helpers import get_compat_namespace
+from .compat_namespace import get_compat_namespace
 _DEFAULT_XP = get_compat_namespace(np)
 
 def set_default_xp(xp) -> None:
@@ -52,3 +51,4 @@ class DefaultEagerContext:
 
 def default_eager(eager: bool) -> DefaultEagerContext:
     return DefaultEagerContext(eager=eager)
+
