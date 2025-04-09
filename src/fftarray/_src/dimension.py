@@ -4,9 +4,9 @@ from typing_extensions import assert_never
 from dataclasses import dataclass
 
 import numpy as np
-import array_api_compat
+from .defaults import get_default_xp
 
-from .defaults import get_default_precision, get_default_xp
+import array_api_compat
 from .formatting import dim_table, format_n
 from .indexing import check_substepping, remap_index_check_int
 
@@ -590,8 +590,7 @@ class Dimension:
             None, the default namespace from ``get_default_xp()`` is used.
         dtype : Optional[Any], optional
             The dtype to use for the returned values. If it is None, the
-            corresponding real floating point dtype with precision from
-            ``get_default_precision()`` is used.
+            default real floating point dtype of the determined ``xp`` is used.
 
         Returns
         -------
@@ -604,11 +603,11 @@ class Dimension:
         else:
             xp = array_api_compat.array_namespace(xp.asarray(1))
 
-        if dtype is None:
-            dtype = getattr(xp, get_default_precision())
+        if dtype is not None and not xp.isdtype(dtype, "real floating"):
+            raise ValueError("Coordinates can only have a real-valued floating point dtype.")
 
         indices = xp.arange(
-            0,
+            0.,
             self.n,
             dtype=dtype,
         )
