@@ -1,24 +1,23 @@
 from typing import Any, Optional, Union, Iterable, Tuple, get_args
 
-import array_api_compat
 
 from .dimension import Dimension
 from .array import Array
 from .space import Space
 from .transform_application import real_type
 from .defaults import get_default_eager, get_default_xp
-from .helpers import norm_space
+from .helpers import norm_space, get_compat_namespace, get_array_compat_namespace
 
 def _get_xp(xp: Optional[Any], values) -> Tuple[Any, bool]:
     used_default_xp = False
     if xp is None:
         try:
-            xp = array_api_compat.array_namespace(values)
+            xp = get_array_compat_namespace(values)
         except(TypeError):
             xp = get_default_xp()
             used_default_xp = True
     else:
-        xp = array_api_compat.array_namespace(xp.asarray(1))
+        xp = get_compat_namespace(xp)
 
     return xp, used_default_xp
 
@@ -148,7 +147,7 @@ def coords_from_dim(
     if xp is None:
         xp = get_default_xp()
     else:
-        xp = array_api_compat.array_namespace(xp.asarray(0))
+        xp = get_compat_namespace(xp)
 
     values = dim.values(space, xp=xp, dtype=dtype)
 
@@ -209,7 +208,7 @@ def coords_from_arr(
             if xp is None:
                 xp_norm = x.xp
             else:
-                xp_norm = array_api_compat.array_namespace(xp.array(1.))
+                xp_norm = get_compat_namespace(xp)
 
             return coords_from_dim(
                 dim, space, xp=xp_norm, dtype=dtype

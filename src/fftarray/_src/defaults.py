@@ -1,16 +1,15 @@
 
 import numpy as np
 
-import array_api_compat
-
-_DEFAULT_XP = array_api_compat.array_namespace(np.asarray(0))
+from .helpers import get_compat_namespace
+_DEFAULT_XP = get_compat_namespace(np)
 
 def set_default_xp(xp) -> None:
     global _DEFAULT_XP
     # We want the wrapped namespace everywhere by default.
     # If the array library fully supports the Python Array API
     # this becomes the default namespace.
-    _DEFAULT_XP= array_api_compat.array_namespace(xp.asarray(0))
+    _DEFAULT_XP= get_compat_namespace(xp)
 
 def get_default_xp():
     return _DEFAULT_XP
