@@ -460,13 +460,15 @@ def test_coords_from_dim(
 
     if direct_dtype_name is None:
         direct_dtype = None
+        direct_dtype_np = None
         expected_dtype = xp_target.full(1, 2.).dtype
     else:
         direct_dtype = getattr(xp_target, direct_dtype_name)
+        direct_dtype_np = getattr(np, direct_dtype_name)
         expected_dtype = direct_dtype
 
     dim = fa.dim("x", n=3, d_pos=0.1, pos_min=0, freq_min=0)
-    ref_values = xp_target.asarray(dim.values(space, xp=np), dtype=direct_dtype)
+    ref_values = np.asarray(dim.values(space, xp=np), dtype=direct_dtype_np)
 
     array_args = {"dtype": direct_dtype}
 
