@@ -15,7 +15,7 @@ from .space import Space
 from .dimension import Dimension
 from .named_array import align_named_arrays
 from .uniform_value import UniformValue
-from .compat_namespace import get_array_compat_namespace, get_compat_namespace
+from .compat_namespace import get_array_compat_namespace, get_compat_namespace, convert_xp
 
 from .formatting import dim_table, format_bytes, format_n
 from .indexing import (
@@ -34,44 +34,6 @@ from .transform_application import do_fft, get_transform_signs, apply_lazy, comp
 
 EllipsisType = TypeVar('EllipsisType')
 
-def _convert_xp(x, old_xp, new_xp, dtype: Optional[Any] = None, copy: Optional[bool] = None):
-    """
-        The Array API standard does not support conversion between array namespaces.
-        Therefore this function only supports conversions between libraries where the interaction
-        is specifically allowed. This implementation is currently not optimal for performance
-        and always goes the safe route via NumPy.
-    """
-    if old_xp == new_xp:
-        return new_xp.asarray(x, dtype=dtype, copy=copy)
-
-    if array_api_compat.is_array_api_strict_namespace(old_xp):
-        x_np = array_api_compat.to_device(x, old_xp.__array_namespace_info__().default_device())
-    elif array_api_compat.is_numpy_array(x):
-        x_np = x
-    elif array_api_compat.is_jax_array(x):
-        assert copy is None or copy
-        x_np = np.array(x)
-    elif array_api_compat.is_torch_array(x):
-        assert copy is None or copy
-        x_np = np.array(x.cpu())
-    else:
-        # TODO: Just raise a warning and try np.array(x)?
-        raise ValueError(
-            f"Tried to convert from {old_xp} " \
-            "which does not have a specific implementation. " \
-            "The Array API standard does not support conversion between array namespaces " \
-            "and there is no specific work-around for this namespace."
-        )
-
-    if (
-        not array_api_compat.is_jax_namespace(new_xp)
-        and not array_api_compat.is_numpy_namespace(new_xp)
-        and not array_api_compat.is_torch_namespace(new_xp)
-        and not array_api_compat.is_array_api_strict_namespace(new_xp)
-    ):
-        raise ValueError(f"Tried to convert to unsupported namespace {new_xp}.")
-
-    return new_xp.asarray(x_np, dtype=dtype, copy=copy)
 
 def abs(x: Array, /) -> Array:
     """Implements abs with a special shortcut to statically eliminate the phase part
@@ -829,8 +791,8 @@ class Array:
         if space_norm != self.spaces or not all(self._factors_applied):
             # Setting eager before-hand allows copy-elision without the move option.
             arr = self.into_eager(True).into_space(space).into_factors_applied(True)
-            return _convert_xp(arr._values, old_xp = self.xp, new_xp=xp, dtype=dtype)
-        return _convert_xp(self._values, old_xp = self.xp, new_xp=xp, dtype=dtype, copy=True)
+            return convert_xp(arr._values, old_xp = self.xp, new_xp=xp, dtype=dtype)
+        return convert_xp(self._values, old_xp = self.xp, new_xp=xp, dtype=dtype, copy=True)
 
     @property
     def xp(self):
@@ -856,7 +818,7 @@ class Array:
             A new Array with the new array API namespace.
         """
         # Since Array is immutable, this does not necessarily need to copy.
-        values = _convert_xp(self._values, old_xp=self.xp, new_xp=xp, copy=None)
+        values = convert_xp(self._values, old_xp=self.xp, new_xp=xp, copy=None)
         return Array(
             dims=self._dims,
             values=values,
