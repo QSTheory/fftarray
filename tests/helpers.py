@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 import fftarray as fa
-from fftarray._src.array import _convert_xp
+from fftarray._src.compat_namespace import convert_xp
 
 XPS = [
     array_api_strict,
@@ -29,6 +29,13 @@ try:
     XPS.append(array_api_compat.get_namespace(torch.asarray(1.)))
 except ImportError:
     pass
+
+try:
+    import cupy
+    XPS.append(array_api_compat.get_namespace(cupy.asarray(1.)))
+except ImportError:
+    pass
+
 
 # This is helpful for tests where we need an xp which is not the currently tested one.
 XPS_ROTATED_PAIRS = [
@@ -189,8 +196,8 @@ def assert_fa_array_exact_equal(x1: fa.Array, x2: fa.Array) -> None:
 
 
     np.testing.assert_equal(
-        _convert_xp(x1._values, old_xp=x1._xp, new_xp=cnp),
-        _convert_xp(x2._values, old_xp=x1._xp, new_xp=cnp),
+        convert_xp(x1._values, old_xp=x1._xp, new_xp=cnp),
+        convert_xp(x2._values, old_xp=x1._xp, new_xp=cnp),
     )
 
 def get_test_array(
