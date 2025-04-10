@@ -30,6 +30,13 @@ try:
 except ImportError:
     pass
 
+try:
+    import cupy
+    XPS.append(array_api_compat.get_namespace(cupy.asarray(1.)))
+except ImportError:
+    pass
+
+
 # This is helpful for tests where we need an xp which is not the currently tested one.
 XPS_ROTATED_PAIRS = [
     pytest.param(xp1, xp2) for xp1, xp2 in zip(XPS, [*XPS[1:],XPS[0]], strict=True)

@@ -13,6 +13,7 @@ import fftarray as fa
 from tests.helpers import (
     XPS, get_other_space, get_dims, get_arr_from_dims, get_test_array
 )
+from fftarray._src.array import _convert_xp
 
 PrecisionSpec = Literal["float32", "float64"]
 
@@ -319,7 +320,10 @@ def array_strategy(draw) -> fa.Array:
         .into_eager(eager)
     )
 
-@pytest.mark.slow
+# @pytest.mark.slow
+from hypothesis import reproduce_failure
+
+@reproduce_failure('6.135.16', b'AEEAQQBBBEEAQQEoAAAAAAAAAAA=')
 @settings(max_examples=1000, deadline=None, print_blob=True)
 @given(array_strategy())
 def test_array_lazyness(arr):
@@ -404,7 +408,7 @@ def assert_basic_lazy_logic(arr, log):
     if all(arr._factors_applied):
         # Array must be handled the same way as applying the operations to the values numpy array
         log("factors_applied=True -> x.values(x.spaces) == x._values(spaces=x.spaces)")
-        np.testing.assert_array_equal(arr.values(arr.spaces), arr._values, strict=True)
+        np.testing.assert_array_equal(arr.values(arr.spaces, xp=np), _convert_xp(arr._values, arr.xp, np), strict=True)
 
     log("spaces='pos' -> abs(x.values('pos')) == abs(x._values)")
     log("spaces='freq' -> abs(x.values('freq')) == abs(x._values)/(n*d_freq)")
@@ -413,7 +417,7 @@ def assert_basic_lazy_logic(arr, log):
         if space == "freq" and not factors_applied:
             scale *= 1/(dim.n*dim.d_freq)
     rtol = 1e-6 if is_precision(arr, "float32") else 1e-12
-    np.testing.assert_allclose(np.abs(arr.values(arr.spaces)), np.abs(arr._values)*scale, rtol=rtol)
+    np.testing.assert_allclose(np.abs(arr.values(arr.spaces, xp=np)), np.abs(_convert_xp(arr._values, arr.xp, np))*scale, rtol=rtol)
 
 def is_inf_or_nan(x):
     """Check if (real or imag of) x is inf or nan"""
@@ -494,7 +498,7 @@ def assert_equal_op(
     else:
         np.testing.assert_allclose(arr_op, values_op, rtol=rtol, atol=1e-38)
 
-    _arr_op = fa_op(arr)._values
+    _arr_op = _convert_xp(fa_op(arr)._values, arr.xp, np)
     if op_forces_factors_applied:
         # _values should have factors applied
         np.testing.assert_allclose(_arr_op, values_op, rtol=rtol, atol=1e-38)
