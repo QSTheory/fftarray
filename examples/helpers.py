@@ -15,7 +15,7 @@ def plt_array(
     if len(arr.dims) == 1:
         dim = arr.dims[0]
         p_pos = figure(width=450, height=400, x_axis_label = f"{dim.name} pos coordinate", min_border=50)
-        pos_values = arr.values("pos")
+        pos_values = arr.values("pos", xp=np)
         p_pos.line(dim.values("pos", xp=np), np.real(pos_values), line_width=2, color = "navy", legend_label="real")
         p_pos.line(dim.values("pos", xp=np), np.imag(pos_values), line_width=2, color = "firebrick", legend_label="imag")
         p_pos.title.text = f"{data_name or 'Array values'} shown in position space" # type: ignore
@@ -23,7 +23,7 @@ def plt_array(
         p_pos.yaxis[0].formatter = PrintfTickFormatter(format="%.1e")
 
         p_freq = figure(width=450, height=400, x_axis_label = f"{dim.name} freq coordinate", min_border=50)
-        freq_values = arr.values("freq")
+        freq_values = arr.values("freq", xp=np)
         p_freq.line(dim.values("freq", xp=np), np.real(freq_values), line_width=2, color = "navy", legend_label="real")
         p_freq.line(dim.values("freq", xp=np), np.imag(freq_values), line_width=2, color = "firebrick", legend_label="imag")
         p_freq.title.text = f"{data_name or 'Array values'} shown in frequency space" # type: ignore

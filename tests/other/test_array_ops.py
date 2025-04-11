@@ -209,7 +209,7 @@ def test_sel_order(xp, space) -> None:
     arr_sely = arr.sel(**{"y": getattr(ydim, f"{space}_middle")})
     arr_selx_sely = arr_selx.sel(**{"y": getattr(ydim, f"{space}_middle")})
     arr_sely_selx = arr_sely.sel(**{"x": getattr(xdim, f"{space}_middle")})
-    np.testing.assert_allclose(arr_selx_sely.values(space), arr_sely_selx.values(space))
+    np.testing.assert_allclose(arr_selx_sely.values(space, xp=np), arr_sely_selx.values(space, xp=np))
 
 
 # TODO: Mark as not parallelizable
@@ -470,8 +470,8 @@ def assert_equal_op(
         fa_op = ops
 
     f_arr_op = fa_op(arr)
-    arr_op = f_arr_op.values(arr.spaces)
-    values_op = np_op(values)
+    arr_op = f_arr_op.values(arr.spaces, xp=np)
+    values_op = np.array(np_op(values))
 
     xp = array_api_compat.array_namespace(arr_op, values_op)
     if arr_op.dtype != values_op.dtype:
@@ -511,9 +511,10 @@ def assert_array_almost_equal_nulp_complex(x: Any, y: Any, nulp: int):
     """Compare two arrays of complex numbers. Simply compares the real and
     imaginary part.
     """
-    xp = array_api_compat.array_namespace(x,y)
-    np.testing.assert_array_almost_equal_nulp(xp.real(x), xp.real(y), nulp)
-    np.testing.assert_array_almost_equal_nulp(xp.imag(x), xp.imag(y), nulp)
+    x = np.array(x)
+    y = np.array(y)
+    np.testing.assert_array_almost_equal_nulp(np.real(x), np.real(y), nulp)
+    np.testing.assert_array_almost_equal_nulp(np.imag(x), np.imag(y), nulp)
 
 def assert_single_operand_fun_equivalence(arr: fa.Array, precise: bool, log):
     """Test whether applying operands to the Array (and then getting the
@@ -625,7 +626,7 @@ def test_fft_ifft_invariance(xp, space: fa.Space):
         # edge cases (very large numbers) result in inf after fft
         return
     rtol = 1e-5 if is_precision(arr, "float32") else 1e-6
-    np.testing.assert_allclose(arr.values(arr.spaces), arr_fft_ifft.values(arr_fft_ifft.spaces), rtol=rtol, atol=1e-38)
+    np.testing.assert_allclose(arr.values(arr.spaces, xp=np), arr_fft_ifft.values(arr_fft_ifft.spaces, xp=np), rtol=rtol, atol=1e-38)
 
 
 @pytest.mark.parametrize("xp", XPS)
