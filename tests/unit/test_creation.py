@@ -1,8 +1,9 @@
 from typing import (
-    Iterable, Literal, Optional, Dict, Any, Union, List, get_args
+    Iterable, Literal, Optional, Dict, Any, Union, List, Type, get_args
 )
 
 import array_api_strict
+import array_api_compat
 import array_api_compat.numpy as cnp
 import numpy as np
 import pytest
@@ -91,7 +92,11 @@ def test_from_array_object(
     try:
         # For array libraries with immutable arrays (e.g. jax), we assume this fails.
         # In these cases, we skip testing immutability ourself.
-        values += 2
+        if init_dtype_name == "bool":
+            assert xp.all(values)
+            values = ~values
+        else:
+            values += 2
     except(TypeError):
         pass
 
@@ -167,7 +172,13 @@ def test_from_list(
     with fa.default_eager(eager):
         with fa.default_xp(default_xp):
             # Test that inhomogeneous list triggers the correct error.
-            with pytest.raises(ValueError):
+            # numpy and jax raise a ValueError, torch raises a TypeError.
+            if array_api_compat.is_torch_namespace(xp_target):
+                expected_error: Type[Exception] = TypeError
+            else:
+                expected_error = ValueError
+
+            with pytest.raises(expected_error):
                 fa.array([1,[2]], [x_dim], "pos", **array_args)
 
 def check_array_from_list(
