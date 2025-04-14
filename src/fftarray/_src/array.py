@@ -803,7 +803,9 @@ class Array:
             A new Array with the new array API namespace.
         """
         # Since Array is immutable, this does not necessarily need to copy.
-        values = xp.asarray(self._values, copy=None)
+        # Do not explicitly pass copy=None, because numpy 1.25 does not
+        # support that argument.
+        values = xp.asarray(self._values)
         return Array(
             dims=self._dims,
             values=values,
