@@ -574,6 +574,7 @@ class Dimension:
             *,
             xp: Optional[Any] = None,
             dtype: Optional[Any] = None,
+            device: Optional[Any] = None,
         ):
         """Returns the Dimension values for the respective space.
 
@@ -608,10 +609,13 @@ class Dimension:
             0.,
             self.n,
             dtype=dtype,
+            device=device,
         )
 
         match space:
             case "pos":
+                # The explicit asarray call is necessary for numpy < 2.0 due to
+                # its upcasting rules regarding multiplication with scalars.
                 return xp.asarray(indices * self.d_pos + self.pos_min, dtype=dtype)
             case "freq":
                 return xp.asarray(indices * self.d_freq + self.freq_min, dtype=dtype)

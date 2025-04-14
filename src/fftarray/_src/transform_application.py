@@ -3,6 +3,7 @@ from typing import Literal, Iterable, List, Optional, Tuple
 
 from .space import Space
 from .dimension import Dimension
+import array_api_compat
 import numpy as np
 
 def get_transform_signs(
@@ -110,13 +111,15 @@ def apply_lazy(
     if needs_expansion:
         values = xp.tile(values, tuple(reps))
 
-    per_idx_phase_factors = xp.asarray(0., dtype=real_type(xp, values.dtype))
+    device = array_api_compat.device(values)
+
+    per_idx_phase_factors = xp.asarray(0., dtype=real_type(xp, values.dtype), device=device)
     for dim_idx, (dim, sign, dim_space) in enumerate(zip(dims, signs, spaces, strict=True)):
         # If both are the same, we do not need to do anything
 
         if sign != 0:
             # Create indices with correct shape
-            indices = xp.arange(0, dim.n, dtype=real_type(xp, values.dtype))
+            indices = xp.arange(0, dim.n, dtype=real_type(xp, values.dtype), device=device)
             extended_shape = [1]*len(values.shape)
             extended_shape[dim_idx] = -1
             indices = xp.reshape(indices, shape=tuple(extended_shape))
@@ -133,7 +136,7 @@ def apply_lazy(
 
     if len(per_idx_phase_factors.shape) > 0: # type: ignore
         # TODO: Figure out typing
-        exponent = xp.asarray(1.j, dtype=values.dtype) * per_idx_phase_factors # type: ignore
+        exponent = xp.asarray(1.j, dtype=values.dtype, device=device) * per_idx_phase_factors # type: ignore
         # TODO Could optimise exp into cos and sin because exponent is purely complex
         # Is that faster or more precise? Should we test that or just do it?
         values *= xp.exp(exponent)

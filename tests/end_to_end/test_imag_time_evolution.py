@@ -1,4 +1,4 @@
-from typing import Literal, Tuple
+from typing import Literal, Tuple, Optional, Any
 from typing_extensions import assert_never
 
 import numpy as np
@@ -9,12 +9,38 @@ from scipy.constants import hbar, Boltzmann
 import pytest
 import fftarray as fa
 
-from tests.helpers import XPS
+from tests.helpers import XPS, XPS_DEVICE_PAIRS
 
 dt = 2.5e-3
 mass_rb87: float = 86.909 * 1.66053906660e-27
 omega_x = 0.5*2.*np.pi # angular freq. for desired ground state
 n_steps: int = 10
+
+
+@pytest.mark.parametrize(("xp, device_arg, device_res"), XPS_DEVICE_PAIRS)
+@pytest.mark.parametrize("eager", [False, True])
+def test_ground_state_device(
+            xp,
+            device_arg: Optional[Any],
+            device_res: Optional[Any],
+            eager: bool,
+        ) -> None:
+    V, k_sq = get_V_k2(
+        precision="float64",
+        eager=eager,
+        xp=xp,
+        device=device_arg,
+    )
+    psi = V*0.+1.
+    for _ in range(n_steps):
+        psi = split_step_imag(
+            psi,
+            dt=dt,
+            mass=mass_rb87,
+            V=V,
+            k_sq=k_sq,
+        )
+    assert psi.device == device_res
 
 @pytest.mark.parametrize("xp", XPS)
 @pytest.mark.parametrize("eager", [False, True])
@@ -107,6 +133,7 @@ def get_V_k2(
             xp,
             precision: Literal["float32", "float64"],
             eager: bool,
+            device: Optional[Any] = None,
         ) -> Tuple[fa.Array, fa.Array]:
     dims = [
         fa.dim_from_constraints("x",
@@ -125,11 +152,11 @@ def get_V_k2(
         ),
     ]
 
-    V = fa.array(0., [], "pos", xp=xp, dtype=getattr(xp, precision)).into_eager(eager)
-    k_sq = fa.array(0., [], "pos", xp=xp, dtype=getattr(xp, precision)).into_eager(eager)
+    V = fa.array(0., [], "pos", xp=xp, dtype=getattr(xp, precision), device=device).into_eager(eager)
+    k_sq = fa.array(0., [], "pos", xp=xp, dtype=getattr(xp, precision), device=device).into_eager(eager)
     for dim in dims:
-        x = fa.coords_from_dim(dim, "pos", xp=xp, dtype=getattr(xp, precision)).into_eager(eager)
-        f = fa.coords_from_dim(dim, "freq", xp=xp, dtype=getattr(xp, precision)).into_eager(eager)
+        x = fa.coords_from_dim(dim, "pos", xp=xp, dtype=getattr(xp, precision), device=device).into_eager(eager)
+        f = fa.coords_from_dim(dim, "freq", xp=xp, dtype=getattr(xp, precision), device=device).into_eager(eager)
         V += 0.5 * mass_rb87 * omega_x**2. * x**2
         k_sq += (2*np.pi*f)**2.
 
