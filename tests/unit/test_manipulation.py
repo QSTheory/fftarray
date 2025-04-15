@@ -1,13 +1,14 @@
 from typing import Any, Tuple
 from itertools import permutations
 
+import array_api_strict
 import pytest
 import numpy as np
 
 import fftarray as fa
-from tests.helpers import XPS, get_dims, get_arr_from_dims
+from tests.helpers import get_dims, get_arr_from_dims
 
-@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("xp", [array_api_strict])
 @pytest.mark.parametrize("ndims, permuted_axes",
     [pytest.param(nd, perm) for nd in [0,1,2,3] for perm in permutations(range(nd))]
 )

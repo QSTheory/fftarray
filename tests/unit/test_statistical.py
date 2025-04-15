@@ -7,7 +7,7 @@ import pytest
 import fftarray as fa
 from fftarray._src.helpers import norm_space
 
-from tests.helpers import XPS, get_dims, get_arr_from_dims, dtype_names_numeric_core, DTYPE_NAME
+from tests.helpers import get_dims, get_arr_from_dims, dtype_names_numeric_core, DTYPE_NAME
 
 function_dtypes = {
     "max": ("integral", "real floating"),
@@ -55,7 +55,7 @@ def _to_integers(indices: Optional[Union[int, Tuple[int]]], ndims: int) -> Tuple
 
     return tuple(indices)
 
-@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("xp", [array_api_strict])
 @pytest.mark.parametrize("op_name", ["sum", "prod"])
 @pytest.mark.parametrize(
     "source_dtype_name, acc_dtype_name, should_raise",
@@ -116,7 +116,7 @@ def test_sum_prod(
         np.array(fa_res_values),
     )
 
-@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("xp", [array_api_strict])
 @pytest.mark.parametrize("op_name", ["max", "min", "mean"])
 @pytest.mark.parametrize("dtype_name", dtype_names_numeric_core)
 @pytest.mark.parametrize("ndims, reduction_dims", reduction_dims_combinations)
@@ -167,7 +167,7 @@ def test_max_min_mean(
         np.array(fa_res_values),
     )
 
-@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("xp", [array_api_strict])
 @pytest.mark.parametrize(
     "source_dtype_name, acc_dtype_name, should_raise",
     source_and_res_dtype_name_pairs

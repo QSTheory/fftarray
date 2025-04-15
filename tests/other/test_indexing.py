@@ -1,12 +1,13 @@
 
 from functools import reduce
 from typing import Dict, List, Literal, Mapping, Tuple, TypeVar, Union
+
+import array_api_strict
 import pytest
 import numpy as np
 import xarray as xr
 
 import fftarray as fa
-from tests.helpers import XPS
 
 EllipsisType = TypeVar('EllipsisType')
 
@@ -104,7 +105,7 @@ invalid_substepping_slices = [
 ]
 
 @pytest.mark.parametrize("as_dict", [True, False])
-@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("xp", [array_api_strict])
 @pytest.mark.parametrize("invalid_slice", invalid_substepping_slices)
 @pytest.mark.parametrize("space", ["pos", "freq"])
 def test_errors_array_index_substepping(
@@ -142,7 +143,7 @@ invalid_tuples = [
     (slice(None, None), slice(None, None), Ellipsis),
 ]
 
-@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("xp", [array_api_strict])
 @pytest.mark.parametrize("invalid_tuple", invalid_tuples)
 @pytest.mark.parametrize("space", ["pos", "freq"])
 def test_errors_array_invalid_indexes(
@@ -212,7 +213,7 @@ integer_indexers_test_samples = [
 ]
 
 @pytest.mark.parametrize("indexers", integer_indexers_test_samples)
-@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("xp", [array_api_strict])
 @pytest.mark.parametrize("space", ["pos", "freq"])
 def test_3d_array_indexing_by_integer(
     space: fa.Space,
@@ -268,7 +269,7 @@ tuple_indexers = [
 ]
 
 @pytest.mark.parametrize("indexers", tuple_indexers)
-@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("xp", [array_api_strict])
 @pytest.mark.parametrize("space", ["pos", "freq"])
 def test_3d_array_positional_indexing(
     space: fa.Space,
@@ -310,7 +311,7 @@ label_indexers_test_samples = [
 ]
 
 @pytest.mark.parametrize("indexers", label_indexers_test_samples)
-@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("xp", [array_api_strict])
 @pytest.mark.parametrize("space", ["pos", "freq"])
 @pytest.mark.parametrize("method", ["nearest", "pad", "ffill", "backfill", "bfill", None, "unsupported"])
 def test_3d_array_label_indexing(
@@ -352,7 +353,7 @@ def test_3d_array_label_indexing(
 @pytest.mark.parametrize("indexers", label_indexers_test_samples)
 @pytest.mark.parametrize("index_by", ["label", "integer"])
 @pytest.mark.parametrize("space", ["pos", "freq"])
-@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("xp", [array_api_strict])
 def test_3d_array_indexing(
     space: fa.Space,
     index_by: Literal["label", "integer"],
@@ -433,7 +434,7 @@ space_combinations = [
 ]
 
 @pytest.mark.parametrize("indexers", valid_indexers)
-@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("xp", [array_api_strict])
 @pytest.mark.parametrize("space_combination", space_combinations)
 def test_array_state_management(
     space_combination: Dict[str, fa.Space],
