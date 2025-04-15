@@ -8,12 +8,11 @@ from numbers import Number
 from dataclasses import dataclass
 import textwrap
 
-import array_api_compat
-
 from .space import Space
 from .dimension import Dimension
 from .named_array import align_named_arrays
 from .uniform_value import UniformValue
+from .helpers import get_array_compat_namespace, get_compat_namespace
 
 from .formatting import dim_table, format_bytes, format_n
 from .indexing import (
@@ -778,7 +777,7 @@ class Array:
         if xp is None:
             xp = self.xp
         else:
-            xp = array_api_compat.array_namespace(xp.asarray(1))
+            xp = get_compat_namespace(xp)
         space_norm: Tuple[Space, ...] = norm_space(space, len(self.dims))
         if space_norm != self.spaces or not all(self._factors_applied):
             # Setting eager before-hand allows copy-elision without the move option.
@@ -814,7 +813,7 @@ class Array:
             spaces=self._spaces,
             eager=self._eager,
             factors_applied=self._factors_applied,
-            xp=array_api_compat.array_namespace(values),
+            xp=get_array_compat_namespace(values),
         )
 
     @property
@@ -1052,10 +1051,10 @@ class Array:
         assert all([isinstance(factor_applied, bool) for factor_applied in self._factors_applied])
 
         # Check that the Array API namespace is properly wrapped.
-        assert self._xp == array_api_compat.array_namespace(self._xp.asarray(0))
+        assert self._xp == get_compat_namespace(self._xp)
 
         # Check that values are of the stored Array API namespace.
-        assert self._xp == array_api_compat.array_namespace(self._values)
+        assert self._xp == get_array_compat_namespace(self._values)
 
         if not all(self._factors_applied):
             assert self.xp.isdtype(self._values.dtype, 'complex floating')
@@ -1181,7 +1180,7 @@ def unpack_arrays(
     for value in unpacked_values:
         assert value is not None
 
-    assert xp.get() == array_api_compat.array_namespace(xp.get().asarray(0))
+    assert xp.get() == get_compat_namespace(xp.get())
 
     return UnpackedValues(
         dims = tuple(dims_list),
