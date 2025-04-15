@@ -8,8 +8,6 @@ from numbers import Number
 from dataclasses import dataclass
 import textwrap
 
-import numpy as np
-import numpy.typing as npt
 import array_api_compat
 
 from .space import Space
@@ -75,6 +73,9 @@ def abs(x: Array, /) -> Array:
         xp=x.xp,
     )
 
+def binary_to_int(bits: List[bool]) -> int:
+    return bits[0]*4 + bits[1]*2 + bits[2]
+
 def two_inputs_func(
             unp_inp: UnpackedValues,
             op,
@@ -85,18 +86,19 @@ def two_inputs_func(
     # empty).
     if len(unp_inp.dims) > 0:
         # Compute look-up indices by interpreting the three bits as a binary number.
-        lut_indices = np.array(unp_inp.eager)*4 + np.dot(unp_inp.factors_applied,[2,1])
+        lut_indices = [binary_to_int([eager, factors[0], factors[1]]) for eager, factors in zip(unp_inp.eager, unp_inp.factors_applied, strict=True)]
+
         # Compute the required phase applications for each operand per dimension
         # by applying the rules encoded in the look-up table.
-        factor_transforms = transforms_lut.factor_application_signs[lut_indices]
+        factor_transforms = [transforms_lut[0][index] for index in lut_indices]
         # Compute the resulting factors_applied per dimension
         # by applying the rules encoded in the look-up table.
-        final_factors_applied = transforms_lut.final_factor_state[lut_indices]
+        final_factors_applied = tuple(transforms_lut[1][index] for index in lut_indices)
 
         # Apply above defined scale and phase factors depending on the specific case
         for op_idx in [0,1]:
-            signs = factor_transforms[:,op_idx]
-            if not np.all(signs==0):
+            signs = [factor_transforms[i][op_idx] for i in range(len(factor_transforms))]
+            if not all([sign==0 for sign in signs]):
                 sub_values: Any = unp_inp.values[op_idx]
                 if isinstance(sub_values, Number):
                     # This function is only called if at least one of the operands is an Array.
@@ -133,12 +135,12 @@ def two_inputs_func(
                     xp=unp_inp.xp,
                     values=sub_values,
                     dims=unp_inp.dims,
-                    signs=signs.tolist(),
+                    signs=signs,
                     spaces=unp_inp.spaces,
                     scale_only=False,
                 )
     else:
-        final_factors_applied = np.array([])
+        final_factors_applied = tuple()
 
     values = op(*unp_inp.values)
     return Array(
@@ -146,7 +148,7 @@ def two_inputs_func(
         spaces=unp_inp.spaces,
         dims=unp_inp.dims,
         eager=unp_inp.eager,
-        factors_applied=tuple(final_factors_applied.tolist()),
+        factors_applied=tuple(final_factors_applied),
         xp=unp_inp.xp,
     )
 
@@ -1069,7 +1071,7 @@ class UnpackedValues:
     # Shared array namespace between all values.
     xp: Any
     # dim 0: dim_idx, dim 1: op_idx
-    factors_applied: npt.NDArray[np.bool_]
+    factors_applied: List[List[bool]]
     # Space per dimension, must be homogeneous over all values
     spaces: Tuple[Space, ...]
     # eager per dimension, must be homogeneous over all values
@@ -1174,7 +1176,7 @@ def unpack_arrays(
     dims_list = [dims[dim_name].dim.get() for dim_name in dim_names]
     space_list = [dims[dim_name].space.get() for dim_name in dim_names]
     eager_list = [dims[dim_name].eager.get() for dim_name in dim_names]
-    factors_applied: npt.NDArray[np.bool_] = np.array([dims[dim_name].factors_applied for dim_name in dim_names])
+    factors_applied = [dims[dim_name].factors_applied for dim_name in dim_names]
 
     for value in unpacked_values:
         assert value is not None

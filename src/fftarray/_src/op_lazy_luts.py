@@ -1,73 +1,75 @@
-from dataclasses import dataclass
+from typing import Tuple, List, Literal
 
 import numpy as np
 import numpy.typing as npt
 
-@dataclass
-class TwoOperandTransforms:
+"""
+    Two Operand Transforms
+
+    When combining two operands with addition or multiplication
+    not all phase-factors need to be applied necessarily.
+
+    The rules on how to combine the phase factors of two operands per
+    dimension are stored in this class as a look-up-table.
+
+    When defining these rules one has to take into account that forcing a
+    scalar operand from ``True`` to ``False`` implies a transform to the complex
+    type of the other operand.
+
+    The inputs per dimension are three booleans:
+
+    +----------+------------------------------------------+
+    |Input     |Description                               |
+    +==========+==========================================+
+    | eager    | Must be the same between the two arrays, |
+    |          | otherwise they cannot be combined.       |
+    +----------+------------------------------------------+
+    | factors1 | `factors_applied` of the first operand   |
+    +----------+------------------------------------------+
+    | factors2 | `factors_applied` of the first operand   |
+    +----------+------------------------------------------+
+
+    These three booleans are then converted into a binary number in the order
+    ``(eager, factors1, factors2)``.
+    This then yields the index between ``0`` and ``7`` for the look up.
+
+    The actual application code assumes that `factors1 and factors2` never gets mapped
+    to `factors_applied=False`.
+    This property is not checked since the tables are hard-coded.
+"""
+
+
+# factor_application_signs: Shape 2(operands)*8(input state combinations), valid values: -1, 0, 1
+# final_factor_state: Shape 8(input state combinations)
+TwoOperandTransforms = Tuple[List[List[Literal[-1, 0, 1]]], List[bool]]
+
+def get_two_operand_transforms(
+        factor_application_signs: npt.NDArray[np.int8],
+        final_factor_state: npt.NDArray[np.bool],
+    ) -> TwoOperandTransforms:
+    """..
+
+    If length 4 is passed in, this signals the result does not depend on ``eager``.
+    The table then gets automatically extended to length ``8`` by duplication.
+
+    Args:
+        factor_application_signs (npt.NDArray[np.int8]): Shape 2x4 or 2x8
+        final_factor_state (npt.NDArray[np.bool]): Shape 4 or 8
     """
-        When combining two operands with addition or multiplication
-        not all phase-factors need to be applied necessarily.
 
-        The rules on how to combine the phase factors of two operands per
-        dimension are stored in this class as a look-up-table.
+    # If only for op-combinations are given, it is implied that eager is irrelevant
+    # and the values are duplicated for both cases.
+    if factor_application_signs.shape[0]==4:
+        # Same for both possible values of eager.
+        factor_application_signs = np.tile(factor_application_signs, (2,1))
+        final_factor_state = np.tile(final_factor_state, 2)
 
-        When defining these rules one has to take into account that forcing a
-        scalar operand from ``True`` to ``False`` implies a transform to the complex
-        type of the other operand.
-
-        The inputs per dimension are three booleans:
-
-        +----------+------------------------------------------+
-        |Input     |Description                               |
-        +==========+==========================================+
-        | eager    | Must be the same between the two arrays, |
-        |          | otherwise they cannot be combined.       |
-        +----------+------------------------------------------+
-        | factors1 | `factors_applied` of the first operand   |
-        +----------+------------------------------------------+
-        | factors2 | `factors_applied` of the first operand   |
-        +----------+------------------------------------------+
-
-        These three booleans are then converted into a binary number in the order
-        ``(eager, factors1, factors2)``.
-        This then yields the index between ``0`` and ``7`` for the look up.
-
-        The actual application code assumes that `factors1 and factors2` never gets mapped
-        to `factors_applied=False`.
-        This property is not checked since the tables are hard-coded.
-    """
-
-    def __init__(
-            self,
-            factor_application_signs: npt.NDArray[np.int8],
-            final_factor_state: npt.NDArray[np.bool_],
-        ):
-        """..
-
-        If length 4 is passed in, this signals the result does not depend on ``eager``.
-        The table then gets automatically extended to length ``8`` by duplication.
-
-        Args:
-            factor_application_signs (npt.NDArray[np.int8]): Shape 2x4 or 2x8
-            final_factor_state (npt.NDArray[np.bool]): Shape 4 or 8
-        """
-
-        # If only for op-combinations are given, it is implied that eager is irrelevant
-        # and the values are duplicated for both cases.
-        if factor_application_signs.shape[0]==4:
-            # Same for both possible values of eager.
-            factor_application_signs = np.tile(factor_application_signs, (2,1))
-            final_factor_state = np.tile(final_factor_state, 2)
-
-        self.factor_application_signs = factor_application_signs
-        self.final_factor_state = final_factor_state
+    return (
+        factor_application_signs.tolist(), # type: ignore
+        final_factor_state.tolist(), # type: ignore
+    )
 
 
-    # Shape 2(operands)*8(input state combinations), valid values: -1, 0, 1
-    factor_application_signs: npt.NDArray[np.int8]
-    # Shape 8(input state combinations)
-    final_factor_state: npt.NDArray[np.bool_]
 
 """
     Generates the required phase factor applications and factors_applied result required
@@ -92,7 +94,7 @@ class TwoOperandTransforms:
 
     The choice between the operands in the first line is arbitrary.
 """
-mul_transforms_lut = TwoOperandTransforms(
+mul_transforms_lut = get_two_operand_transforms(
     factor_application_signs=np.array([
         # The choice between the operands is arbitrary for multiplication
         # but is the necessary choice for division.
@@ -129,7 +131,7 @@ mul_transforms_lut = TwoOperandTransforms(
 
     The choice between the operands in the third table entry is arbitrary.
 """
-div_transforms_lut = TwoOperandTransforms(
+div_transforms_lut = get_two_operand_transforms(
     factor_application_signs=np.array([
         # (False, False)
         [0, 0],
@@ -180,7 +182,7 @@ div_transforms_lut = TwoOperandTransforms(
     | True   | True   | True   | 7        | 0(True)           | 0(True)           | True  |
     +--------+--------+--------+----------+-------------------+-------------------+-------+
 """
-add_transforms_lut = TwoOperandTransforms(
+add_transforms_lut = get_two_operand_transforms(
     factor_application_signs=np.array([
         #--------
         # eager=False
@@ -234,7 +236,7 @@ add_transforms_lut = TwoOperandTransforms(
     | False/True | True   | True   | 3/7       | 0(True)           | 0(True)           | True  |
     +------------+--------+--------+-----------+-------------------+-------------------+-------+
 """
-default_transforms_lut = TwoOperandTransforms(
+default_transforms_lut = get_two_operand_transforms(
     factor_application_signs=np.array([
         # (False, False)
         [-1,-1],
