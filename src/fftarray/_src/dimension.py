@@ -4,9 +4,7 @@ from typing_extensions import assert_never
 from dataclasses import dataclass
 
 import numpy as np
-from .defaults import get_default_xp
-
-import array_api_compat
+from .helpers import norm_xp
 from .formatting import dim_table, format_n
 from .indexing import check_substepping, remap_index_check_int
 
@@ -598,13 +596,13 @@ class Dimension:
             The Dimension's values.
         """
 
-        if xp is None:
-            xp = get_default_xp()
-        else:
-            xp = array_api_compat.array_namespace(xp.asarray(1))
+        xp = norm_xp(xp_arg=xp)
 
         if dtype is not None and not xp.isdtype(dtype, "real floating"):
-            raise ValueError("Coordinates can only have a real-valued floating point dtype.")
+            raise ValueError(
+                "Coordinates can only have a real-valued floating point dtype. " \
+                f"Passed in {dtype}."
+            )
 
         indices = xp.arange(
             0.,

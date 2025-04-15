@@ -2,23 +2,32 @@ from typing import (
     Iterable, Literal, Optional, Dict, Any, Union, List, get_args
 )
 
+import array_api_strict
 import numpy as np
 import pytest
 import fftarray as fa
 
-from tests.helpers import XPS, XPS_ROTATED_PAIRS, get_dims, dtypes_names_pairs, dtype_names_numeric_core, DTYPE_NAME
+from tests.helpers import (
+    XPS, XPS_ROTATED_PAIRS, get_dims, dtypes_names_pairs,
+    dtype_names_numeric_core, DTYPE_NAME, get_test_array,
+    assert_fa_array_exact_equal,
+)
 
+def test_no_xp_conversion() -> None:
+    """
+        Tests that fa.array raises a ValueError if the user tries
+        to implicitly convert between two different array libraries.
+    """
+    with pytest.raises(ValueError):
+        fa.array(np.array(1), [], [], xp=array_api_strict)
 
-@pytest.mark.parametrize("xp_target, xp_other", XPS_ROTATED_PAIRS)
-@pytest.mark.parametrize("xp_source", ["values", "direct"])
+@pytest.mark.parametrize("xp", XPS)
 @pytest.mark.parametrize("init_dtype_name, result_dtype_name", dtypes_names_pairs)
 @pytest.mark.parametrize("ndims", [0,1,2])
 @pytest.mark.parametrize("defensive_copy", [False, True])
 @pytest.mark.parametrize("eager", [False, True])
 def test_from_array_object(
-        xp_target,
-        xp_other,
-        xp_source: Literal["values", "direct"],
+        xp,
         init_dtype_name: DTYPE_NAME,
         result_dtype_name: Optional[DTYPE_NAME],
         ndims: int,
@@ -47,33 +56,22 @@ def test_from_array_object(
         # the passed in values.
         # Therefore the expected dtype is the same than the one that is used
         # to create the array.
-        result_dtype = getattr(xp_target, init_dtype_name)
+        result_dtype = getattr(xp, init_dtype_name)
     else:
         # In this case we explicitly override the dtype
         # in the creation of the array.
-        result_dtype = getattr(xp_target, result_dtype_name)
+        result_dtype = getattr(xp, result_dtype_name)
         array_args["dtype"] = result_dtype
 
 
-    match xp_source:
-        case "values":
-            # We derive xp from the passed in values => create it with the target_xp
-            xp_init = xp_target
-
-        case "direct":
-            # We override the xp from the passed in values => create it with the other_xp,
-            # so that we explicitly use that case.
-            xp_init = xp_other
-            array_args["xp"] = xp_target
-
-    values = xp_init.full(shape, 1., dtype=getattr(xp_init, init_dtype_name))
+    values = xp.full(shape, 1., dtype=getattr(xp, init_dtype_name))
     array_args["values"] = values
 
     # Eager is always inferred from the default setting since there is no override parameter.
     with fa.default_eager(eager):
         arr = fa.array(array_args.pop("values"), array_args.pop("dims"), array_args.pop("spaces"), **array_args)
 
-    assert arr.xp == xp_target
+    assert arr.xp == xp
     assert arr.dtype == result_dtype
     assert arr.shape == shape
     assert arr.eager == (eager,)*ndims
@@ -82,8 +80,7 @@ def test_from_array_object(
     # just directly in the array API namespace.
     # That way we ensure that type promotion and conversion via fftarray
     # work the same way as with the underlying libraries.
-    values = xp_init.full(shape, 1., dtype=getattr(xp_init, init_dtype_name))
-    values_ref = xp_target.asarray(values, copy=True)
+    values_ref = xp.asarray(values, copy=True)
 
     try:
         # For array libraries with immutable arrays (e.g. jax), we assume this fails.
@@ -93,14 +90,14 @@ def test_from_array_object(
         pass
 
     if defensive_copy:
-        assert xp_target.all(arr.values("pos") == values_ref)
+        assert xp.all(arr.values("pos") == values_ref)
     # If not copy, we cannot test for inequality because aliasing behavior
     # is not defined and for jax for example an inequality check would fail.
 
     if ndims > 0:
         wrong_shape = list(shape)
         wrong_shape[0] = 10
-        values = xp_target.full(tuple(wrong_shape), 1., dtype=result_dtype)
+        values = xp.full(tuple(wrong_shape), 1., dtype=result_dtype)
         with pytest.raises(ValueError):
             arr = fa.array(values, dims, "pos")
 
@@ -221,61 +218,45 @@ def test_full_scalar(
     ) -> None:
 
     if direct_dtype_name is None:
-        # dtype not specified, thus should be inferred by xp from the fill_value
         direct_dtype = None
-        expected_dtype = xp.full(1, fill_value).dtype
     else:
-        # dtype is explicity specified in array creation, overwrites fill_value dtype
+        # dtype is explicity specified in array creation,
+        # overwrites the default dtype of the array library.
         direct_dtype = getattr(xp, direct_dtype_name)
-        expected_dtype = direct_dtype
 
     check_full(
         xp=xp,
         fill_value=fill_value,
         direct_dtype=direct_dtype,
-        expected_dtype=expected_dtype,
         ndims=ndims,
         eager=eager,
     )
 
-@pytest.mark.parametrize("xp, xp_other", XPS_ROTATED_PAIRS)
-@pytest.mark.parametrize("xp_source", ["fill_value", "direct"])
+@pytest.mark.parametrize("xp", XPS)
 @pytest.mark.parametrize("init_dtype_name, direct_dtype_name", dtypes_names_pairs)
 @pytest.mark.parametrize("ndims", [0,1,2])
 @pytest.mark.parametrize("eager", [True, False])
 def test_full_array(
         xp,
-        xp_other,
-        xp_source: Literal["fill_value", "direct"],
         init_dtype_name: DTYPE_NAME,
         direct_dtype_name: Optional[DTYPE_NAME],
         ndims: int,
         eager: bool,
     ) -> None:
-
-    match xp_source:
-        case "fill_value":
-            init_xp = xp
-        case "direct":
-            init_xp = xp_other
-
-    # Define xp array according to xp_source with fill_value using init_dtype_name
-    fill_value = init_xp.asarray(5, dtype=getattr(init_xp, init_dtype_name))
+    # Define xp array according to xp with fill_value using init_dtype_name
+    fill_value = xp.asarray(5, dtype=getattr(xp, init_dtype_name))
 
     if direct_dtype_name is None:
-        # This case means the result dtype should be inferred from the fill value.
-        expected_dtype = getattr(xp, init_dtype_name)
         direct_dtype = None
     else:
-        # This case means the result dtype is explicitly specified by direct_dtype_name.
-        expected_dtype = getattr(xp, direct_dtype_name)
-        direct_dtype = expected_dtype
+        # dtype is explicity specified in array creation,
+        # overwrites the default dtype of the array library.
+        direct_dtype = getattr(xp, direct_dtype_name)
 
     check_full(
         xp=xp,
         fill_value=fill_value,
         direct_dtype=direct_dtype,
-        expected_dtype=expected_dtype,
         ndims=ndims,
         eager=eager,
     )
@@ -284,7 +265,6 @@ def check_full(
         xp,
         fill_value,
         direct_dtype,
-        expected_dtype,
         ndims: int,
         eager: bool,
     ) -> None:
@@ -301,8 +281,8 @@ def check_full(
         arr = fa.full(dims, "pos", fill_value, xp=xp, dtype=direct_dtype)
 
     arr_values = arr.values("pos")
-    ref_arr = xp.full(shape, xp.asarray(fill_value, dtype=direct_dtype))
-    assert arr.dtype == expected_dtype
+    ref_arr = xp.full(shape, fill_value, dtype=direct_dtype)
+    assert arr.dtype == ref_arr.dtype
     assert arr.eager == (eager,)*ndims
     assert arr.factors_applied == (True,)*ndims
 
@@ -311,6 +291,59 @@ def check_full(
         np.array(ref_arr),
         np.array(arr_values),
     )
+
+
+@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("dtype_name, dtype_override_name, res_dtype_name", [
+    ("int64", None, None),
+    ("float32", None, "float32"),
+    ("float32", "complex64", None),
+    ("float32", "float64", "float64"),
+    ("complex128", None, "float64"),
+])
+def test_coords_from_arr(
+            xp,
+            dtype_name: DTYPE_NAME,
+            dtype_override_name: DTYPE_NAME,
+            res_dtype_name: Optional[DTYPE_NAME],
+        ) -> None:
+    """
+        Test that ``coords_from_arr`` returns the same results as ``coords_from_dim``
+        while correctly inferring, dtype, device and xp from the given template array.
+        res_dtype_name=None means that ``coords_from_arr`` is expected to return the
+        default float type of the used ``xp``.
+    """
+    space: fa.Space = "pos"
+    dtype = getattr(xp, dtype_name)
+
+    if dtype_override_name is None:
+        dtype_override = None
+    else:
+        dtype_override = getattr(xp, dtype_override_name)
+
+    if res_dtype_name is None:
+        res_dtype = dtype
+    else:
+        res_dtype = getattr(xp, res_dtype_name)
+
+
+    dim = fa.dim("x", n=3, d_pos=0.1, pos_min=0, freq_min=0)
+    arr = get_test_array(
+        xp=xp,
+        dim=dim,
+        space=space,
+        dtype=dtype,
+        factors_applied=True,
+    )
+
+    if res_dtype_name is None:
+        with pytest.raises(ValueError):
+            fa.coords_from_arr(arr, "x", space, dtype=dtype_override)
+        return
+
+    ref_values = fa.coords_from_dim(dim, space, xp=xp, dtype=res_dtype)
+    arr_from_arr = fa.coords_from_arr(arr, "x", space, dtype=dtype_override)
+    assert_fa_array_exact_equal(ref_values, arr_from_arr)
 
 @pytest.mark.parametrize("xp_target, xp_other", XPS_ROTATED_PAIRS)
 @pytest.mark.parametrize("xp_source", ["default", "direct"])

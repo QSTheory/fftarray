@@ -12,7 +12,7 @@ from .space import Space
 from .dimension import Dimension
 from .named_array import align_named_arrays
 from .uniform_value import UniformValue
-from .helpers import get_array_compat_namespace, get_compat_namespace
+from .compat_namespace import get_array_compat_namespace, get_compat_namespace
 
 from .formatting import dim_table, format_bytes, format_n
 from .indexing import (
