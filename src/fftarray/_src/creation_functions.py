@@ -6,7 +6,7 @@ from .dimension import Dimension
 from .array import Array
 from .space import Space
 from .transform_application import real_type
-from .defaults import get_default_eager, get_default_precision, get_default_xp
+from .defaults import get_default_eager, get_default_xp
 from .helpers import norm_space
 
 def _get_xp(xp: Optional[Any], values) -> Tuple[Any, bool]:
@@ -133,7 +133,7 @@ def coords_from_dim(
     xp : Optional[Any]
         The array namespace to use for the returned ``Array``. `None` uses default ``numpy`` which can be globally changed.
     dtype : Optional[Any]
-        The dtype to use for the returned ``Array``. `None` uses default ``float64`` which can be globally changed.
+        The dtype to use for the returned ``Array``. `None` uses the default floating point type of the chosen ``xp``.
 
     Returns
     -------
@@ -149,12 +149,6 @@ def coords_from_dim(
         xp = get_default_xp()
     else:
         xp = array_api_compat.array_namespace(xp.asarray(0))
-
-    if dtype is None:
-        dtype = getattr(xp, get_default_precision())
-
-    if not xp.isdtype(dtype, ("real floating", "complex floating")):
-        raise ValueError(f"Coordinates can only be initialized as real or complex numbers but got passed dtype '{dtype}'")
 
     values = dim.values(space, xp=xp, dtype=dtype)
 

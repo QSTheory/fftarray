@@ -1,4 +1,3 @@
-import itertools
 from typing import (
     Iterable, Literal, Optional, Dict, Any, Union, List, get_args
 )
@@ -315,22 +314,14 @@ def check_full(
 
 @pytest.mark.parametrize("xp_target, xp_other", XPS_ROTATED_PAIRS)
 @pytest.mark.parametrize("xp_source", ["default", "direct"])
-@pytest.mark.parametrize("dtype_source, dtype_name_target, dtype_name_other", [
-    # Test dtype inference from default, including invalid cases
-    *[pytest.param("default", dtype, None) for dtype in dtype_names_numeric_core],
-    # Test dtype inference from direct, including invalid cases
-    *[pytest.param("direct", dtype_target, dtype_other) for dtype_target, dtype_other
-      in itertools.combinations(["int64", "complex64"], r=2)],
-])
+@pytest.mark.parametrize("direct_dtype_name", [None, "float64", "int64", "complex64"])
 @pytest.mark.parametrize("eager", [False, True])
 @pytest.mark.parametrize("space", get_args(fa.Space))
 def test_coords_from_dim(
         xp_target,
         xp_other,
         xp_source: Literal["default", "direct"],
-        dtype_source: Literal["default", "direct"],
-        dtype_name_target: DTYPE_NAME,
-        dtype_name_other: Optional[DTYPE_NAME],
+        direct_dtype_name: Optional[DTYPE_NAME],
         eager: bool,
         space: fa.Space,
     ) -> None:
@@ -341,11 +332,17 @@ def test_coords_from_dim(
         2) Via direct override.
     """
 
-    dtype_target = getattr(xp_target, dtype_name_target)
-    dim = fa.dim("x", n=3, d_pos=0.1, pos_min=0, freq_min=0)
-    ref_values = xp_target.asarray(dim.values(space, xp=np), dtype=dtype_target)
+    if direct_dtype_name is None:
+        direct_dtype = None
+        expected_dtype = xp_target.full(1, 2.).dtype
+    else:
+        direct_dtype = getattr(xp_target, direct_dtype_name)
+        expected_dtype = direct_dtype
 
-    array_args = {}
+    dim = fa.dim("x", n=3, d_pos=0.1, pos_min=0, freq_min=0)
+    ref_values = xp_target.asarray(dim.values(space, xp=np), dtype=direct_dtype)
+
+    array_args = {"dtype": direct_dtype}
 
     match xp_source:
         case "default":
@@ -354,35 +351,19 @@ def test_coords_from_dim(
             default_xp = xp_other
             array_args["xp"] = xp_target
 
-    match dtype_source:
-        case "default":
-            default_dtype_name = dtype_name_target
-        case "direct":
-            assert dtype_name_other is not None
-            default_dtype_name = dtype_name_other
-            array_args["dtype"] = dtype_target
-
-    # Early exit if default_dtype_name is not supported
-    if default_dtype_name not in get_args(fa.DEFAULT_PRECISION):
-        with pytest.raises(ValueError):
-            with fa.default_precision(default_dtype_name): # type: ignore
-                pass
-        return
-
     with fa.default_eager(eager):
         with fa.default_xp(default_xp):
-            with fa.default_precision(default_dtype_name): # type: ignore
-                if not xp_target.isdtype(dtype_target, ("real floating", "complex floating")):
-                    with pytest.raises(ValueError):
-                        arr = fa.coords_from_dim(dim, space, **array_args)
-                    return
-                arr = fa.coords_from_dim(dim, space, **array_args)
+            if direct_dtype is not None and not xp_target.isdtype(direct_dtype, ("real floating")):
+                with pytest.raises(ValueError):
+                    arr = fa.coords_from_dim(dim, space, **array_args)
+                return
+            arr = fa.coords_from_dim(dim, space, **array_args)
 
     arr_values = arr.values(space, xp=np)
     np.testing.assert_equal(arr_values, ref_values)
     assert arr.shape == (dim.n,)
     assert arr.xp == xp_target
-    assert arr.dtype == dtype_target
+    assert arr.dtype == expected_dtype
     assert arr.spaces == (space,)
     assert arr.eager == (eager,)
     assert arr.factors_applied == (True,)

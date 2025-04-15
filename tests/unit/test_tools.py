@@ -7,7 +7,7 @@ import numpy as np
 import fftarray as fa
 
 from tests.helpers import get_other_space
-from fftarray._src.transform_application import complex_type
+from fftarray._src.transform_application import complex_type, real_type
 
 @pytest.mark.parametrize("xp", [array_api_strict])
 @pytest.mark.parametrize("eager", [True, False])
@@ -32,8 +32,8 @@ def test_shift(
     # both spaces.
     dim = fa.dim_from_constraints(name="x", n=128, d_pos=0.01, pos_middle=0., freq_middle=0.)
     arr = fa.coords_from_dim(
-        dim, space, xp=xp, dtype=init_dtype,
-    ).into_eager(eager)
+        dim, space, xp=xp, dtype=real_type(xp, init_dtype),
+    ).into_eager(eager).into_dtype(init_dtype)
 
     # Use a frequency which fits exactly into the domain to allow periodic shifts
     test_frequency = 5*2*np.pi*getattr(dim, f"d_{other_space}")
