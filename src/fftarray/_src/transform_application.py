@@ -117,7 +117,7 @@ def apply_lazy(
         if sign != 0:
             # Create indices with correct shape
             indices = xp.arange(0, dim.n, dtype=real_type(xp, values.dtype))
-            extended_shape = np.ones(len(values.shape), dtype=int)
+            extended_shape = [1]*len(values.shape)
             extended_shape[dim_idx] = -1
             indices = xp.reshape(indices, shape=tuple(extended_shape))
 
