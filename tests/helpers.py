@@ -2,10 +2,12 @@ from typing import Iterable, List, Literal, Union, Tuple, Any, Optional
 
 import array_api_strict
 import array_api_compat
+import array_api_compat.numpy as cnp
 import numpy as np
 import pytest
 
 import fftarray as fa
+from fftarray._src.array import _convert_xp
 
 XPS = [
     array_api_strict,
@@ -173,13 +175,9 @@ def assert_fa_array_exact_equal(x1: fa.Array, x2: fa.Array) -> None:
     assert x1.device == x2.device
 
 
-    # FIXME: Technically this does not guarantuee convertability into NumPy
-    # for any Array API compatible library.
-    # But this works for the tested libraries.
-    default_device = x1._xp.__array_namespace_info__().default_device()
     np.testing.assert_equal(
-        np.array(array_api_compat.to_device(x1._values, default_device)),
-        np.array(array_api_compat.to_device(x2._values, default_device)),
+        _convert_xp(x1._values, old_xp=x1._xp, new_xp=cnp),
+        _convert_xp(x2._values, old_xp=x1._xp, new_xp=cnp),
     )
 
 def get_test_array(

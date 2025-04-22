@@ -3,10 +3,11 @@ from typing import (
 )
 
 import array_api_strict
-import array_api_compat
+import array_api_compat.numpy as cnp
 import numpy as np
 import pytest
 import fftarray as fa
+from fftarray._src.array import _convert_xp
 
 from tests.helpers import (
     XPS_WITH_DEFAULT_DEVICE_PAIRS, XPS_ROTATED_PAIRS, XPS_DEVICE_PAIRS, XPS_NON_DEFAULT_DEVICE_PAIRS,
@@ -191,8 +192,8 @@ def check_array_from_list(
     assert arr.eager == (eager,)*len(arr.shape)
     assert type(arr_vals) is type(ref_vals)
     np.testing.assert_equal(
-        np.array(arr_vals),
-        np.array(vals_list),
+        _convert_xp(arr_vals, old_xp=arr.xp, new_xp=cnp),
+        _convert_xp(ref_vals, old_xp=xp_target, new_xp=cnp),
     )
 
 
@@ -304,12 +305,9 @@ def check_full(
 
     assert type(ref_arr) is type(arr_values)
 
-    # FIXME: Technically this does not guarantuee convertability into NumPy
-    # for any Array API compatible library.
-    default_device = xp.__array_namespace_info__().default_device()
     np.testing.assert_equal(
-        np.array(array_api_compat.to_device(ref_arr, default_device)),
-        np.array(array_api_compat.to_device(arr_values, default_device)),
+        _convert_xp(ref_arr, old_xp=xp, new_xp=cnp),
+        _convert_xp(arr_values, old_xp=xp, new_xp=cnp),
     )
 
 
