@@ -3,9 +3,12 @@ from itertools import permutations
 
 import array_api_strict
 import pytest
+import array_api_compat.numpy as cnp
 import numpy as np
 
 import fftarray as fa
+from fftarray._src.array import _convert_xp
+
 from tests.helpers import get_dims, get_arr_from_dims
 
 @pytest.mark.parametrize("xp", [array_api_strict])
@@ -46,6 +49,6 @@ def test_permute_dims(xp: Any, ndims: int, permuted_axes: Tuple[int]) -> None:
     assert values_ref.shape == values_permuted.shape
     assert arr_permuted.shape == tuple(arr_before.shape[a] for a in permuted_axes)
     np.testing.assert_equal(
-        np.array(values_permuted),
-        np.array(values_ref),
+        _convert_xp(values_permuted, old_xp=xp, new_xp=cnp),
+        _convert_xp(values_ref, old_xp=xp, new_xp=cnp),
     )
