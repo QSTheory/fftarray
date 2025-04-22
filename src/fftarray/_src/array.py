@@ -51,6 +51,9 @@ def _convert_xp(x, old_xp, new_xp, dtype: Optional[Any] = None, copy: Optional[b
     elif array_api_compat.is_jax_array(x):
         assert copy is None or copy
         x_np = np.array(x)
+    elif array_api_compat.is_torch_array(x):
+        assert copy is None or copy
+        x_np = np.array(x.cpu())
     else:
         # TODO: Just raise a warning and try np.array(x)?
         raise ValueError(
@@ -63,6 +66,7 @@ def _convert_xp(x, old_xp, new_xp, dtype: Optional[Any] = None, copy: Optional[b
     if (
         not array_api_compat.is_jax_namespace(new_xp)
         and not array_api_compat.is_numpy_namespace(new_xp)
+        and not array_api_compat.is_torch_namespace(new_xp)
         and not array_api_compat.is_array_api_strict_namespace(new_xp)
     ):
         raise ValueError(f"Tried to convert to unsupported namespace {new_xp}.")

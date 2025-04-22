@@ -23,6 +23,13 @@ try:
 except ImportError:
     pass
 
+try:
+    import torch
+    torch.set_default_dtype(torch.float64)
+    XPS.append(array_api_compat.get_namespace(torch.asarray(1.)))
+except ImportError:
+    pass
+
 # This is helpful for tests where we need an xp which is not the currently tested one.
 XPS_ROTATED_PAIRS = [
     pytest.param(xp1, xp2) for xp1, xp2 in zip(XPS, [*XPS[1:],XPS[0]], strict=True)
@@ -55,6 +62,12 @@ def _generate_non_default_device_pairs(xp) -> List[Tuple[Any, Optional[Any], Any
         if len(jax.devices()) > 1:
             res.append(
                 (xp, jax.devices()[1], jax.devices()[1]),
+            )
+    elif array_api_compat.is_torch_namespace(xp):
+        if torch.cuda.is_available():
+            cuda_device = torch.device("cuda:0")
+            res.append(
+                (xp, cuda_device, cuda_device),
             )
 
     return res
@@ -115,9 +128,9 @@ dtypes_names_pairs = [
     pytest.param("bool", "bool"),
     pytest.param("bool", None),
     *[
-            pytest.param("uint8", x) for x in [
+            pytest.param("int8", x) for x in [
             "int32",
-            "uint64",
+            "int64",
             None,
         ]
     ],

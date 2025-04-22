@@ -1,15 +1,18 @@
 from typing import Literal, Tuple, Optional, Any
 from typing_extensions import assert_never
+import sys
 
 import numpy as np
 import xarray as xr
 import jax
 import jax.numpy as jnp
+import torch
 from scipy.constants import hbar, Boltzmann
 import pytest
 import fftarray as fa
 
 from tests.helpers import XPS, XPS_DEVICE_PAIRS
+
 
 dt = 2.5e-3
 mass_rb87: float = 86.909 * 1.66053906660e-27
@@ -70,6 +73,122 @@ def test_ground_state_direct_for(
         precision=precision,
         eager=eager,
     )
+
+
+# This test launches a lot of compiles which are by default guarded against.
+# But in this case this is the intended behavior.
+torch._dynamo.config.cache_size_limit = 64
+torch._dynamo.config.accumulated_cache_size_limit = 64
+
+torch_devices = ["cpu"]
+if torch.cuda.is_available():
+    torch_devices.append("cuda")
+
+@pytest.mark.slow
+@pytest.mark.parametrize("eager", [False, True])
+@pytest.mark.parametrize("precision", ["float32", "float64"])
+@pytest.mark.parametrize("mode", [
+    "default",
+    "reduce-overhead",
+    "max-autotune",
+])
+@pytest.mark.parametrize("device", torch_devices)
+def test_ground_state_pytorch_compile_all(
+            eager: bool,
+            precision: Literal["float32", "float64"],
+            mode: Literal["default", "reduce-overhead", "max-autotune"],
+            device: Literal["cpu", "cuda"],
+        ) -> None:
+    check_ground_state_pytorch_compile(
+        eager=eager,
+        precision=precision,
+        mode=mode,
+        device=device,
+    )
+
+params = [
+    (False, "float32", "default", "cpu"),
+    (True, "float64", "max-autotune", "cuda"),
+]
+@pytest.mark.parametrize("eager, precision, mode, device", params)
+def test_ground_state_pytorch_compile_base(
+            eager: bool,
+            precision: Literal["float32", "float64"],
+            mode: Literal["default", "reduce-overhead", "max-autotune"],
+            device: Literal["cpu", "cuda"],
+        ) -> None:
+    # We still want to run the second config on non-cuda machines.
+    if not torch.cuda.is_available():
+        device = "cpu"
+    check_ground_state_pytorch_compile(
+        eager=eager,
+        precision=precision,
+        mode=mode,
+        device=device,
+    )
+
+def check_ground_state_pytorch_compile(
+            eager: bool,
+            precision: Literal["float32", "float64"],
+            mode: Literal["default", "reduce-overhead", "max-autotune"],
+            device: Literal["cpu", "cuda"],
+        ) -> None:
+
+
+    assert sys.version_info.major >= 3
+    # FIXME:
+    # torch.compile is broken in the versions set up by pixi
+    # for python 3.10, 3.11 on cpu and cuda devices
+    if sys.version_info.minor in [10, 11]:
+        return
+    # It is also broken in 3.12 on cuda devices
+    if sys.version_info.minor == 12 and device == "cuda":
+        return
+
+    V, k_sq = get_V_k2(
+        precision=precision,
+        eager=eager,
+        xp=torch,
+        device=device,
+    )
+
+    psi = V*0.+1.
+
+    step_fun = torch.compile(
+        split_step_imag,
+        fullgraph=True,
+        mode=mode,
+    )
+    for _ in range(n_steps):
+        if mode in ["reduce-overhead", "max-autotune"] and device == "cuda":
+            # We cannot just simply rerun the graph.
+            # See https://pytorch.org/docs/stable/torch.compiler_cudagraph_trees.html#limitations
+            # This does not work for some reason, so we need to go the "clone-route".
+            # torch.compiler.cudagraph_mark_step_begin()
+
+            # Clone the array due to CUDA Graph
+            psi = fa.Array(
+                values=torch.clone(psi._values),
+                dims=psi.dims,
+                spaces=psi.spaces,
+                eager=psi.eager,
+                factors_applied=psi.factors_applied,
+                xp=psi.xp,
+            )
+        psi = step_fun(
+            psi=psi,
+            dt=dt,
+            mass=mass_rb87,
+            V=V,
+            k_sq=k_sq,
+        )
+
+    verify_result(
+        psi=psi,
+        precision=precision,
+        eager=eager,
+    )
+
 
 @pytest.mark.parametrize("eager", [False, True])
 @pytest.mark.parametrize("precision", ["float32", "float64"])

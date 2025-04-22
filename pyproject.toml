@@ -51,8 +51,12 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
 ]
 
 "dev" = [
-    "fftarray[jax, helpers, dashboards, check, doc]",
+    "fftarray[jax, torch, helpers, dashboards, check, doc]",
     "hatch",
+]
+
+"torch" = [
+    "torch>=2.6.0",
 ]
 
 "check" = [
@@ -108,8 +112,8 @@ source = "vcs"
 version-file = "_version.py"
 
 [tool.pixi.tasks]
-test = { cmd = ["python", "-m", "pytest", "-n", "auto"]}
-test_all = { cmd = ["python", "-m", "pytest", "--include-slow", "-n", "auto"]}
+test = { cmd = ["python", "-m", "pytest"]}
+test_all = { cmd = ["python", "-m", "pytest", "--include-slow"]}
 
 test_all_group = { cmd = ["python", "-m", "pytest", "--include-slow", "--splitting-algorithm", "least_duration", "--splits", "$N_GROUPS", "--group", "$GROUP_ID"]}
 # These durations are used to estimate the best split of tests when parallelizing.
@@ -122,8 +126,8 @@ mypy_nb = { cmd = ["nbqa", "mypy", "examples"]}
 mypy = { cmd = ["mypy", "examples", "src/fftarray", "tests"], depends-on = ["mypy_nb"]}
 check = { depends-on = ["mypy", "ruff_all", "test"]}
 check_all = { depends-on = ["mypy", "ruff_all", "test_all"]}
-cov_html = { cmd = ["python", "-m", "pytest", "--cov=./src", "--cov=./examples", "--cov-report=html", "-n", "auto"]}
-cov_xml = { cmd = ["python", "-m", "pytest", "--cov=./src", "--cov=./examples", "--cov-report=xml", "-n", "auto"]}
+cov_html = { cmd = ["python", "-m", "pytest", "--cov=./src", "--cov=./examples", "--cov-report=html"]}
+cov_xml = { cmd = ["python", "-m", "pytest", "--cov=./src", "--cov=./examples", "--cov-report=xml"]}
 # The following command builds the docs of all released versions
 # and the tips of the branches defined in docs/helpers/generate_versions.py
 # and combines them into a single doc with a version switcher.
@@ -134,7 +138,10 @@ doc_open = { cmd = ["open", "docs/build/html/local/index.html"], depends-on = ["
 
 [tool.pixi.project]
 channels = ["conda-forge"]
-platforms = ["linux-64", "linux-aarch64", "osx-arm64", "osx-64", "win-64"]
+# "osx-64" is incompatible with PyTorch on Python 3.13.
+# Without listing "osx-64" here, FFTArray can still be installed on x86-64 macOS without PyTorch,
+# but doing development does not work on these systems unfortunately.
+platforms = ["linux-64", "linux-aarch64", "osx-arm64", "win-64"]
 
 [tool.pixi.pypi-dependencies]
 fftarray = { path = ".", editable = true }
@@ -163,14 +170,14 @@ python = "3.13.*"
 
 [tool.pixi.environments]
 # Recursive optional dependencies are currently ignored by pixi environments: https://github.com/prefix-dev/pixi/issues/2024
-devcuda = ["dev", "check", "doc", "jaxcuda", "helpers", "dashboards"]
-dev = ["dev", "check", "doc", "jax", "helpers", "dashboards"]
+devcuda = ["dev", "check", "doc", "jaxcuda", "torch", "helpers", "dashboards"]
+dev = ["dev", "check", "doc", "jax", "torch", "helpers", "dashboards"]
 doc = ["doc", "jax", "helpers"]
-check = ["check", "jax", "helpers"]
-check310 = ["py310", "check", "jax", "helpers"]
-check311 = ["py311", "check", "jax", "helpers"]
-check312 = ["py312", "check", "jax", "helpers"]
-check313 = ["py313", "check", "jax", "helpers"]
+check = ["check", "jax", "torch", "helpers"]
+check310 = ["py310", "check", "jax", "torch", "helpers"]
+check311 = ["py311", "check", "jax", "torch", "helpers"]
+check312 = ["py312", "check", "jax", "torch", "helpers"]
+check313 = ["py313", "check", "jax", "torch", "helpers"]
 
 [tool.pixi.feature.doc.dependencies]
 pandoc = ">=3.5,<4"
