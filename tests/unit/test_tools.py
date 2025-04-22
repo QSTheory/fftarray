@@ -51,8 +51,8 @@ def test_shift(
     assert fft_shifted.dims == orig.dims
 
     np.testing.assert_allclose(
-        np.array(ref_shifted.values(space)),
-        np.array(fft_shifted.values(space)),
+        ref_shifted.values(space, xp=np),
+        fft_shifted.values(space, xp=np),
         atol=atol,
     )
 
