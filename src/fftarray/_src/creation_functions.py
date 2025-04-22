@@ -1,6 +1,5 @@
 from typing import Any, Optional, Union, Iterable, Tuple, get_args
 
-
 from .dimension import Dimension
 from .array import Array
 from .space import Space
@@ -17,6 +16,7 @@ def array(
         *,
         xp: Optional[Any] = None,
         dtype: Optional[Any] = None,
+        device: Optional[Any] = None,
         defensive_copy: bool = True,
     ) -> Array:
     """
@@ -72,7 +72,7 @@ def array(
         copy = None
 
     try:
-        values = xp.asarray(values, copy=copy, dtype=dtype)
+        values = xp.asarray(values, copy=copy, dtype=dtype, device=device)
     except(Exception) as exc:
         if used_default_xp:
             raise type(exc)(
@@ -111,6 +111,7 @@ def coords_from_dim(
         *,
         xp: Optional[Any] = None,
         dtype: Optional[Any] = None,
+        device: Optional[Any] = None,
     ) -> Array:
     """..
 
@@ -141,6 +142,7 @@ def coords_from_dim(
         space,
         xp=xp,
         dtype=dtype,
+        device=device,
     )
 
     return Array(
@@ -161,6 +163,7 @@ def coords_from_arr(
         *,
         xp: Optional[Any] = None,
         dtype: Optional[Any] = None,
+        device: Optional[Any] = None,
 	) -> Array:
     """
 
@@ -208,11 +211,13 @@ def coords_from_arr(
 
         dtype = real_type(x.xp, dtype)
 
+    if device is None:
+        device = x.device
 
     for dim_idx, dim in enumerate(x.dims):
         if dim.name == dim_name:
             return coords_from_dim(
-                dim, space, xp=xp, dtype=dtype
+                dim, space, xp=xp, dtype=dtype, device=device,
             ).into_eager(x.eager[dim_idx])
     raise ValueError("Specified dim_name not part of the Array's dimensions.")
 
@@ -224,6 +229,7 @@ def full(
         *,
         xp: Optional[Any] = None,
         dtype: Optional[Any] = None,
+        device: Optional[Any] = None,
     ) -> Array:
     """..
 
@@ -265,7 +271,7 @@ def full(
 
     n_dims = len(dims)
     shape = tuple(dim.n for dim in dims)
-    values = xp.full(shape, fill_value, dtype=dtype)
+    values = xp.full(shape, fill_value, dtype=dtype, device=device)
 
     arr = Array(
         values=values,

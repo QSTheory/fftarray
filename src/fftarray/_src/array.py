@@ -8,6 +8,8 @@ from numbers import Number
 from dataclasses import dataclass
 import textwrap
 
+import array_api_compat
+
 from .space import Space
 from .dimension import Dimension
 from .named_array import align_named_arrays
@@ -291,9 +293,6 @@ class Array:
     # When using a non-compatible base library, it should be
     # wrapped by array_api_compat.array_namespace.
     _xp: Any
-
-    # TODO: implement device [#18](https://github.com/QSTheory/fftarray/issues/18)
-
 
     def __init__(
             self,
@@ -789,6 +788,10 @@ class Array:
     def xp(self):
         """The array API namespace driving the mathematical operations."""
         return self._xp
+
+    @property
+    def device(self):
+        return array_api_compat.device(self._values)
 
     def into_xp(self, xp, /) -> Array:
         """Change the array API namespace.

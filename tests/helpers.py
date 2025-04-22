@@ -1,4 +1,4 @@
-from typing import Iterable, List, Literal, Union, Tuple
+from typing import Iterable, List, Literal, Union, Tuple, Any, Optional
 
 import array_api_strict
 import array_api_compat
@@ -24,6 +24,54 @@ except ImportError:
 # This is helpful for tests where we need an xp which is not the currently tested one.
 XPS_ROTATED_PAIRS = [
     pytest.param(xp1, xp2) for xp1, xp2 in zip(XPS, [*XPS[1:],XPS[0]], strict=True)
+]
+
+def _get_default_device(xp) -> Any:
+    """
+        Returns the device on which to expect an array if device=None was passed.
+        This differs from array_api_info.default_device which for jax returns None,
+        see https://github.com/jax-ml/jax/issues/27606 for an extended explanation.
+    """
+    return array_api_compat.device(xp.empty(1))
+
+def _generate_non_default_device_pairs(xp) -> List[Tuple[Any, Optional[Any], Any]]:
+    """
+        Generate for each supported library a pair of a non-default device parameter
+        and expected device.
+        Because some libraries provide very special devices (like the meta device of torch)
+        this list is hand-coded for each array library instead of using the inspection
+        apis of the standard.
+    """
+    res: List[Tuple[Any, Optional[Any], Any]] = []
+
+    if array_api_compat.is_array_api_strict_namespace(xp):
+        res.append(
+            (xp, xp.Device("device1"), xp.Device("device1")),
+        )
+    elif array_api_compat.is_jax_namespace(xp):
+        import jax
+        if len(jax.devices()) > 1:
+            res.append(
+                (xp, jax.devices()[1], jax.devices()[1]),
+            )
+
+    return res
+
+def _get_device_pair_list(xps) -> List[Tuple[Any, Any, Any]]:
+    res = []
+    for xp in xps:
+        res.extend(_generate_non_default_device_pairs(xp))
+    return res
+
+
+XPS_WITH_DEFAULT_DEVICE_PAIRS = [(xp, _get_default_device(xp)) for xp in XPS]
+XPS_NON_DEFAULT_DEVICE_PAIRS = _get_device_pair_list(XPS)
+
+# Unification of default and non-default device parameters and expected devices.
+XPS_DEVICE_PAIRS = [
+    # When passing in None, the created array is expected to have the device _get_default_device(xp)
+    *[(xp, None, _get_default_device(xp)) for xp in XPS],
+    *XPS_NON_DEFAULT_DEVICE_PAIRS,
 ]
 
 def get_other_space(space: Union[fa.Space, Tuple[fa.Space, ...]]):
@@ -122,9 +170,16 @@ def assert_fa_array_exact_equal(x1: fa.Array, x2: fa.Array) -> None:
     assert x1._factors_applied == x2._factors_applied
     assert x1._spaces == x2._spaces
     assert x1._xp == x2._xp
+    assert x1.device == x2.device
+
+
+    # FIXME: Technically this does not guarantuee convertability into NumPy
+    # for any Array API compatible library.
+    # But this works for the tested libraries.
+    default_device = x1._xp.__array_namespace_info__().default_device()
     np.testing.assert_equal(
-        np.array(x1._values),
-        np.array(x2._values),
+        np.array(array_api_compat.to_device(x1._values, default_device)),
+        np.array(array_api_compat.to_device(x2._values, default_device)),
     )
 
 def get_test_array(
@@ -133,6 +188,7 @@ def get_test_array(
         space: fa.Space,
         dtype,
         factors_applied: bool,
+        device: Optional[Any] = None,
     ) -> fa.Array:
     """ Generates a test array for a given dimension, space and dtype.
 
@@ -159,19 +215,19 @@ def get_test_array(
         Raises on unsupported dtype.
     """
 
-    offset = xp.asarray(1. + getattr(dim, f"{space}_middle"))
+    offset = xp.asarray(1. + getattr(dim, f"{space}_middle"), device=device)
     offset = xp.astype(offset, dtype)
     if xp.isdtype(dtype, "bool"):
         assert factors_applied
-        return fa.array(xp.arange(dim.n)%2==0, dim, space)
+        return fa.array(xp.arange(dim.n, device=device)%2==0, dim, space, device=device)
     elif xp.isdtype(dtype, "integral"):
         assert factors_applied
-        return fa.array(xp.astype(xp.arange(dim.n), dtype)+offset, dim, space)
+        return fa.array(xp.astype(xp.arange(dim.n, device=device), dtype)+offset, dim, space, device=device)
     elif xp.isdtype(dtype, "real floating"):
         assert factors_applied
-        return fa.coords_from_dim(dim, space, xp=xp).into_dtype(dtype)+offset
+        return fa.coords_from_dim(dim, space, xp=xp, device=device).into_dtype(dtype)+offset
     elif xp.isdtype(dtype, "complex floating"):
-        arr = (fa.coords_from_dim(dim, space, xp=xp).into_dtype(dtype)+offset)*(1.+1.2j)
+        arr = (fa.coords_from_dim(dim, space, xp=xp, device=device).into_dtype(dtype)+offset)*(1.+1.2j)
         return arr.into_factors_applied(factors_applied)
 
     raise ValueError(f"Unsupported dtype {dtype}")
