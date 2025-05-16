@@ -72,7 +72,7 @@ def dim_from_constraints(
         freq_extent: Optional[float] = None,
         freq_middle: Optional[float] = None,
         loose_params: Optional[Union[str, List[str]]] = None,
-        dynamically_traced_coords: bool = True,
+        dynamically_traced_coords: bool = False,
     ) -> Dimension:
     """Creates a Dimension from an arbitrary subset of all possible grid
     parameters using the z3 constraint solver. Note that the specified grid

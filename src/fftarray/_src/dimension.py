@@ -18,7 +18,7 @@ def dim(
         pos_min: float,
         freq_min: float,
         *,
-        dynamically_traced_coords: bool = True,
+        dynamically_traced_coords: bool = False,
     ) -> Dimension:
     """Initialize a :class:`Dimension`.
 
