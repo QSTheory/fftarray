@@ -132,7 +132,7 @@ def dim_from_constraints(
     dynamically_traced_coords : bool, optional
         Only relevant for use with JAX tracing. Whether the coordinate values should be
         dynamically traced such that the grid can be altered inside a jitted
-        function, by default True
+        function, by default False
 
     Returns
     -------
