@@ -162,7 +162,7 @@ except ModuleNotFoundError:
          freq_extent: Optional[float] = None,
          freq_middle: Optional[float] = None,
          loose_params: Optional[Union[str, List[str]]] = None,
-         dynamically_traced_coords: bool = True,
+         dynamically_traced_coords: bool = False,
     ) -> Dimension:
       raise ModuleNotFoundError("You need to install `fftarray[helpers]` to use the constraint solver.")
 

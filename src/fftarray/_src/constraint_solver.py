@@ -72,7 +72,7 @@ def dim_from_constraints(
         freq_extent: Optional[float] = None,
         freq_middle: Optional[float] = None,
         loose_params: Optional[Union[str, List[str]]] = None,
-        dynamically_traced_coords: bool = True,
+        dynamically_traced_coords: bool = False,
     ) -> Dimension:
     """Creates a Dimension from an arbitrary subset of all possible grid
     parameters using the z3 constraint solver. Note that the specified grid
@@ -132,7 +132,7 @@ def dim_from_constraints(
     dynamically_traced_coords : bool, optional
         Only relevant for use with JAX tracing. Whether the coordinate values should be
         dynamically traced such that the grid can be altered inside a jitted
-        function, by default True
+        function, by default False
 
     Returns
     -------
