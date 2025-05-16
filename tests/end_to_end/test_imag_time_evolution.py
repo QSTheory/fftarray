@@ -84,6 +84,7 @@ torch_devices = ["cpu"]
 if torch.cuda.is_available():
     torch_devices.append("cuda")
 
+@pytest.mark.skip(reason="Known Broken on torch 2.7.0")
 @pytest.mark.slow
 @pytest.mark.parametrize("eager", [False, True])
 @pytest.mark.parametrize("precision", ["float32", "float64"])
@@ -110,6 +111,8 @@ params = [
     (False, "float32", "default", "cpu"),
     (True, "float64", "max-autotune", "cuda"),
 ]
+
+@pytest.mark.skip(reason="Known Broken on torch 2.7.0")
 @pytest.mark.parametrize("eager, precision, mode, device", params)
 def test_ground_state_pytorch_compile_base(
             eager: bool,
