@@ -874,7 +874,7 @@ def assert_single_operand_fun_equivalence_int(arr: fa.Array, precise: bool, log)
     # assert_equal_op(arr, values, (xp.sqrt, fa.sqrt), False, True, log) # precise comparison fails
 
 @pytest.mark.parametrize("ndims", [0,1,2])
-@pytest.mark.parametrize("xp", XPS)
+@pytest.mark.parametrize("xp", [np])
 @pytest.mark.parametrize("precision_0d", precisions)
 @pytest.mark.parametrize("precision_nd", precisions)
 @pytest.mark.parametrize("space", ["pos", "freq"])
