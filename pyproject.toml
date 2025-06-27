@@ -15,7 +15,7 @@ authors = [
 ]
 description = "A library to manage and effiently implement all complexities around the complex Fast Fourier Transform."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: Apache Software License",
@@ -94,7 +94,7 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
 ]
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = [
@@ -156,11 +156,9 @@ system-requirements = {cuda = "12"}
 "fftarray" = {version="*", extras=["jax"]}
 "jax" = {version=">=0.4.30", extras=["cuda12"]}
 
-[tool.pixi.feature.py310.dependencies]
-python = "3.10.*"
-
 [tool.pixi.feature.py311.dependencies]
 python = "3.11.*"
+array-api-strict = "==2.3.1"
 
 [tool.pixi.feature.py312.dependencies]
 python = "3.12.*"
@@ -174,7 +172,6 @@ devcuda = ["dev", "check", "doc", "jaxcuda", "torch", "helpers", "dashboards"]
 dev = ["dev", "check", "doc", "jax", "torch", "helpers", "dashboards"]
 doc = ["doc", "jax", "helpers"]
 check = ["check", "jax", "torch", "helpers"]
-check310 = ["py310", "check", "jax", "torch", "helpers"]
 check311 = ["py311", "check", "jax", "torch", "helpers"]
 check312 = ["py312", "check", "jax", "torch", "helpers"]
 check313 = ["py313", "check", "jax", "torch", "helpers"]
