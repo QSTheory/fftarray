@@ -1,8 +1,7 @@
 name: Run full matrix pytest via pixi
 
 on:
-  push:
-    branches: [ "main" ]
+  pull_request:
 
 permissions:
   contents: read
@@ -12,8 +11,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        environment: [check310, check311, check312, check313]
-        command: [ruff_all, mypy, test_all]
+        environment: [check312, check313]
+        # Currently too expensive
+        # command: [ruff_all, mypy, test_all]
         # An option to run with multiple CI runners, currently saves 20s,
         # not worth the increased CI minutes usage.
         # command: [mypy, test_all_group 1, test_all_group 2]
@@ -27,4 +27,5 @@ jobs:
         pixi-version: v0.39.5
         environments: ${{ matrix.environment }}
         cache: true
-    - run: pixi run -e ${{ matrix.environment }} ${{ matrix.command }}
+    # - run: pixi run -e ${{ matrix.environment }} ${{ matrix.command }}
+    - run: pixi run -e ${{ matrix.environment }} check_all
