@@ -26,7 +26,7 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install torch==2.6.0
         python -m pip install array_api_strict==2.4.0
-        python -m pip install jax==0.5.3
+        python -m pip install jax==0.6.2
         python -m pip install -e ".[check]"
     - name: Test with pytest
       run: |
