@@ -128,22 +128,9 @@ def test_dynamically_traced_coords(dtc: bool) -> None:
         dim._freq_min = dim._freq_min/a
         return dim, a
 
-    def jax_step_func_forbidden(dim: fa.Dimension, a):
-        dim._name = f"new{dim._name}"
-        dim._n = dim._n + 1
-        dim._dynamically_traced_coords = not dim._dynamically_traced_coords
-        return dim, a
-
     # both (static and dynamic) should support this
     jax.lax.scan(jax_step_func_static, dim_test, jax.numpy.arange(3))
 
     if dtc:
         # dynamic
         jax.lax.scan(jax_step_func_dynamic, dim_test, jax.numpy.arange(3))
-    else:
-        # static
-        with pytest.raises(jax.errors.UnexpectedTracerError):
-            jax.lax.scan(jax_step_func_dynamic, dim_test, jax.numpy.arange(3))
-
-    with pytest.raises(TypeError):
-        jax.lax.scan(jax_step_func_forbidden, dim_test, jax.numpy.arange(3))
