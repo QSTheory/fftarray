@@ -60,7 +60,7 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
 ]
 
 "check" = [
-    "fftarray[jax, helpers]",
+    "fftarray[jax, torch, helpers]",
     "mypy>=0.910",
     "pytest",
     "hypothesis",

@@ -5278,8 +5278,8 @@ packages:
   - validictory ; extra == 'devel'
 - pypi: ./
   name: fftarray
-  version: 0.4a1.dev286+g7f00fd5
-  sha256: 25227be7b73c1360b73e60301c87892c4f0e4072b308bae9d5f718a870f46d7c
+  version: 0.4a1.dev292+ga4c9b6d.d20250627
+  sha256: 10914cffa96858d4361b754eb9bd07bdc9af8ada5c4204f50d72b2237ccd1e79
   requires_dist:
   - array-api-compat>=1.11.0
   - numpy>=2.0
@@ -5298,6 +5298,7 @@ packages:
   - pytest-xdist[psutil] ; extra == 'check'
   - ruff ; extra == 'check'
   - scipy ; extra == 'check'
+  - torch>=2.6.0 ; extra == 'check'
   - xarray ; extra == 'check'
   - z3-solver ; extra == 'check'
   - bokeh ; extra == 'dashboards'
