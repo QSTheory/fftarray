@@ -1,6 +1,5 @@
 from typing import Literal, Tuple, Optional, Any
 from typing_extensions import assert_never
-import sys
 
 import numpy as np
 import xarray as xr
@@ -85,6 +84,7 @@ if torch.cuda.is_available():
     torch_devices.append("cuda")
 
 @pytest.mark.slow
+@pytest.mark.skip(reason="Known broken on multiple version combinations of torch and python.")
 @pytest.mark.parametrize("eager", [False, True])
 @pytest.mark.parametrize("precision", ["float32", "float64"])
 @pytest.mark.parametrize("mode", [
@@ -110,6 +110,7 @@ params = [
     (False, "float32", "default", "cpu"),
     (True, "float64", "max-autotune", "cuda"),
 ]
+@pytest.mark.skip(reason="Known broken on multiple version combinations of torch and python.")
 @pytest.mark.parametrize("eager, precision, mode, device", params)
 def test_ground_state_pytorch_compile_base(
             eager: bool,
@@ -133,17 +134,6 @@ def check_ground_state_pytorch_compile(
             mode: Literal["default", "reduce-overhead", "max-autotune"],
             device: Literal["cpu", "cuda"],
         ) -> None:
-
-
-    assert sys.version_info.major >= 3
-    # FIXME:
-    # torch.compile is broken in the versions set up by pixi
-    # for python 3.10, 3.11 on cpu and cuda devices
-    if sys.version_info.minor in [10, 11]:
-        return
-    # It is also broken in 3.12 on cuda devices
-    if sys.version_info.minor == 12 and device == "cuda":
-        return
 
     V, k_sq = get_V_k2(
         precision=precision,
