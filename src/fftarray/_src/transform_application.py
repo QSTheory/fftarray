@@ -82,7 +82,7 @@ def apply_lazy(
     for dim, sign, dim_space in zip(dims, signs, spaces, strict=True):
         if sign != 0 and dim_space == "freq":
             # TODO: Write as separate mul or div?
-            scale = scale * (dim.d_freq*dim.n)**sign
+            scale = scale * dim.d_pos**(-sign)
             do_apply = True
     # We cannot test for float == 1. because that value might be dynamic under tracing.
     if do_apply:
