@@ -158,6 +158,8 @@ system-requirements = {cuda = "12"}
 
 [tool.pixi.feature.py311.dependencies]
 python = "3.11.*"
+# array-api-strict 2.4.0 does not support NumPy interoperability with Python 3.11.
+# Therefore we need to stay on 2.3.1 for Python 3.11.
 array-api-strict = "==2.3.1"
 
 [tool.pixi.feature.py312.dependencies]

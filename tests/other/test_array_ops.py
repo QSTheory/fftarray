@@ -874,6 +874,8 @@ def assert_single_operand_fun_equivalence_int(arr: fa.Array, precise: bool, log)
     # assert_equal_op(arr, values, (xp.sqrt, fa.sqrt), False, True, log) # precise comparison fails
 
 @pytest.mark.parametrize("ndims", [0,1,2])
+# Since this behavior is not mandated by the standard
+# only test ist with NumPy and not array-api-strict.
 @pytest.mark.parametrize("xp", [np])
 @pytest.mark.parametrize("precision_0d", precisions)
 @pytest.mark.parametrize("precision_nd", precisions)
@@ -891,6 +893,9 @@ def test_0d_arrays(
     ):
     """Test whether arithmetic with 0d Arrays works. Tests add, multiply,
     division and pow with a 0d Array and a 0/1/2d Array.
+
+    This behavior is not mandated by the Python Array API standard 2024.12,
+    see also https://github.com/data-apis/array-api/issues/399.
     """
     arr_0d = fa.array(4.2, tuple([]), tuple([]), xp=xp, dtype=getattr(xp, precision_0d))
 
