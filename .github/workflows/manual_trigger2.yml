@@ -14,4 +14,3 @@ jobs:
         uses: actions/create-workflow-dispatch@v1
         with:
           workflow_id: pip_test.yml  # Target workflow
-          inputs: {}
