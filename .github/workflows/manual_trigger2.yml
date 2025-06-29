@@ -1,0 +1,17 @@
+name: Trigger Workflows via Comments 2
+
+on:
+  pull_request:
+
+jobs:
+  run-pip-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write  # Required to dispatch workflows
+    steps:
+      - name: Trigger Tests
+        uses: actions/create-workflow-dispatch@v1
+        with:
+          workflow_id: pip_test.yml  # Target workflow
+          inputs: {}
