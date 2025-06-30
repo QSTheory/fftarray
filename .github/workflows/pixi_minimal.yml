@@ -2,7 +2,7 @@ name: Run minimal pytest via pixi
 # This is only a minimal config to use less CI resources.
 
 on:
-  pull_request:
+  # pull_request:
 
 permissions:
   contents: read
