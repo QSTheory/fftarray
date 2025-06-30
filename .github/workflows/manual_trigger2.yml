@@ -9,4 +9,4 @@ jobs:
     permissions:
       contents: read
       actions: write  # Required to dispatch workflows
-    uses: ./.github/workflows/pip_test.yml@manual_ci_launch
+    uses: ./.github/workflows/pip_test.yml
