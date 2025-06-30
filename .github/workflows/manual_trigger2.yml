@@ -6,7 +6,4 @@ on:
 jobs:
   run-pip-test:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      actions: write  # Required to dispatch workflows
     uses: ./.github/workflows/pip_test.yml
