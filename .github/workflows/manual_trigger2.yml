@@ -10,4 +10,3 @@ jobs:
       contents: read
       actions: write  # Required to dispatch workflows
     uses: ./.github/workflows/pip_test.yml
-    secrets: inherit
