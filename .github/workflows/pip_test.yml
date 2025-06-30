@@ -6,7 +6,7 @@ name: Run pytest via pip
 on:
   push:
     branches: [ "main" ]
-  workflow_dispatch:  # Allows manual triggering
+  workflow_call:  # Allows manual triggering
 
 permissions:
   contents: read
