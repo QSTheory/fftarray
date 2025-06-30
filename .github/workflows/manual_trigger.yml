@@ -2,7 +2,7 @@ name: Trigger Workflows via Comments
 
 on:
   issue_comment:
-    types: [created]
+    types: [created, edited, deleted]
 
 jobs:
   run-job-a:
