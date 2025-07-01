@@ -3,6 +3,7 @@ name: Run full matrix pytest via pixi
 on:
   push:
     branches: [ "main" ]
+  workflow_dispatch: {} # Allows launching this action manually in the GitHub interface
 
 permissions:
   contents: read
