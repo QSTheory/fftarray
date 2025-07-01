@@ -875,7 +875,7 @@ def assert_single_operand_fun_equivalence_int(arr: fa.Array, precise: bool, log)
 
 @pytest.mark.parametrize("ndims", [0,1,2])
 # Since this behavior is not mandated by the standard
-# only test ist with NumPy and not array-api-strict.
+# only test it with NumPy and not array-api-strict.
 @pytest.mark.parametrize("xp", [np])
 @pytest.mark.parametrize("precision_0d", precisions)
 @pytest.mark.parametrize("precision_nd", precisions)
