@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        environment: [check311, check312, check313]
+        environment: [check313]
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
