@@ -3,6 +3,7 @@ name: Run minimal pytest via pixi
 
 on:
   pull_request:
+  workflow_dispatch: {} # Allows launching this action manually in the GitHub interface
 
 permissions:
   contents: read
