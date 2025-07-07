@@ -16,7 +16,8 @@ import fftarray as fa
 @pytest.mark.parametrize("nb_path", [
     "Gaussians",
     "multi_dimensional",
-    "Bragg_beam_splitter"
+    "Bragg_beam_splitter",
+    "Derivative",
 ])
 def test_notebooks(xp, nb_path):
     # load the notebook object
@@ -48,4 +49,3 @@ def test_notebooks(xp, nb_path):
                     exec(code, mod.__dict__)
     finally:
         shell.user_ns = save_user_ns
-    return mod
