@@ -263,24 +263,24 @@ def plt_deriv_sampling(
         x_range=(x_range1),
     )
     p.line(
-        x=dim.values("pos"),
-        y=arr1.values("pos").real,
+        x=dim.values("pos", xp=np),
+        y=arr1.values("pos", xp=np).real,
         legend_label="g(x)",
         color=plt_color1,
         line_width=plt_line_width,
         line_dash="solid",
     )
     p.line(
-        x=dim.values("pos"),
-        y=arr2.values("pos").real,
+        x=dim.values("pos", xp=np),
+        y=arr2.values("pos", xp=np).real,
         legend_label="g'(x)",
         color=plt_color2,
         line_width=plt_line_width,
         line_dash="dashed"
     )
     p.line(
-        x=dim.values("pos"),
-        y=arr3.values("pos").real,
+        x=dim.values("pos", xp=np),
+        y=arr3.values("pos", xp=np),
         legend_label="g''(x)",
         color=plt_color3,
         line_width=plt_line_width,
