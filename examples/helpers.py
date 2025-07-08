@@ -9,8 +9,8 @@ import fftarray as fa
 
 
 # global plot parameters for bokeh
-plt_width       = 450
-plt_height      = 400
+plt_width       = 370
+plt_height      = 260
 plt_line_width  = 2
 plt_border      =  50
 plt_color1      = "navy"
@@ -192,7 +192,9 @@ def plt_array_values_space_time(
             x_axis_label = "time [s]",
             y_axis_label = f"{space} coordinate [{unit}]",
             x_range=(float(time[0]), float(time[-1])),
-            y_range=plt_range
+            y_range=plt_range,
+            width=plt_width,
+            height=plt_height,
         )
         r = plot.image(
             image=[np.transpose(values)],
