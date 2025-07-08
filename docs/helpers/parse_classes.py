@@ -1,7 +1,7 @@
 import inspect
 import fftarray as fa
 
-RST_FILE_TEMPLATE = """{name}
+RST_FILE_TEMPLATE = """{title}
 {underline}
 
 .. currentmodule:: fftarray
@@ -39,8 +39,9 @@ for cls, name in [[fa.Array, "Array"], [fa.Dimension, "Dimension"]]:
         attributes_str += f"\t\t\t{name}.{a}\n"
 
     cls_rst_file = RST_FILE_TEMPLATE.format(
+        title=f"{name} class",
         name=name,
-        underline="="*len(name),
+        underline="="*(len(name)+6),
         methods=methods_str,
         attributes=attributes_str
     )

@@ -27,14 +27,16 @@ GPU-accelerated fast fourier transform using named arrays and easy syntax.
    :maxdepth: 1
    :caption: API documentation
 
-   api/fftarray
+   api/creation_functions_dim
+   api/creation_functions_array
+   api/elementwise_functions
+   api/manipulation_functions
+   api/statistical_functions
    api/dimension
    api/array
-   api/defaults
    api/tools
-   api/creation_functions
-   api/elementwise_functions
-   api/statistical_functions
+   api/defaults
+   api/fftarray
 
 ---------
 

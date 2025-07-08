@@ -1,7 +1,5 @@
-Creation functions
-==================
-
-.. autofunction:: fftarray._src.dimension.dim
+Array creation functions
+========================
 
 .. automodule:: fftarray._src.creation_functions
    :members:
