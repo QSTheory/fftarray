@@ -4778,8 +4778,8 @@ packages:
   - validictory ; extra == 'devel'
 - pypi: ./
   name: fftarray
-  version: 0.4a1.dev294+g1c37600.d20250628
-  sha256: 41ddd9e5c08c854f0c0ce827cc7cc8280ec409095207d9b7c8c71998c7f5c49e
+  version: 0.4a1.dev301+g1848fd4.d20250708
+  sha256: 225e8326d4160b29ee0a7c67ea9d9843f41c74820580029c3e187180d70f8c0e
   requires_dist:
   - array-api-compat>=1.11.0
   - numpy>=2.0
@@ -4788,7 +4788,7 @@ packages:
   - bokeh ; extra == 'check'
   - hypothesis ; extra == 'check'
   - ipython ; extra == 'check'
-  - jax>=0.4.30 ; extra == 'check'
+  - jax>=0.4.33 ; extra == 'check'
   - mypy>=0.910 ; extra == 'check'
   - nbformat ; extra == 'check'
   - nbqa ; extra == 'check'
@@ -4798,7 +4798,7 @@ packages:
   - pytest-xdist[psutil] ; extra == 'check'
   - ruff ; extra == 'check'
   - scipy ; extra == 'check'
-  - torch>=2.6.0 ; extra == 'check'
+  - torch ; extra == 'check'
   - xarray ; extra == 'check'
   - z3-solver ; extra == 'check'
   - bokeh ; extra == 'dashboards'
@@ -4812,7 +4812,7 @@ packages:
   - hypothesis ; extra == 'dev'
   - ipykernel ; extra == 'dev'
   - ipython ; extra == 'dev'
-  - jax>=0.4.30 ; extra == 'dev'
+  - jax>=0.4.33 ; extra == 'dev'
   - lxml-html-clean ; extra == 'dev'
   - m2r2 ; extra == 'dev'
   - matplotlib ; extra == 'dev'
@@ -4833,12 +4833,12 @@ packages:
   - sphinx-copybutton ; extra == 'dev'
   - sphinx-design ; extra == 'dev'
   - sphinx>=6.1 ; extra == 'dev'
-  - torch>=2.6.0 ; extra == 'dev'
+  - torch ; extra == 'dev'
   - xarray ; extra == 'dev'
   - z3-solver ; extra == 'dev'
   - bokeh ; extra == 'doc'
   - ipython ; extra == 'doc'
-  - jax>=0.4.30 ; extra == 'doc'
+  - jax>=0.4.33 ; extra == 'doc'
   - lxml-html-clean ; extra == 'doc'
   - m2r2 ; extra == 'doc'
   - matplotlib ; extra == 'doc'
@@ -4854,8 +4854,8 @@ packages:
   - z3-solver ; extra == 'doc'
   - scipy ; extra == 'helpers'
   - z3-solver ; extra == 'helpers'
-  - jax>=0.4.30 ; extra == 'jax'
-  - torch>=2.6.0 ; extra == 'torch'
+  - jax>=0.4.33 ; extra == 'jax'
+  - torch ; extra == 'torch'
   requires_python: '>=3.11'
   editable: true
 - pypi: https://files.pythonhosted.org/packages/4d/36/2a115987e2d8c300a974597416d9de88f2444426de9571f4b59b2cca3acc/filelock-3.18.0-py3-none-any.whl
