@@ -36,6 +36,7 @@ GPU-accelerated fast fourier transform using named arrays and easy syntax.
    api/array
    api/tools
    api/defaults
+   api/library_specific
    api/fftarray
 
 ---------
