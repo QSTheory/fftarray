@@ -17,13 +17,17 @@ class SplitArrayMeta:
     spaces: Tuple[Space, ...]
     dims: Tuple[Dimension, ...]
 
-def _named_dims_to_axis(x: Array, dim_name: Optional[Union[str, Iterable[str]]], /) -> SplitArrayMeta:
+def _named_dims_to_axis(
+        x: Array,
+        dim_name: Optional[Union[str, Iterable[str]]],
+        /,
+    ) -> SplitArrayMeta:
     """
-        Transform dimension names into axis indices and extract
-        all metadata that is kept after the reduction operation.
+    Transform dimension names into axis indices and extract all metadata that is
+    kept after the reduction operation.
 
-        The order of `dim_name` is kept to allow precise control in case the underlying implementation
-        is not commutative in axis-order.
+    The order of `dim_name` is kept to allow precise control in case the
+    underlying implementation is not commutative in axis-order.
     """
     if dim_name is None:
         return SplitArrayMeta(
@@ -65,6 +69,32 @@ def sum(
         dim_name: Optional[Union[str, Iterable[str]]] = None,
         dtype = None,
     ) -> Array:
+    """Computes the sum of all values over the specified Dimension(s).
+
+    Parameters
+    ----------
+    x : Array
+        The input Array.
+    dim_name : Optional[Union[str, Iterable[str]]], optional
+        Dimension name(s) over which the sum is performed. The default,
+        ``dim_name=None``, will reduce over all Dimensions.
+    dtype : Any, optional
+        The dtype of the returned Array, by default None.
+
+    Returns
+    -------
+    Array
+        New Array with the specified Dimensions reduced by summation.
+
+    See Also
+    --------
+    numpy.sum
+    xarray.DataArray.sum
+
+    References
+    ----------
+    `Array API Standard - sum <https://data-apis.org/array-api/latest/API_specification/generated/array_api.sum>`_
+    """
 
     res_meta = _named_dims_to_axis(x, dim_name)
 
@@ -86,6 +116,32 @@ def prod(
         dim_name: Optional[Union[str, Iterable[str]]] = None,
         dtype = None,
     ) -> Array:
+    """Computes the product of all values over the specified Dimension(s).
+
+    Parameters
+    ----------
+    x : Array
+        The input Array.
+    dim_name : Optional[Union[str, Iterable[str]]], optional
+        Dimension name(s) along which the products are computed. The default,
+        ``dim_name=None``, will reduce over all Dimensions.
+    dtype : Any, optional
+        The dtype of the returned Array, by default None.
+
+    Returns
+    -------
+    Array
+        New Array with the specified Dimensions reduced by products.
+
+    See Also
+    --------
+    numpy.prod
+    xarray.DataArray.prod
+
+    References
+    ----------
+    `Array API Standard - prod <https://data-apis.org/array-api/latest/API_specification/generated/array_api.prod>`_
+    """
 
     res_meta = _named_dims_to_axis(x, dim_name)
 
@@ -106,6 +162,31 @@ def max(
         *,
         dim_name: Optional[Union[str, Iterable[str]]] = None,
     ) -> Array:
+    """Computes the maximum of all values along the specified Dimension(s).
+
+    Parameters
+    ----------
+    x : Array
+        The input Array.
+    dim_name : Optional[Union[str, Iterable[str]]], optional
+        Dimension name(s) along which the maximum is computed. The default,
+        ``dim_name=None``, will reduce over all Dimensions.
+
+    Returns
+    -------
+    Array
+        New Array with the specified Dimensions reduced by the maximum.
+
+    See Also
+    --------
+    min
+    numpy.max
+    xarray.DataArray.max
+
+    References
+    ----------
+    `Array API Standard - max <https://data-apis.org/array-api/latest/API_specification/generated/array_api.max>`_
+    """
 
     res_meta = _named_dims_to_axis(x, dim_name)
 
@@ -126,6 +207,31 @@ def min(
         *,
         dim_name: Optional[Union[str, Iterable[str]]] = None,
     ) -> Array:
+    """Computes the minimum of all values along the specified Dimension(s).
+
+    Parameters
+    ----------
+    x : Array
+        The input Array.
+    dim_name : Optional[Union[str, Iterable[str]]], optional
+        Dimension name(s) along which the minimum is computed. The default,
+        ``dim_name=None``, will reduce over all Dimensions.
+
+    Returns
+    -------
+    Array
+        New Array with the specified Dimensions reduced by the minimum.
+
+    See Also
+    --------
+    max
+    numpy.min
+    xarray.DataArray.min
+
+    References
+    ----------
+    `Array API Standard - min <https://data-apis.org/array-api/latest/API_specification/generated/array_api.min>`_
+    """
 
     res_meta = _named_dims_to_axis(x, dim_name)
 
@@ -146,6 +252,30 @@ def mean(
         *,
         dim_name: Optional[Union[str, Iterable[str]]] = None,
     ) -> Array:
+    """Computes the mean of all values along the specified Dimension(s).
+
+    Parameters
+    ----------
+    x : Array
+        The input Array.
+    dim_name : Optional[Union[str, Iterable[str]]], optional
+        Dimension name(s) along which the mean is computed. The default,
+        ``dim_name=None``, will reduce over all Dimensions.
+
+    Returns
+    -------
+    Array
+        New Array with the specified Dimensions reduced by the mean.
+
+    See Also
+    --------
+    numpy.mean
+    xarray.DataArray.mean
+
+    References
+    ----------
+    `Array API Standard - mean <https://data-apis.org/array-api/latest/API_specification/generated/array_api.mean>`_
+    """
 
     res_meta = _named_dims_to_axis(x, dim_name)
 
@@ -167,10 +297,36 @@ def integrate(
         dim_name: Optional[Union[str, Iterable[str]]] = None,
         dtype = None,
     ) -> Array:
-    """
-        Does a simple rectangle rule integration.
-        Automatically uses the `d_pos` or `d_freq` of the integrated dimension
-        depending on the space the dimension is in at the time of integration.
+    """Computes the integral along the specified Dimension(s). The integration
+    is performed using simple rectangle rule integration, also known as left
+    Riemann summation [1]_. The integration is equivalent to summing up the
+    values along the specified Dimension(s) and multipling them with the
+    integration element given by ``d_pos`` or ``d_freq`` of the respective
+    Dimension. The integration for each Dimension is performed in the space of
+    the input Array.
+
+    Parameters
+    ----------
+    x : Array
+        The input Array.
+    dim_name : Optional[Union[str, Iterable[str]]], optional
+        Dimension name(s) along which the integration is performed. The default,
+        ``dim_name=None``, will reduce over all Dimensions.
+    dtype : Any, optional
+        The dtype of the returned Array, by default None.
+
+    Returns
+    -------
+    Array
+        New Array with the specified Dimensions reduced by the integration.
+
+    See Also
+    --------
+    sum
+
+    References
+    ----------
+    .. [1] Wikipedia, "Riemann sum", https://en.wikipedia.org/wiki/Riemann_sum#Left_rule
     """
     res_meta = _named_dims_to_axis(x, dim_name)
 
