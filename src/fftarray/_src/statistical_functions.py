@@ -298,12 +298,11 @@ def integrate(
         dtype = None,
     ) -> Array:
     """Computes the integral along the specified Dimension(s). The integration
-    is performed using simple rectangle rule integration, also known as left
-    Riemann summation [1]_. The integration is equivalent to summing up the
-    values along the specified Dimension(s) and multipling them with the
-    integration element given by ``d_pos`` or ``d_freq`` of the respective
-    Dimension. The integration for each Dimension is performed in the space of
-    the input Array.
+    is performed using simple rectangle rule integration, also known as Riemann
+    summation [1]_. The integration is equivalent to summing up the values along
+    the specified Dimension(s) and multipling them with the integration element
+    given by ``d_pos`` or ``d_freq`` of the respective Dimension. The
+    integration for each Dimension is performed in the space of the input Array.
 
     Parameters
     ----------
@@ -326,7 +325,7 @@ def integrate(
 
     References
     ----------
-    .. [1] Wikipedia, "Riemann sum", https://en.wikipedia.org/wiki/Riemann_sum#Left_rule
+    .. [1] Wikipedia, "Riemann sum", https://en.wikipedia.org/wiki/Riemann_sum
     """
     res_meta = _named_dims_to_axis(x, dim_name)
 
