@@ -154,7 +154,7 @@ system-requirements = {cuda = "12"}
 # List jax cuda depdency here as linux-64 specific as workaround Part 2 for https://github.com/prefix-dev/pixi/issues/1051
 [tool.pixi.feature.jaxcuda.target.linux-64.pypi-dependencies]
 "fftarray" = {version="*", extras=["jax"]}
-"jax" = {version=">=0.4.30", extras=["cuda12"]}
+"jax" = {version=">=0.4.33", extras=["cuda12"]}
 
 [tool.pixi.feature.py311.dependencies]
 python = "3.11.*"
