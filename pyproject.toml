@@ -64,6 +64,7 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
     "fftarray[jax, torch, z3]",
     "mypy>=0.910",
     "pytest",
+    "pytest-markdown-docs",
     "hypothesis",
     "ipython",
     "nbformat",
@@ -115,8 +116,10 @@ source = "vcs"
 version-file = "_version.py"
 
 [tool.pixi.tasks]
-test = { cmd = ["python", "-m", "pytest"]}
-test_all = { cmd = ["python", "-m", "pytest", "--include-slow"]}
+# Test the snippets in the markdown files in the docs folder.
+test_doc_md = { cmd = ["python", "-m", "pytest", "docs/source/*", "--markdown-docs"]}
+test = { cmd = ["python", "-m", "pytest"], depends-on = ["test_doc_md"]}
+test_all = { cmd = ["python", "-m", "pytest", "--include-slow"], depends-on = ["test_doc_md"]}
 
 test_all_group = { cmd = ["python", "-m", "pytest", "--include-slow", "--splitting-algorithm", "least_duration", "--splits", "$N_GROUPS", "--group", "$GROUP_ID"]}
 # These durations are used to estimate the best split of tests when parallelizing.
