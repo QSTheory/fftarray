@@ -10,6 +10,7 @@ GPU-accelerated fast fourier transform using named arrays and easy syntax.
    :caption: Getting Started
 
    installation
+   first_steps
 
 .. toctree::
    :maxdepth: 2
@@ -20,6 +21,8 @@ GPU-accelerated fast fourier transform using named arrays and easy syntax.
    :maxdepth: 1
 
    Indexing <indexing>
+   working_with_other_array_libraries
+   working_with_jax
 
 ---------
 
@@ -53,4 +56,4 @@ GPU-accelerated fast fourier transform using named arrays and easy syntax.
    .. toctree::
       :maxdepth: 1
 
-      Documentation <documentation>
+      Building and editing the documentation <documentation>
