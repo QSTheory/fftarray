@@ -70,6 +70,9 @@ def sum(
         dtype = None,
     ) -> Array:
     """Computes the sum of all values over the specified Dimension(s).
+    This is a thin wrapper around [7]_, refer to its documentation and
+    the documentation of the used array library for detailed
+    information about its semantics.
 
     Parameters
     ----------
@@ -84,7 +87,7 @@ def sum(
     Returns
     -------
     Array
-        New Array with the specified Dimensions reduced by summation.
+        New Array with the specified dimensions reduced by computing the sum of the elements along those dimensions.
 
     See Also
     --------
@@ -93,7 +96,7 @@ def sum(
 
     References
     ----------
-    `Array API Standard - sum <https://data-apis.org/array-api/latest/API_specification/generated/array_api.sum>`_
+    .. [7] `Array API Standard - sum <https://data-apis.org/array-api/latest/API_specification/generated/array_api.sum>`_
     """
 
     res_meta = _named_dims_to_axis(x, dim_name)
@@ -117,6 +120,9 @@ def prod(
         dtype = None,
     ) -> Array:
     """Computes the product of all values over the specified Dimension(s).
+    This is a thin wrapper around [6]_, refer to its documentation and
+    the documentation of the used array library for detailed
+    information about its semantics.
 
     Parameters
     ----------
@@ -131,7 +137,7 @@ def prod(
     Returns
     -------
     Array
-        New Array with the specified Dimensions reduced by products.
+        New Array with the specified dimensions reduced by computing the product of the elements along those dimensions.
 
     See Also
     --------
@@ -140,7 +146,7 @@ def prod(
 
     References
     ----------
-    `Array API Standard - prod <https://data-apis.org/array-api/latest/API_specification/generated/array_api.prod>`_
+    .. [6] `Array API Standard - prod <https://data-apis.org/array-api/latest/API_specification/generated/array_api.prod>`_
     """
 
     res_meta = _named_dims_to_axis(x, dim_name)
@@ -163,6 +169,9 @@ def max(
         dim_name: Optional[Union[str, Iterable[str]]] = None,
     ) -> Array:
     """Computes the maximum of all values along the specified Dimension(s).
+    This is a thin wrapper around [3]_, refer to its documentation and
+    the documentation of the used array library for detailed
+    information about its semantics.
 
     Parameters
     ----------
@@ -175,7 +184,7 @@ def max(
     Returns
     -------
     Array
-        New Array with the specified Dimensions reduced by the maximum.
+        New Array with the specified dimensions reduced by computing the maximum of the elements along those dimensions.
 
     See Also
     --------
@@ -185,7 +194,7 @@ def max(
 
     References
     ----------
-    `Array API Standard - max <https://data-apis.org/array-api/latest/API_specification/generated/array_api.max>`_
+    .. [3] `Array API Standard - max <https://data-apis.org/array-api/latest/API_specification/generated/array_api.max>`_
     """
 
     res_meta = _named_dims_to_axis(x, dim_name)
@@ -208,6 +217,9 @@ def min(
         dim_name: Optional[Union[str, Iterable[str]]] = None,
     ) -> Array:
     """Computes the minimum of all values along the specified Dimension(s).
+    This is a thin wrapper around [5]_, refer to its documentation and
+    the documentation of the used array library for detailed
+    information about its semantics.
 
     Parameters
     ----------
@@ -220,7 +232,7 @@ def min(
     Returns
     -------
     Array
-        New Array with the specified Dimensions reduced by the minimum.
+        New Array with the specified dimensions reduced by computing the minimum of the elements along those dimensions.
 
     See Also
     --------
@@ -230,7 +242,7 @@ def min(
 
     References
     ----------
-    `Array API Standard - min <https://data-apis.org/array-api/latest/API_specification/generated/array_api.min>`_
+    .. [5] `Array API Standard - min <https://data-apis.org/array-api/latest/API_specification/generated/array_api.min>`_
     """
 
     res_meta = _named_dims_to_axis(x, dim_name)
@@ -253,6 +265,9 @@ def mean(
         dim_name: Optional[Union[str, Iterable[str]]] = None,
     ) -> Array:
     """Computes the mean of all values along the specified Dimension(s).
+    This is a thin wrapper around [4]_, refer to its documentation and
+    the documentation of the used array library for detailed
+    information about its semantics.
 
     Parameters
     ----------
@@ -265,7 +280,7 @@ def mean(
     Returns
     -------
     Array
-        New Array with the specified Dimensions reduced by the mean.
+        New Array with the specified dimensions reduced by computing the mean of the elements along those dimensions.
 
     See Also
     --------
@@ -274,7 +289,7 @@ def mean(
 
     References
     ----------
-    `Array API Standard - mean <https://data-apis.org/array-api/latest/API_specification/generated/array_api.mean>`_
+    .. [4] `Array API Standard - mean <https://data-apis.org/array-api/latest/API_specification/generated/array_api.mean>`_
     """
 
     res_meta = _named_dims_to_axis(x, dim_name)
@@ -303,6 +318,7 @@ def integrate(
     the specified Dimension(s) and multipling them with the integration element
     given by ``d_pos`` or ``d_freq`` of the respective Dimension. The
     integration for each Dimension is performed in the space of the input Array.
+    The actual summation is forwarded to [2]_.
 
     Parameters
     ----------
@@ -317,7 +333,7 @@ def integrate(
     Returns
     -------
     Array
-        New Array with the specified Dimensions reduced by the integration.
+        New Array with the specified dimensions reduced by computing the integration of the elements along those dimensions.
 
     See Also
     --------
@@ -326,6 +342,7 @@ def integrate(
     References
     ----------
     .. [1] Wikipedia, "Riemann sum", https://en.wikipedia.org/wiki/Riemann_sum
+    .. [2] `Array API Standard - sum <https://data-apis.org/array-api/latest/API_specification/generated/array_api.sum>`_
     """
     res_meta = _named_dims_to_axis(x, dim_name)
 
