@@ -1,29 +1,54 @@
-# fftarray
+# FFTArray: A Python Library for the Implementation of Discretized Multi-Dimensional Fourier Transforms
 
-[**Installation**](#installation) | ...
+[**Intro**](#intro) | [**Installation**](#installation) | ...
+
+## Intro
+For a more through description of the library we reommend the [publication](todo) and the [documentation](todo).
+
+### Adding Coordinate Grids to the FFT
+As a physicist we often just need a discretized version of the (continuous) Fourier transform.
+The Discrete Fourier Transform (and its fast implementations in form of Fast Fourier Transforms) is however defined without a coordinate grid.
+To turn it into a discretized approximation of the Fourier transform one needs to add coordinate grids which then add additional scale and phase factor before and after each (inverse) discrete Fourier transform.
+Additionally the sample spacing and number of samples in position space define the sample spacing in frequency space and vice versa which usually needs to be ensured by hand.
+
+FFTArray provides an easy to use general discretized Fourier transform by managing the coordinate grids in multiple dimensions which are ensured to always be correct.
+Arrays with sampled values are combined with the dimension metadata as well in which space the values currently are:
+```{code-cell} ipython3
+import numpy as np
+import fftarray as fa
+
+dim_x = fa.dim_from_constraints(
+    name="x",
+    n=1024,
+    pos_extent=2*np.pi,
+    pos_min=0,
+    freq_middle=0,
+)
+sin_x = fa.sin((50*2*np.pi)*x)
+sin_x_in_freq_space = sin_x.into_space("freq")
+```
+For a quick getting started see [First steps](todo).
+
+### Built for implementing spectral Fourier solvers
+
+Spectral Fourier solvers like the split-step method require many consecutive (inverse) Fourier transforms.
+In these cases the additional scale and phase factors can be optimized out.
+By only applying these phase factors lazily FFTArray enables this use-case without performance impact while still enabling all the comforts of having always the correct phase factors applied.
+
+### GPU support via the Python Array API Standard
+
+Via the [Python Array API Standard](https://data-apis.org/array-api/latest/) FFTArray is able to support many different array libraries to enable for example hardware acceleration via GPUs.
 
 ## Installation
 
-There are different versions of fftarray available for installation, enabling different capabilities and thus, coming with different external packages as requirements.
-The bare version features the core capabilities. For example, there is no helper methods to define a `Dimension`. There is also no automatic installation of required packages for accelerated FFT implementations on GPUs (`jax`). Additionally, there is a version to enable the execution of the examples.
+The required dependencies of FFTArray are kept small to ensure compatibility with many different environments.
+For most use cases we recommend installing the optional constraint solver with the `z3` option:
+```shell
+pip install fftarray[z3]
+```
 
-You can install each version of fftarray from the GitHub repository directly via SSH (recommended) or HTTPS.
-```shell
-## Bare installation
-python -m pip install 'fftarray @ git+ssh://git@github.com/QSTheory/fftarray.git' # SSH
-python -m pip install 'fftarray @ git+https://github.com/QSTheory/fftarray.git' # HTTPS
-```
-**Available versions**
-```shell
-## JAX support (GPU acceleration)
-python -m pip install 'fftarray[jax] @ git+ssh://git@github.com/QSTheory/fftarray.git' # SSH
-## Some helper methods (e.g. FFT constraint solver)
-python -m pip install 'fftarray[helpers] @ git+ssh://git@github.com/QSTheory/fftarray.git' # SSH
-## Examples
-python -m pip install 'fftarray[examples] @ git+ssh://git@github.com/QSTheory/fftarray.git' # SSH
-```
-You can also combine different additions:
-```shell
-## JAX support + helper methods
-python -m pip install 'fftarray[helpers,jax] @ git+ssh://git@github.com/QSTheory/fftarray.git' # SSH
-```
+Any array library besides NumPy like for example [JAX](https://github.com/jax-ml/jax?tab=readme-ov-file#installation) should be installed following their respective documentation.
+Since each of them have different approaches on how to handle for example GPU support on different operating systems we do not recommend installing them via the optional dependency groups of FFTArray.
+
+
+
