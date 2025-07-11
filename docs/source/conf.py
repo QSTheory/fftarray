@@ -125,4 +125,9 @@ nb_execution_allow_errors = False
 nb_execution_raise_on_error = True
 nb_merge_streams = True
 nb_execution_timeout = 100
-
+nbsphinx_thumbnails = {
+    'examples/Bragg_beam_splitter': '_static/thumbmails/examples/Bragg_beam_splitter.jpg',
+    'examples/Derivative': '_static/thumbmails/examples/Derivative.jpg',
+    'examples/Gaussians': '_static/thumbmails/examples/Gaussians.jpg',
+    'examples/multi_dimensional': '_static/thumbmails/examples/multi_dimensional.jpg',
+}
