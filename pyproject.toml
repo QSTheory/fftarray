@@ -39,19 +39,20 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
 "jax" = [
     "jax>=0.4.33"
 ]
-"helpers" = [
+"z3" = [
     "z3-solver",
-    "scipy",
 ]
+
 "dashboards" = [
-    "fftarray[helpers]",
+    "fftarray[z3]",
     "ipython",
     "bokeh",
+    "scipy",
     "ipykernel",
 ]
 
 "dev" = [
-    "fftarray[jax, torch, helpers, dashboards, check, doc]",
+    "fftarray[jax, torch, z3, dashboards, check, doc]",
     "hatch",
 ]
 
@@ -60,7 +61,7 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
 ]
 
 "check" = [
-    "fftarray[jax, torch, helpers]",
+    "fftarray[jax, torch, z3]",
     "mypy>=0.910",
     "pytest",
     "hypothesis",
@@ -68,6 +69,7 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
     "nbformat",
     "nbqa",
     "bokeh",
+    "scipy",
     "pytest-cov",
     "pytest-xdist[psutil]",
     "pytest-split",
@@ -77,7 +79,7 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
 ]
 
 "doc" = [
-    "fftarray[jax, helpers]",
+    "fftarray[jax, z3]",
     "sphinx>=6.1",
     "sphinx-book-theme>=1.0.1",
     "sphinx-design",
@@ -91,6 +93,7 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
     "matplotlib",
     "ipython",
     "bokeh",
+    "scipy",
 ]
 
 [tool.ruff]
@@ -129,7 +132,7 @@ check_all = { depends-on = ["mypy", "ruff_all", "test_all"]}
 cov_html = { cmd = ["python", "-m", "pytest", "--cov=./src", "--cov=./examples", "--cov-report=html"]}
 cov_xml = { cmd = ["python", "-m", "pytest", "--cov=./src", "--cov=./examples", "--cov-report=xml"]}
 # The following command builds the docs of all released versions
-# and the tips of the branches defined in docs/helpers/generate_versions.py
+# and the tips of the branches defined in docs/z3/generate_versions.py
 # and combines them into a single doc with a version switcher.
 doc_all_versions = { cmd = ["make", "all_versions"], "cwd" = "docs" }
 doc_local = { cmd = ["make", "local"], "cwd" = "docs" }
@@ -170,13 +173,13 @@ python = "3.13.*"
 
 [tool.pixi.environments]
 # Recursive optional dependencies are currently ignored by pixi environments: https://github.com/prefix-dev/pixi/issues/2024
-devcuda = ["dev", "check", "doc", "jaxcuda", "torch", "helpers", "dashboards"]
-dev = ["dev", "check", "doc", "jax", "torch", "helpers", "dashboards"]
-doc = ["doc", "jax", "helpers"]
-check = ["check", "jax", "torch", "helpers"]
-check311 = ["py311", "check", "jax", "torch", "helpers"]
-check312 = ["py312", "check", "jax", "torch", "helpers"]
-check313 = ["py313", "check", "jax", "torch", "helpers"]
+devcuda = ["dev", "check", "doc", "jaxcuda", "torch", "z3", "dashboards"]
+dev = ["dev", "check", "doc", "jax", "torch", "z3", "dashboards"]
+doc = ["doc", "jax", "z3"]
+check = ["check", "jax", "torch", "z3"]
+check311 = ["py311", "check", "jax", "torch", "z3"]
+check312 = ["py312", "check", "jax", "torch", "z3"]
+check313 = ["py313", "check", "jax", "torch", "z3"]
 
 [tool.pixi.feature.doc.dependencies]
 pandoc = ">=3.5,<4"
