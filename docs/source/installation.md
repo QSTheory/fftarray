@@ -1,25 +1,10 @@
 # Installation
 
-There are different versions of fftarray available for installation, enabling different capabilities and thus, coming with different external packages as requirements.
-The bare version features the core capabilities. For example, there is no helper methods to define a `Dimension`. There is also no automatic installation of required packages for accelerated FFT implementations on GPUs (`jax`). Additionally, there is a version to enable the execution of the examples.
+The required dependencies of FFTArray are kept small to ensure compatibility with many different environments.
+For most use cases we recommend installing the optional constraint solver with the `z3` option:
+```shell
+pip install fftarray[z3]
+```
 
-You can install each version of fftarray from the GitHub repository directly via SSH (recommended) or HTTPS.
-```shell
-## Bare installation
-python -m pip install 'fftarray @ git+ssh://git@github.com/QSTheory/fftarray.git' # SSH
-python -m pip install 'fftarray @ git+https://github.com/QSTheory/fftarray.git' # HTTPS
-```
-**Available versions**
-```shell
-## JAX support (GPU acceleration)
-python -m pip install 'fftarray[jax] @ git+ssh://git@github.com/QSTheory/fftarray.git' # SSH
-## Some helper methods (e.g. FFT constraint solver)
-python -m pip install 'fftarray[helpers] @ git+ssh://git@github.com/QSTheory/fftarray.git' # SSH
-## Examples
-python -m pip install 'fftarray[examples] @ git+ssh://git@github.com/QSTheory/fftarray.git' # SSH
-```
-You can also combine different additions:
-```shell
-## JAX support + helper methods
-python -m pip install 'fftarray[helpers,jax] @ git+ssh://git@github.com/QSTheory/fftarray.git' # SSH
-```
+Any array library besides NumPy like for example [JAX](https://github.com/jax-ml/jax?tab=readme-ov-file#installation) should be installed following their respective documentation.
+Since each of them have different approaches on how to handle for example GPU support on different operating systems we do not recommend installing them via the optional dependency groups of FFTArray.
