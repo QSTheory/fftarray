@@ -20,24 +20,25 @@ def dim(
         *,
         dynamically_traced_coords: bool = False,
     ) -> Dimension:
-    """Initialize a :class:`Dimension`.
+    """Initialize a :class:`Dimension` firectly from
+    the parameters which are stored internally.
 
     Parameters
     ----------
-    name : str
+    name:
         Name of the dimension.
-    n : int
+    n:
         Number of grid points.
-    d_pos : float
+    d_pos:
         Distance between two neighboring position grid points.
-    pos_min : float
+    pos_min:
         Smallest position grid point.
-    freq_min : float
+    freq_min:
         Smallest frequency grid point
     dynamically_traced_coords : bool, optional
         Only relevant for use with JAX tracing. Whether the coordinate values
         should be dynamically traced such that the grid can be altered inside a
-        jitted function, by default False
+        jitted function, by default False. See also :doc:`/working_with_jax`.
 
     Returns
     -------
@@ -65,54 +66,34 @@ class Dimension:
     This class encapsulates all the properties of the position and frequency
     coordinate grids for one dimension.
 
-    Note that properties associated with the position grid are denoted by `pos`,
-    whereas the frequency grid properties are denoted with `freq`.
-
-    A minimal set of parameters that uniquely define the grid is selected to
-    initialize the Dimension. Based on these, all other grid properties are
-    computed while taking into account the constraints of the discrete Fourier
-    Transform. The complete set of constraints is given by::
-
-        pos_extent = pos_max - pos_min pos_middle = 0.5 * (pos_min + pos_max +
-        d_pos) d_pos = pos_extent/(n-1)
-
-        freq_extent = freq_max - freq_min freq_middle = 0.5 * (freq_max +
-        freq_min + d_freq) d_freq = freq_extent/(n-1)
-
-        d_freq * d_pos * n = 2*pi
+    Note that properties associated with the position grid are denoted by ``pos``,
+    whereas the frequency grid properties are denoted with ``freq``.
+    Frequencies are rotational frequencies in cycles as opposed to angular frequencies.
 
     Parameters
     ----------
-    name : str
+    name:
         Name of the dimension.
-    n : int
+    n:
         Number of grid points.
-    d_pos : float
+    d_pos:
         Distance between two neighboring position grid points.
-    pos_min : float
+    pos_min:
         Smallest position grid point.
-    freq_min : float
+    freq_min:
         Smallest frequency grid point
-    dynamically_traced_coords : bool
+    dynamically_traced_coords:
         Only relevant for use with JAX tracing. Whether the coordinate values
         should be dynamically traced such that the grid can be altered inside a
-        jitted function
+        jitted function. See also :doc:`/working_with_jax`.
 
     Notes
     -----
     **Implementation details**
 
     The grid in both spaces (position and frequency) goes from min to max
-    including both points. Therefore ``d_pos = (pos_max-pos_min)/(n-1)``. The
-    grid always consists of an even number of points. Therefore, the number of
-    samples n has to be an even integer. The frequencies in frequency space can
-    be acquired via ``numpy.fft.fftfreq(n, d_pos)``. These frequencies are
-    spatial frequencies in the unit cycles/m. The wavelength lambda is the space
-    equivalent of T for time signals. => ``lambda = 1/numpy.fft.fftfreq(n,
-    d_pos)`` According to DeBroglie we have ``lambda = h/p`` => ``p = h *
-    numpy.fft.fftfreq(n, d_pos)``
-
-    The pos_middle is the sample on the right hand side of the exact center of
+    including both points. Therefore ``d_pos = (pos_max-pos_min)/(n-1)``.
+    In the case of even ``n``, ``pos_middle`` is the sample on the right hand side of the exact center of
     the grid.
 
     **Examples**::
@@ -131,7 +112,7 @@ class Dimension:
         index:  0     1     2     3     4
                  d_pos d_pos d_pos d_pos
 
-    The freq_middle is the sample on the right hand side of the exact center of
+    In the case of even ``n``, ``freq_middle`` is the sample on the right hand side of the exact center of
     the grid.
 
     **Examples**::
@@ -163,7 +144,7 @@ class Dimension:
         freq_middle = 0.5 * (freq_max + freq_min + d_freq)
         d_freq = freq_extent/(n-1)
 
-        d_freq * d_pos * n = 2*pi
+        d_freq * d_pos * n = 1
 
     For odd ``n`` the definitions for ``pos_middle`` and ``freq_middle`` change
     to ensure that they and the minimum and maximum position and frequency are
@@ -177,7 +158,7 @@ class Dimension:
     Individual array coordinates::
 
         pos = np.arange(0, n) * d_pos + pos_min
-        freq = np.fft.fftfreq(n = n, d = d_pos) + freq_middle
+        freq = np.arange(0, n) * d_freq + freq_min
 
     .. highlight:: none
 
@@ -188,11 +169,10 @@ class Dimension:
         np.max(freq) = freq_max
         np.min(freq) = freq_min
 
-        pos[1]-pos[0] = d_pos (if n >= 2)
-
     See Also
     --------
     fftarray.dim
+    fftarray.dim_from_constraints
     """
 
     _pos_min: float

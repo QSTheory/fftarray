@@ -1,4 +1,4 @@
-"""Constraint solver based on `Z3 <https://github.com/Z3Prover/z3>`_ - a theorem
+"""Grid constraint solver using `Z3 <https://github.com/Z3Prover/z3>`_ - a theorem
 prover from Microsoft Research.
 
 This submodule contains the functionality that initializes the coordinate grid
@@ -87,52 +87,53 @@ def dim_from_constraints(
         freq_middle = 0.5 * (freq_max + freq_min + d_freq)
         d_freq = freq_extent/(n-1)
 
-        d_freq * d_pos * n = 2*pi
+        d_freq * d_pos * n = 1.
 
-    If `n` is not directly specified but one of the rounding modes is used an
-    exact solution of this constraint system leads in general to a `n` which is
-    not a natural number. In that case `n` is rounded up according to the
-    rounding mode. In order to do this some other constraint has to be improved.
-    The constraints which are allowed to change for rounding up are listed in
-    `loose_params`. The value `d_pos`, `d_freq`, `pos_min` and `freq_min` would
-    be made smaller while the value of `pos_max`, `pos_extent`, `freq_max` and
-    `freq_extent` would be made larger. `pos_middle` and `freq_middle` do not
-    influence `n`and are therefore not allowed as parameters in `loose_prams`.
+    If ``n`` is not directly specified an exact solution of this constraint system
+    leads in general to a ``n`` which is not a natural number.
+    In that case ``n`` is rounded up according to the rounding mode.
+    In order to do this some other constraint has to be improved.
+    The constraints which are allowed to change for rounding up are given in
+    ``loose_params``. The value of ``d_pos``, ``d_freq``, ``pos_min`` and ``freq_min`` would
+    be made smaller while the value of ``pos_max``, ``pos_extent``, ``freq_max`` and
+    ``freq_extent`` would be made larger. ``pos_middle`` and ``freq_middle`` do not
+    influence ``n`` and are therefore not allowed as parameters in ``loose_prams``.
 
     Parameters
     ----------
-    name : str
+    name:
         Name identifying the dimension.
-    n : Union[int, Literal[&quot;power_of_two&quot;, &quot;even&quot;]], optional
-        Number of grid points, by default "power_of_two"
-    d_pos : Optional[float], optional
+    n:
+        Number of grid points, either a natural number or the rounding mode, by default "power_of_two"
+    d_pos:
         Distance between two neighboring position grid points, by default None
-    d_freq : Optional[float], optional
+    d_freq:
         Distance between two neighboring frequency grid points, by default None
-    pos_min : Optional[float], optional
+    pos_min:
         Smallest position grid point, by default None
-    pos_max : Optional[float], optional
+    pos_max:
         Largest position grid point, by default None
-    pos_middle : Optional[float], optional
+    pos_middle:
         Middle of the position grid, by default None
-    pos_extent : Optional[float], optional
+    pos_extent:
         Length of the position grid, by default None
-    freq_min : Optional[float], optional
+    freq_min:
         Smallest frequency grid point, by default None
-    freq_max : Optional[float], optional
+    freq_max:
         Largest frequency grid point, by default None
-    freq_extent : Optional[float], optional
+    freq_extent:
         Length of the frequency grid, by default None
-    freq_middle : Optional[float], optional
+    freq_middle:
         Middle of the frequency grid, by default None
-    loose_params : Optional[Union[str, List[str]]], optional
+    loose_params:
         List of loose grid parameters (parameters that can be changed by the
-        constraint solver when rounding up to an even or power of two `n`), by
+        constraint solver when rounding up n to be even or a power of two), by
         default None
-    dynamically_traced_coords : bool, optional
-        Only relevant for use with JAX tracing. Whether the coordinate values should be
-        dynamically traced such that the grid can be altered inside a jitted
-        function, by default False
+    dynamically_traced_coords:
+        Only relevant for use with JAX tracing. Whether the coordinate values
+        should be dynamically traced such that the grid can be altered inside
+        a jitted function, for more details see :doc:`/working_with_jax`,
+        by default False
 
     Returns
     -------
@@ -184,50 +185,35 @@ def get_fft_grid_params_from_constraints(
         loose_params: Optional[Union[str, List[str]]] = None,
     ) -> GridParams:
     """Returns a dictionary including all grid parameters calculated from an
-    arbitrary subset using the z3 constraint solver. Note that the specified
-    grid parameters must lead to a unique solution that fulfill the following
-    constraints:
-
-        pos_extent = pos_max - pos_min
-        pos_middle = 0.5 * (pos_min + pos_max + d_pos)
-        d_pos = pos_extent/(n-1)
-
-        freq_extent = freq_max - freq_min
-        freq_middle = 0.5 * (freq_max + freq_min + d_freq)
-        d_freq = freq_extent/(n-1)
-
-        d_freq * d_pos * n = 2*pi
-
-    Additionally, loose grid parameters can be specified which can be improved
-    by the solver in order to find a suitable solution.
+    arbitrary subset using the z3 constraint solver.
 
     Parameters
     ----------
-    name : str
+    name:
         Name identifying the dimension.
-    n : Union[int, Literal[&quot;power_of_two&quot;, &quot;even&quot;]], optional
+    n:
         Number of grid points, by default "power_of_two"
-    d_pos : Optional[float], optional
+    d_pos:
         Distance between two neighboring position grid points, by default None
-    d_freq : Optional[float], optional
+    d_freq:
         Distance between two neighboring frequency grid points, by default None
-    pos_min : Optional[float], optional
+    pos_min:
         Smallest position grid point, by default None
-    pos_max : Optional[float], optional
+    pos_max:
         Largest position grid point, by default None
-    pos_middle : Optional[float], optional
+    pos_middle:
         Middle of the position grid, by default None
-    pos_extent : Optional[float], optional
+    pos_extent:
         Length of the position grid, by default None
-    freq_min : Optional[float], optional
+    freq_min:
         Smallest frequency grid point, by default None
-    freq_max : Optional[float], optional
+    freq_max:
         Largest frequency grid point, by default None
-    freq_extent : Optional[float], optional
+    freq_extent:
         Length of the frequency grid, by default None
-    freq_middle : Optional[float], optional
+    freq_middle:
         Middle of the frequency grid, by default None
-    loose_params : Optional[Union[str, List[str]]], optional
+    loose_params:
         List of loose grid parameters (parameters that can be improved by the
         constraint solver), by default None
 
@@ -274,15 +260,15 @@ def _z3_constraint_solver(
 
     Parameters
     ----------
-    loose_params : List[str]
-        If `n` is not explicitly defined it is in general not a natural number.
+    loose_params:
+        If ``n`` is not explicitly defined it is in general not a natural number.
         Therefore it needs to be rounded up to the next natural number or
         usually for performance reasons to the next power of two. But when the
         original solution was unique this would then violate the other given
         constraints. But when we simultanously improve another parameter to
-        match the increase of `n` we again get a unique solution. Here, one or
+        match the increase of ``n`` we again get a unique solution. Here, one or
         multiple of the constraints to loosen have to be defined.
-    make_suggestions : bool
+    make_suggestions:
         If True and no valid solution can be found, the constraint solver tries
         to make suggestions on how to modify the constraints to find a solution.
 
