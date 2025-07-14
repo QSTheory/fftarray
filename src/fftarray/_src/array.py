@@ -264,7 +264,7 @@ def elementwise_one_operand(
 
 class Array:
     """The Array class facilitates the generalized Discrete Fourier transform
-    and all scientific operations on its values while retaining coordinate grid
+    and all operations on its values while retaining coordinate grid
     information.
 
     Parameters
@@ -277,7 +277,8 @@ class Array:
         Space of the given values per Dimension.
     eager : Tuple[bool, ...]
         Whether the factors should be applied to the internal values after
-        performing a space transition.
+        performing a space transition. This does not influence the behavior of
+        any other operation besides ``into_space``.
     factors_applied : Tuple[bool, ...]
         Whether the lazy factors have been applied to the given values.
     xp : Any
@@ -285,7 +286,7 @@ class Array:
 
     Examples
     --------
-    First, we initialize the dimensions using `fa.dim_from_constraints`:
+    First, we initialize the dimensions using ``fa.dim_from_constraints``:
 
     >>> import fftarray as fa
     >>> x_dim: fa.Dimension = fa.dim_from_constraints("x", pos_min=-1, pos_max=1., n=64, freq_middle=0.)
@@ -298,8 +299,8 @@ class Array:
     >>> y: fa.Array = fa.coords_from_dim(y_dim, "pos")
     >>> xy = x**2 * fa.sin(y)
 
-    The space (as well as other attributes such as xp, eager and
-    factors_applied) via respective `into` functions.
+    The ``space`` (as well as other attributes such as ``xp``, ``eager`` and
+    ``factors_applied``) can be set via respective `into` functions:
 
     >>> xy_freq: fa.Array = xy.into_space("freq")
 
@@ -310,9 +311,11 @@ class Array:
 
     See Also
     --------
-    array
-    coords_from_dim
-    full
+    :mod:`Array creation functions <fftarray._src.creation_functions>`
+    :mod:`Elementwise functions <fftarray._src.elementwise_functions>`
+    :mod:`Manipulation functions <fftarray._src.manipulation_functions>`
+    :mod:`Statistical functions <fftarray._src.statistical_functions>`
+    :mod:`Tools <fftarray._src.tools>`
     """
 
     # _dims are stored as a sequence and not by name because their oder needs
@@ -593,10 +596,10 @@ class Array:
 
         Parameters
         ----------
-        indexers : Optional[Mapping[str, Union[int, slice]]], optional
+        indexers:
             Mappping from Dimension name to the index which can be an int or a
             slice, by default None
-        missing_dims : Literal[&quot;raise&quot;, &quot;warn&quot;, &quot;ignore&quot;], optional
+        missing_dims:
             Behavior, if selected Dimensions are not part of the Array, by
             default 'raise'
 
@@ -663,10 +666,10 @@ class Array:
         indexers : Optional[Mapping[str, Union[float, slice]]], optional
             Mappping from Dimension name to the coordinate/label which can be a
             float or a slice, by default None
-        missing_dims : Literal[&quot;raise&quot;, &quot;warn&quot;, &quot;ignore&quot;], optional
+        missing_dims:
             Behavior, if selected Dimensions are not part of the Array, by
             default 'raise'
-        method : Optional[Literal[&quot;nearest&quot;, &quot;pad&quot;, &quot;ffill&quot;, &quot;backfill&quot;, &quot;bfill&quot;]], optional
+        method:
             Method to use for inexact matches
 
             - None (default): only exact matches
@@ -794,15 +797,20 @@ class Array:
         ) -> Any:
         """The raw values with all lazy fft factors applied.
 
+        Using ``xp`` to make a conversion between array libraries relies on non-standardized behavior.
+        Therefore this function only supports conversions between libraries where the interaction
+        is specifically allowed. It currently supports NumPy, JAX, PyTorch and ``array-api-strict``
+        and is not optimal for performance because it always goes the safe route via NumPy.
+
         Parameters
         ----------
         space : Union[Space, Iterable[Space]]
             The space in which the values should be returned. Can be specified
             per dimension.
-        xp : Optional[Any], optional
+        xp:
             The array API namespace to use for the returned values. If it is
             None, the array namespace from self is used.
-        dtype : Optional[Any], optional
+        dtype:
             The dtype to use for the returned values. If it is None, the dtype
             of self is used.
 
@@ -829,6 +837,7 @@ class Array:
 
     @property
     def device(self):
+        """The device of the underlying array."""
         return array_api_compat.device(self._values)
 
     def into_xp(self, xp, /) -> Array:
