@@ -4857,8 +4857,8 @@ packages:
   - validictory ; extra == 'devel'
 - pypi: ./
   name: fftarray
-  version: 0.4a1.dev311+ga32080d.d20250711
-  sha256: 412676ad7704c3e046988df61dd332bb789d45acd79b90a85c41efd3f6652288
+  version: 0.4a1.dev318+g622b67c.d20250715
+  sha256: 5d8e8372da6161448d33743d9943c2ee29fecf42d80a3a3f36cd3884c92c3a77
   requires_dist:
   - array-api-compat>=1.11.0
   - numpy>=2.0
