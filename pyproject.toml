@@ -118,8 +118,9 @@ version-file = "_version.py"
 [tool.pixi.tasks]
 # Test the snippets in the markdown files in the docs folder.
 test_doc_md = { cmd = ["python", "-m", "pytest", "docs/source/*", "--markdown-docs"]}
-test = { cmd = ["python", "-m", "pytest"], depends-on = ["test_doc_md"]}
-test_all = { cmd = ["python", "-m", "pytest", "--include-slow"], depends-on = ["test_doc_md"]}
+test_src_docstrings = { cmd = ["python", "-m", "pytest", "src/*", "--doctest-modules"]}
+test = { cmd = ["python", "-m", "pytest", "--markdown-docs"], depends-on = ["test_doc_md", "test_src_docstrings"]}
+test_all = { cmd = ["python", "-m", "pytest", "--include-slow"], depends-on = ["test_doc_md", "test_src_docstrings"]}
 
 test_all_group = { cmd = ["python", "-m", "pytest", "--include-slow", "--splitting-algorithm", "least_duration", "--splits", "$N_GROUPS", "--group", "$GROUP_ID"]}
 # These durations are used to estimate the best split of tests when parallelizing.
