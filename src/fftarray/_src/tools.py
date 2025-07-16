@@ -5,30 +5,24 @@ import numpy as np
 from fftarray import Array
 import fftarray as fa
 
-def shift_freq(x: Array, offsets: Dict[str, float]) -> Array:
-    """Shift the Array in frequency space:
-    :math:`k_{x,y,z} \\mapsto k_{x,y,z} - \\Delta k_{x,y,z}`.
-    The Array is transformed according to:
+def shift_freq(x: Array, offsets: Dict[str, float], /) -> Array:
+    """Cyclically shift the Array by a frequency offset via multiplication with a phase factor in position space:
+    :math:`f \\mapsto f - \\text{offsets}`.
 
-    .. math::
+    This operation does not change the domain, it only shifts the values.
 
-        \\Psi \\mapsto \\Psi e^{i (x*\\Delta k_x + y*\\Delta k_y + z*\\Delta k_z)}
 
     Parameters
     ----------
-    x : Array
+    x:
         The initial Array.
-    delta_kx : float, optional
-        The frequency shift in x direction, by default 0.
-    delta_ky : float, optional
-        The frequency shift in y direction, by default 0.
-    delta_kz : float, optional
-        The frequency shift in z direction, by default 0.
+    offsets:
+        The frequency shift for each shifted dimension by name.
 
     Returns
     -------
     Array
-        The Array with shifted frequency space.
+        The Array with its contents shifted in frequency space.
     """
     if not x.xp.isdtype(x.dtype, ("real floating", "complex floating")):
         raise ValueError(
@@ -43,29 +37,23 @@ def shift_freq(x: Array, offsets: Dict[str, float]) -> Array:
     return x.into_space("pos") * phase_shift
 
 def shift_pos(x: Array, offsets: Dict[str, float]) -> Array:
-    """Shift the Array in position space:
-    :math:`x \\mapsto x - \\Delta x`. :math:`y` and :math:`z` analogously.
-    The Array is transformed according to:
+    """Cyclically shift the Array by a position offset via multiplication with a phase factor in frequency space:
+    :math:`x \\mapsto x - \\text{offsets}`.
 
-    .. math::
 
-        \\Psi \\mapsto e^{-i (k_x*\\Delta x + k_y*\\Delta y + k_z*\\Delta z)} \\Psi
+    This operation does not change the domain, it only shifts the values.
 
     Parameters
     ----------
     x : Array
         The initial Array.
-    delta_kx : float, optional
-        The position shift in x direction, by default 0.
-    delta_ky : float, optional
-        The position shift in y direction, by default 0.
-    delta_kz : float, optional
-        The position shift in z direction, by default 0.
+    offsets:
+        The position shift for each shifted dimension by name.
 
     Returns
     -------
     Array
-        The Array with shifted position space.
+        The Array with its contents shifted in position space.
     """
     if not x.xp.isdtype(x.dtype, ("real floating", "complex floating")):
         raise ValueError(
