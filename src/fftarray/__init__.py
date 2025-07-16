@@ -1,33 +1,3 @@
-"""
-.. rubric:: The objects inside the tables can be imported directly from :py:mod:`fftarray`:
-
-Provided by :py:mod:`fftarray._src.array`:
-
-.. currentmodule:: fftarray._src.array
-
-.. autosummary::
-    :nosignatures:
-
-    Array
-    Dimension
-
-Provided by :py:mod:`fftarray._src.tools`:
-
-.. currentmodule:: fftarray._src.tools
-
-.. autosummary::
-    :nosignatures:
-
-   shift_freq
-   shift_pos
-
-Example:
-
-.. code-block:: python
-
-   >>> from fftarray import Array, Dimension
-
-"""
 
 from ._src.defaults import (
     set_default_xp as set_default_xp,
