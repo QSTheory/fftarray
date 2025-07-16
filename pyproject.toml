@@ -10,8 +10,9 @@ dynamic = [
 ]
 authors = [
     { name="Stefan Seckmeyer" },
-    { name="Gabriel Müller" },
     { name="Christian Struckmann" },
+    { name="Gabriel Müller" },
+    { name="Jan-Niclas Kirsten-Siemß" },
 ]
 description = "A library to manage and effiently implement all complexities around the complex Fast Fourier Transform."
 readme = "README.md"
