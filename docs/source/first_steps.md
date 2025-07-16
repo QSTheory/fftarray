@@ -29,6 +29,7 @@ print(dim_x)
 ```
 The `Dimension` object `dim_x` encapsulates a discretely sampled dimension in both position and frequency space.
 Internally it only stores `n`, `d_pos`, `pos_min` and `freq_min`, but can compute many other parameters about the sampled grids, for more details see {py:class}`fftarray.Dimension`.
+If you are not sure where to best place the frequency space grid, `freq_middle=0.` is a sensible default for most cases.
 
 {py:func}`dim_from_constraints <fftarray.dim_from_constraints>` accepts any combination of grid parameters which yields a unique solution for the position and frequency grid.
 In the example above the constraint solver automatically computes `d_pos` from the passed in `n` and `pos_extent`.
