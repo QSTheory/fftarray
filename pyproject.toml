@@ -1,8 +1,6 @@
 [project]
 name = "fftarray"
 
-
-
 # You can get the current version via 'pixi run -e dev hatch version'
 # It does not get updated automatically in editable installs.
 # A workaround can be found under https://github.com/maresb/hatch-vcs-footgun-example
@@ -31,6 +29,7 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering",
 ]
+
 dependencies = [
     "numpy>=2.0",
     "array-api-compat>=1.11.0",
@@ -52,10 +51,15 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
 "jax" = [
     "jax>=0.4.33"
 ]
+
+# Required for the constraint solver for dim parameters.
+# Since z3-solver is a native package this is an optional
+# dependency in order to keep FFTArray portable.
 "dimsolver" = [
     "z3-solver",
 ]
 
+# Dependencies which are only needed for the dashboard examples.
 "dashboards" = [
     "fftarray[dimsolver]",
     "ipython",
@@ -64,6 +68,7 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
     "ipykernel",
 ]
 
+# Dependencies necessary for development of FFTArray
 "dev" = [
     "fftarray[jax, torch, dimsolver, dashboards, check, doc]",
     "hatch",
@@ -73,6 +78,7 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
     "torch",
 ]
 
+# Dependencies necessary for CI suite checks and tests.
 "check" = [
     "fftarray[jax, torch, dimsolver]",
     "mypy>=0.910",
@@ -92,6 +98,7 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
     "xarray",
 ]
 
+# Dependencies necessary to build the docs.
 "doc" = [
     "fftarray[jax, dimsolver]",
     "sphinx>=6.1",
@@ -109,6 +116,11 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
     "bokeh",
     "scipy",
 ]
+
+[tool.pixi.feature.doc.dependencies]
+# Pandoc is not on pypi, therefore add it as a conda-forge depdency.
+pandoc = ">=3.5,<4"
+
 
 [tool.ruff]
 target-version = "py311"
@@ -131,29 +143,45 @@ version-file = "_version.py"
 [tool.pixi.tasks]
 # Test the snippets in the markdown files in the docs folder.
 test_doc_md = { cmd = ["python", "-m", "pytest", "docs/source/*", "--markdown-docs"]}
+# Test snippets in documentation doc-strings.
 test_src_docstrings = { cmd = ["python", "-m", "pytest", "src/*", "--doctest-modules"]}
+# Run the general tests which are quick enough.
 test = { cmd = ["python", "-m", "pytest"], depends-on = ["test_doc_md", "test_src_docstrings"]}
+# Run all tests which including the ones with a bit longer runtimes (on the order of minutes)
 test_all = { cmd = ["python", "-m", "pytest", "--include-slow"], depends-on = ["test_doc_md", "test_src_docstrings"]}
 
+# Test command which allows to split Github CI runs into parallel runners.
 test_all_group = { cmd = ["python", "-m", "pytest", "--include-slow", "--splitting-algorithm", "least_duration", "--splits", "$N_GROUPS", "--group", "$GROUP_ID"]}
 # These durations are used to estimate the best split of tests when parallelizing.
 # This only needs to be run when tests changed significantly.
 # If the timings are out of date it just makes the split a bit less optimal.
 store_test_durations = { cmd = ["python", "-m", "pytest", "--include-slow", "--store-durations"]}
 
+# Build the release artifacts for FFTArray.
 build_wheel = { cmd = ["hatch", "build"] }
+
+# Run ruff and mypy on all relevant files
 ruff_all = { cmd = ["ruff", "check", "examples", "tests", "src/fftarray"]}
 mypy_nb = { cmd = ["nbqa", "mypy", "examples"]}
 mypy = { cmd = ["mypy", "examples", "src/fftarray", "tests"], depends-on = ["mypy_nb"]}
+
+# Run all tests and linters
 check = { depends-on = ["mypy", "ruff_all", "test"]}
 check_all = { depends-on = ["mypy", "ruff_all", "test_all"]}
+
+# Run test suite and generate a code-coverage report.
 cov_html = { cmd = ["python", "-m", "pytest", "--cov=./src", "--cov=./examples", "--cov-report=html"]}
 cov_xml = { cmd = ["python", "-m", "pytest", "--cov=./src", "--cov=./examples", "--cov-report=xml"]}
+
 # The following command builds the docs of all released versions
-# and the tips of the branches defined in docs/z3/generate_versions.py
+# and the tips of the branches defined in docs/helpers/generate_versions.py
 # and combines them into a single doc with a version switcher.
 doc_all_versions = { cmd = ["make", "all_versions"], "cwd" = "docs" }
+
+# Only build the documentation in the current working tree.
 doc_local = { cmd = ["make", "local"], "cwd" = "docs" }
+
+# Build the documentation in the local working tree and open it in a browser.
 # TODO: Currently only tested on macOS. Would be nice to make it an --open option like in cargo.
 doc_open = { cmd = ["open", "docs/build/html/local/index.html"], depends-on = ["doc_local"] }
 
@@ -177,27 +205,34 @@ system-requirements = {cuda = "12"}
 "fftarray" = {version="*", extras=["jax"]}
 "jax" = {version=">=0.4.33", extras=["cuda12"]}
 
+# Specific feature to allow testing under python 3.11
 [tool.pixi.feature.py311.dependencies]
 python = "3.11.*"
 # array-api-strict 2.4.0 does not support NumPy interoperability with Python 3.11.
 # Therefore we need to stay on 2.3.1 for Python 3.11.
 array-api-strict = "==2.3.1"
 
+# Specific feature to allow testing under python 3.12
 [tool.pixi.feature.py312.dependencies]
 python = "3.12.*"
 
+# Specific feature to allow testing under python 3.13
 [tool.pixi.feature.py313.dependencies]
 python = "3.13.*"
 
 [tool.pixi.environments]
 # Recursive optional dependencies are currently ignored by pixi environments: https://github.com/prefix-dev/pixi/issues/2024
+# All dev dependencies including jaxcuda. Therefore this only works in linux at the moment.
 devcuda = ["dev", "check", "doc", "jaxcuda", "torch", "dimsolver", "dashboards"]
+# All dev dependencies with jax CPU
 dev = ["dev", "check", "doc", "jax", "torch", "dimsolver", "dashboards"]
+# Environment to build the docs.
 doc = ["doc", "jax", "dimsolver"]
+# Environment to run the tests.
 check = ["check", "jax", "torch", "dimsolver"]
+# Environment to run the tests under CPython 3.11
 check311 = ["py311", "check", "jax", "torch", "dimsolver"]
+# Environment to run the tests under CPython 3.12
 check312 = ["py312", "check", "jax", "torch", "dimsolver"]
+# Environment to run the tests under CPython 3.13
 check313 = ["py313", "check", "jax", "torch", "dimsolver"]
-
-[tool.pixi.feature.doc.dependencies]
-pandoc = ">=3.5,<4"
