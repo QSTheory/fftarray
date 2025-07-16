@@ -124,7 +124,10 @@ def dimension_unflatten(aux_data, children) -> Dimension:
     return dim
 
 
-def jax_register_pytree_nodes():
+def jax_register_pytree_nodes() -> None:
+    """Register PyTree implementation for :class:`~fftarray.Array` and :class:`~fftarray.Dimension`.
+    For more information see :doc:`/working_with_jax`.
+    """
     from jax.tree_util import register_pytree_node
     register_pytree_node(
         Array,
