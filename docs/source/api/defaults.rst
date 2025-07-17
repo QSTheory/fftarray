@@ -15,7 +15,7 @@ Eager
 .. autoclass:: fftarray._src.defaults.DefaultEagerContext
 
 Array Namespace
-#####
+###############
 
 .. autofunction:: fftarray.get_default_xp
 .. autofunction:: fftarray.set_default_xp
