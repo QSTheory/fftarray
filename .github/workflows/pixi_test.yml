@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         environment: [check311, check312, check313]
-        command: [ruff_all, mypy, test_all]
+        command: [ruff_all, mypy_all, test_all]
         # An option to run with multiple CI runners, currently saves 20s,
         # not worth the increased CI minutes usage.
         # command: [mypy, test_all_group 1, test_all_group 2]
