@@ -39,7 +39,7 @@ add_module_names = False
 
 napoleon_numpy_docstring = True
 napolean_use_rtype = False
-napoleon_use_param = False
+napoleon_use_param = True
 
 autosummary_generate = True
 autosummary_overwrite = True
