@@ -52,12 +52,12 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
 "jax" = [
     "jax>=0.4.33"
 ]
-"z3" = [
+"dimsolver" = [
     "z3-solver",
 ]
 
 "dashboards" = [
-    "fftarray[z3]",
+    "fftarray[dimsolver]",
     "ipython",
     "bokeh",
     "scipy",
@@ -65,7 +65,7 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
 ]
 
 "dev" = [
-    "fftarray[jax, torch, z3, dashboards, check, doc]",
+    "fftarray[jax, torch, dimsolver, dashboards, check, doc]",
     "hatch",
 ]
 
@@ -74,7 +74,7 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
 ]
 
 "check" = [
-    "fftarray[jax, torch, z3]",
+    "fftarray[jax, torch, dimsolver]",
     "mypy>=0.910",
     "pytest",
     "pytest-markdown-docs",
@@ -93,7 +93,7 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
 ]
 
 "doc" = [
-    "fftarray[jax, z3]",
+    "fftarray[jax, dimsolver]",
     "sphinx>=6.1",
     "sphinx-book-theme>=1.0.1",
     "sphinx-design",
@@ -191,13 +191,13 @@ python = "3.13.*"
 
 [tool.pixi.environments]
 # Recursive optional dependencies are currently ignored by pixi environments: https://github.com/prefix-dev/pixi/issues/2024
-devcuda = ["dev", "check", "doc", "jaxcuda", "torch", "z3", "dashboards"]
-dev = ["dev", "check", "doc", "jax", "torch", "z3", "dashboards"]
-doc = ["doc", "jax", "z3"]
-check = ["check", "jax", "torch", "z3"]
-check311 = ["py311", "check", "jax", "torch", "z3"]
-check312 = ["py312", "check", "jax", "torch", "z3"]
-check313 = ["py313", "check", "jax", "torch", "z3"]
+devcuda = ["dev", "check", "doc", "jaxcuda", "torch", "dimsolver", "dashboards"]
+dev = ["dev", "check", "doc", "jax", "torch", "dimsolver", "dashboards"]
+doc = ["doc", "jax", "dimsolver"]
+check = ["check", "jax", "torch", "dimsolver"]
+check311 = ["py311", "check", "jax", "torch", "dimsolver"]
+check312 = ["py312", "check", "jax", "torch", "dimsolver"]
+check313 = ["py313", "check", "jax", "torch", "dimsolver"]
 
 [tool.pixi.feature.doc.dependencies]
 pandoc = ">=3.5,<4"

@@ -164,7 +164,7 @@ except ModuleNotFoundError:
          loose_params: Optional[Union[str, List[str]]] = None,
          dynamically_traced_coords: bool = False,
     ) -> Dimension:
-      raise ModuleNotFoundError("You need to install `fftarray[z3]` to use the constraint solver.")
+      raise ModuleNotFoundError("You need to install `fftarray[dimsolver]` to use the constraint solver.")
 
 
 __all__ = [
