@@ -1,4 +1,4 @@
-fftarray
+FFTArray
 ========
 
 GPU-accelerated fast fourier transform using named arrays and easy syntax.

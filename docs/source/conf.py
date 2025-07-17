@@ -7,9 +7,9 @@ sys.path.insert(0, os.path.abspath("../../examples/"))
 
 # ---------------------------- Project information --------------------------- #
 
-project = "fftarray"
-copyright = "2024, The fftaray authors. NumPy and Jax are copyright the respective authors."
-author = "The fftarray authors"
+project = "FFTArray"
+copyright = "2025, The FFTArray authors."
+author = "The FFTArray authors"
 
 version = ""
 release = ""
