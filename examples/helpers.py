@@ -1,12 +1,15 @@
-from typing import List, Optional, Any, Tuple
+from typing import Optional, get_args, Any, Tuple
 from typing_extensions import assert_never
 
 import numpy as np
-from bokeh.plotting import figure, row, column, show
+from bokeh.plotting import figure, row, column, show, curdoc, gridplot
 from bokeh.models import LinearColorMapper, PrintfTickFormatter
+from bokeh.io import export_png
+from PIL import Image
 
 import fftarray as fa
 
+Image.MAX_IMAGE_PIXELS = None # Required for high resolution PNG export
 
 # global plot parameters for bokeh
 plt_width       = 370
@@ -17,6 +20,8 @@ plt_color1      = "navy"
 plt_color2      = "firebrick"
 plt_color3      = "limegreen"
 x_range1        =   (-15,15)
+
+COLORS = ["#CC6677", "#88CCEE", "#DDCC77", "#332288", "#117733"]
 
 
 def plt_array(
@@ -74,8 +79,7 @@ def plt_array(
         plot = row([p_pos, p_freq], sizing_mode="stretch_width") # type: ignore
     elif len(arr.dims) == 2:
         row_plots = []
-        spaces: List[fa.Space] = ["pos", "freq"]
-        for space in spaces:
+        for space in get_args(fa.Space):
             # Dimension properties
             dim_names = [dim.name for dim in arr.dims]
 
@@ -214,6 +218,97 @@ def plt_array_values_space_time(
 
     row_plot = row(plots, sizing_mode="stretch_width")
     show(row_plot)
+
+def plt_integrated_2d_density(
+        arr: fa.Array,
+        red_dim_name: str,
+        data_name: Optional[str] = None,
+        filename: Optional[str] = None,
+    ) -> None:
+    """
+    Plot the 2D projection of ``fa.abs(arr)**2`` in both position and frequency space,
+    obtained via integration from a 3D ``fa.Array`` object.
+    The integration is performed along the provided red_dim_name.
+
+    If filename is provided, the plot will be saved as a png file with the given filename.
+    Otherwise, the plot will be displayed in the browser using "bokeh serve --show your_script.py".
+    """
+
+    plots = []
+    for space in get_args(fa.Space):
+
+        # Array values
+        arr_in_space = arr.into_xp(np).into_space(space)
+        arr_density_2d = fa.integrate(fa.abs(arr_in_space)**2, dim_name=red_dim_name)
+        density_values = arr_density_2d.values(space)
+
+        dim_names = [dim.name for dim in arr_density_2d.dims]
+        if len(dim_names) > 2:
+            raise ValueError("The specified array and reduction dimension did not result in two dimensions.")
+
+        match space:
+            case "pos":
+                x_unit = "m"
+                color_unit = "1/m^2"
+                x1_symbol = f"{dim_names[1]}"
+                x2_symbol = f"{dim_names[0]}"
+            case "freq":
+                x_unit = "1/m"
+                color_unit = "m^2"
+                x1_symbol = f"f_{dim_names[1]}"
+                x2_symbol = f"f_{dim_names[0]}"
+
+        # Create bokeh density plots
+
+        color_map_min = np.min(density_values)
+        color_map_high = np.max(density_values)
+
+        if color_map_min == color_map_high:
+            color_map_min = color_map_min
+            color_map_high = color_map_min + 1
+
+        color_mapper = LinearColorMapper(
+            palette="Turbo256",
+            low=color_map_min,
+            high=color_map_high,
+        )
+
+        # Create bokeh density plots
+        fig = figure(
+            width=500, height=400, min_border=50,
+            x_range=tuple(getattr(arr_density_2d.dims[1], f"{space}_{prop}") for prop in ["min", "max"]),
+            y_range=tuple(getattr(arr_density_2d.dims[0], f"{space}_{prop}") for prop in ["min", "max"]),
+            x_axis_label=f"$${x1_symbol} \\, [{x_unit}]$$",
+            y_axis_label=f"$${x2_symbol} \\, [{x_unit}]$$",
+            title=f"$$|\\Psi({x2_symbol},{x1_symbol})|^2$$ of {data_name or 'Array values'} $$[{color_unit}]$$", # type: ignore
+        )
+
+        image = fig.image(
+            image=[density_values],
+            color_mapper=color_mapper,
+            dw=getattr(arr_density_2d.dims[1], f"{space}_extent"),
+            dh=getattr(arr_density_2d.dims[0], f"{space}_extent"),
+            x=getattr(arr_density_2d.dims[1], f"{space}_min"),
+            y=getattr(arr_density_2d.dims[0], f"{space}_min"),
+        )
+        colorbar = image.construct_color_bar()
+        colorbar.formatter = PrintfTickFormatter(format="%.1e")
+
+        fig.add_layout(colorbar, "right")
+
+        fig.xaxis[0].formatter = PrintfTickFormatter(format="%.1e")
+        fig.yaxis[0].formatter = PrintfTickFormatter(format="%.1e")
+
+        plots.append(fig)
+
+    grid = gridplot(plots, ncols=2) # type: ignore
+
+    curdoc().add_root(grid)
+
+    if filename:
+        grid.toolbar.logo = None # type: ignore
+        grid.toolbar_location = None # type: ignore
+        export_png(grid, filename=f"{filename}.png", scale_factor=2)
 
 def plt_deriv_sampling(
         plt_title: str,

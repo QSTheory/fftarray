@@ -11,6 +11,7 @@ from IPython.core.interactiveshell import InteractiveShell
 
 from tests.helpers import XPS
 import fftarray as fa
+from examples.two_species_groundstate import calc_ground_state_two_species
 
 @pytest.mark.parametrize("xp", XPS)
 @pytest.mark.parametrize("nb_path", [
@@ -49,3 +50,7 @@ def test_notebooks(xp, nb_path):
                     exec(code, mod.__dict__)
     finally:
         shell.user_ns = save_user_ns
+
+def test_two_species_groundstate():
+
+    calc_ground_state_two_species(N_iter=3)
