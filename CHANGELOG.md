@@ -1,7 +1,6 @@
 # Change log
 
-<!-- TODO: add link to documentation -->
-<!-- Best viewed here. -->
+Best viewed [here](https://qstheory.github.io/fftarray/main/changelog.html).
 
-## fftarray 0.5.0 (TODO Add date)
+## fftarray 0.5.0 (Unreleased)
 - Initial public release.

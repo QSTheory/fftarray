@@ -43,10 +43,10 @@ requires = ["hatchling", "hatch-vcs"]
 
 [project.urls]
 Homepage = "https://github.com/QSTheory/fftarray"
-# Documentation = TODO
+Documentation = "https://qstheory.github.io/fftarray/main"
 Repository = "https://github.com/QSTheory/fftarray"
 Issues = "https://github.com/QSTheory/fftarray/issues"
-# Changelog = TODO
+Changelog = "https://qstheory.github.io/fftarray/main/changelog.html"
 
 [project.optional-dependencies]
 "jax" = [
