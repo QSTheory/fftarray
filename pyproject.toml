@@ -160,8 +160,8 @@ test_all_group = { cmd = ["python", "-m", "pytest", "--include-slow", "--splitti
 store_test_durations = { cmd = ["python", "-m", "pytest", "--include-slow", "--store-durations"]}
 
 # Build the release artifacts for FFTArray.
-build_wheel = { cmd = ["hatch", "build"] }
-
+clean_dist_dir = { cmd = ["rm", "-rf", "dist/"] }
+build_wheel = { cmd = ["hatch", "build"], depends-on = ["clean_dist_dir"] }
 # Run ruff and mypy on all relevant files
 ruff_all = { cmd = ["ruff", "check", "examples", "tests", "src/fftarray"]}
 mypy_fftarray = { cmd = ["mypy", "src/fftarray"]}
