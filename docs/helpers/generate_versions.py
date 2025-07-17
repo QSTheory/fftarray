@@ -10,7 +10,6 @@ if current_branch == "main":
     branches = ["main"]
 else:
     branches = [current_branch, "main"]
-# branches = [current_branch] # replace with above after merging
 
 versions = sorted(
     subprocess.check_output(["git", "tag"], text=True).strip().split("\n"),
@@ -25,7 +24,6 @@ for v in branches+versions:
         version_entry = {
             "version": v,
             "url": f"https://QSTheory.github.io/fftarray/{v}/"
-            # "url": f"http://localhost:8000/{v}/"
         }
 
         if v in branches:
