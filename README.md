@@ -9,7 +9,7 @@ FFTArray is a Python library that handles multidimensional arrays and their repr
 - **High performance**: Avoidable scale and phase factors in the Fourier transform are automatically skipped. Via the [Python Array API Standard](https://data-apis.org/array-api/latest/), FFTArray supports many different array libraries to enable for example hardware acceleration via GPUs.
 
 Below we give a quick introduction to the basic functionality of the library.
-For a more thorough description of FFTArray, we recommend reading the [publication](todo) and the [documentation](todo).
+For a more thorough description of FFTArray, we recommend reading the [publication](todo) and the [documentation](https://qstheory.github.io/fftarray/main).
 
 ### Adding Coordinate Grids to the FFT
 
@@ -76,7 +76,7 @@ arr_y = fa.coords_from_dim(dim_y, "pos")
 arr_gauss_2d = fa.exp(-(arr_x**2 + arr_y**2)/0.2)
 arr_gauss_2d_in_freq_space = arr_gauss_2d.into_space("freq")
 ```
-For a quick getting started, see [First steps](todo).
+For a quick getting started, see [First steps](https://qstheory.github.io/fftarray/main/first_steps.html).
 
 ### Built for Implementing Spectral Fourier Solvers
 
