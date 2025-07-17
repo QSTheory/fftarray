@@ -20,32 +20,26 @@ concurrency:
 
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        fetch-tags: true
+        fetch-depth: 0
     - uses: prefix-dev/setup-pixi@v0.8.1
       with:
         pixi-version: v0.39.5
         cache: true
-    - run: pixi run -e doc doc_all_versions
-
-  # deploy:
-
-  #   needs: build
-
-  #   environment:
-  #     name: github-pages
-  #     url: ${{ steps.deployment.outputs.page_url }}
-
-  #   runs-on: ubuntu-latest
-
-  #   steps:
-  #     - name: Setup Pages
-  #       uses: actions/configure-pages@v4
-  #     - name: Upload artifact
-  #       uses: actions/upload-pages-artifact@v3
-  #     - name: Deploy to GitHub Pages
-  #       id: deployment
-  #       uses: actions/deploy-pages@v4
+    - name: Build Docs
+      run: pixi run -e doc doc_all_versions
+    - name: Setup Pages
+      uses: actions/configure-pages@v5
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: 'docs/build/html'
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
