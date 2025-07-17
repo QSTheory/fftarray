@@ -90,8 +90,7 @@ html_theme_options = dict(
     home_page_in_toc=False,
     primary_sidebar_end=["version-switcher"],
     switcher=dict(
-        json_url="http://localhost:8000/versions.json",  # for local testing
-        # json_url="https://QSTheory.github.io/fftarray/versions.json", # when published
+        json_url="https://QSTheory.github.io/fftarray/versions.json", # when published
         version_match=os.getenv("VERSION", "main"),
     ),
     icon_links=[
