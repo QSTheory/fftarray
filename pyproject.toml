@@ -1,6 +1,8 @@
 [project]
 name = "fftarray"
 
+
+
 # You can get the current version via 'pixi run -e dev hatch version'
 # It does not get updated automatically in editable installs.
 # A workaround can be found under https://github.com/maresb/hatch-vcs-footgun-example
@@ -9,17 +11,25 @@ dynamic = [
     "version"
 ]
 authors = [
-    { name="Stefan Seckmeyer"},
-    { name="Gabriel Müller"},
-    { name="Christian Struckmann"},
+    { name="Stefan Seckmeyer" },
+    { name="Gabriel Müller" },
+    { name="Christian Struckmann" },
 ]
 description = "A library to manage and effiently implement all complexities around the complex Fast Fourier Transform."
 readme = "README.md"
 requires-python = ">=3.11"
 classifiers = [
-    "Programming Language :: Python :: 3",
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    'Typing :: Typed',
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
 ]
 dependencies = [
     "numpy>=2.0",
@@ -33,7 +43,10 @@ requires = ["hatchling", "hatch-vcs"]
 
 [project.urls]
 Homepage = "https://github.com/QSTheory/fftarray"
+# Documentation = TODO
+Repository = "https://github.com/QSTheory/fftarray"
 Issues = "https://github.com/QSTheory/fftarray/issues"
+# Changelog = TODO
 
 [project.optional-dependencies]
 "jax" = [
@@ -128,6 +141,7 @@ test_all_group = { cmd = ["python", "-m", "pytest", "--include-slow", "--splitti
 # If the timings are out of date it just makes the split a bit less optimal.
 store_test_durations = { cmd = ["python", "-m", "pytest", "--include-slow", "--store-durations"]}
 
+build_wheel = { cmd = ["hatch", "build"] }
 ruff_all = { cmd = ["ruff", "check", "examples", "tests", "src/fftarray"]}
 mypy_nb = { cmd = ["nbqa", "mypy", "examples"]}
 mypy = { cmd = ["mypy", "examples", "src/fftarray", "tests"], depends-on = ["mypy_nb"]}
