@@ -4,7 +4,7 @@ T = TypeVar("T")
 
 class UniformValue(Generic[T]):
     """
-        Allows the same reduction as "_reduce_equal" but when running through a loop.
+        Allows to check that a set of values is equal while running through a loop.
     """
     is_set: bool
     value: Any
@@ -32,6 +32,19 @@ class UniformValue(Generic[T]):
         self.is_set = True
 
     def get(self, *args: T) -> T:
+        """Get the set value or the optionally passed in default.
+        The default can only be the very first positional argument, but `None` is a valid default.
+
+        Returns
+        -------
+        T
+            The collected value or the default.
+
+        Raises
+        ------
+        ValueError
+            Raises a ValueError if the value has never been set.
+        """
         # Only first arg is valid and could be a default argument.
         # Need this complicated capture to check if an arg was provided.
         # None is a valid default after all
