@@ -15,7 +15,7 @@ authors = [
     { name="Jan-Niclas Kirsten-Siemß" },
 ]
 description = "A library to manage and effiently implement all complexities around the complex Fast Fourier Transform."
-readme = "README.md"
+readme = "README.rst"
 requires-python = ">=3.11"
 classifiers = [
     "License :: OSI Approved :: Apache Software License",
@@ -123,6 +123,10 @@ Changelog = "https://qstheory.github.io/fftarray/main/changelog.html"
 # Pandoc is not on pypi, therefore add it as a conda-forge depdency.
 pandoc = ">=3.5,<4"
 
+[tool.pixi.feature.check.dependencies]
+# Pandoc is not on pypi, therefore add it as a conda-forge depdency.
+pandoc = ">=3.5,<4"
+
 
 [tool.ruff]
 target-version = "py311"
@@ -169,6 +173,9 @@ mypy_examples_py = { cmd = ["mypy", "examples"]}
 mypy_examples_nb = { cmd = ["nbqa", "mypy", "examples"]}
 mypy_tests = { cmd = ["mypy", "tests"], env = { MYPYPATH = "examples:$MYPYPATH" } }
 mypy_all = { depends-on = ["mypy_fftarray", "mypy_examples_py", "mypy_examples_nb", "mypy_tests"]}
+
+# Convert the README.md into restructured text because only that renders the equations well on PyPi.
+update_readme_rst = { cmd = ['pandoc', '-f', 'markdown', '-t', 'rst', "README.md", "-o", "README.rst"] }
 
 # Run all tests and linters
 check = { depends-on = ["mypy_all", "ruff_all", "test"]}

@@ -26,8 +26,8 @@ When discretizing it on a finite grid in position and frequency space, one does 
 
 $$
 \begin{aligned}
-    x_n &\coloneqq x_\mathrm{min} + n  \Delta x, \quad n = 0, \ldots, N-1 ,\\
-    \quad f_m &\coloneqq f_\mathrm{min} + m \Delta f, \quad m = 0, \ldots, N-1,
+    x_n &:= x_\mathrm{min} + n  \Delta x, \quad n = 0, \ldots, N-1 ,\\
+    \quad f_m &:= f_\mathrm{min} + m \Delta f, \quad m = 0, \ldots, N-1,
 \end{aligned}
 $$
 
