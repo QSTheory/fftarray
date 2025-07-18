@@ -8,7 +8,7 @@ import array_api_compat.numpy as cnp
 import numpy as np
 import pytest
 import fftarray as fa
-from fftarray._src.array import _convert_xp
+from fftarray._src.compat_namespace import convert_xp
 
 from tests.helpers import (
     XPS_WITH_DEFAULT_DEVICE_PAIRS, XPS_ROTATED_PAIRS, XPS_DEVICE_PAIRS, XPS_NON_DEFAULT_DEVICE_PAIRS,
@@ -203,8 +203,8 @@ def check_array_from_list(
     assert arr.eager == (eager,)*len(arr.shape)
     assert type(arr_vals) is type(ref_vals)
     np.testing.assert_equal(
-        _convert_xp(arr_vals, old_xp=arr.xp, new_xp=cnp),
-        _convert_xp(ref_vals, old_xp=xp_target, new_xp=cnp),
+        convert_xp(arr_vals, old_xp=arr.xp, new_xp=cnp),
+        convert_xp(ref_vals, old_xp=xp_target, new_xp=cnp),
     )
 
 
@@ -317,8 +317,8 @@ def check_full(
     assert type(ref_arr) is type(arr_values)
 
     np.testing.assert_equal(
-        _convert_xp(ref_arr, old_xp=xp, new_xp=cnp),
-        _convert_xp(arr_values, old_xp=xp, new_xp=cnp),
+        convert_xp(ref_arr, old_xp=xp, new_xp=cnp),
+        convert_xp(arr_values, old_xp=xp, new_xp=cnp),
     )
 
 
@@ -460,13 +460,15 @@ def test_coords_from_dim(
 
     if direct_dtype_name is None:
         direct_dtype = None
+        direct_dtype_np = None
         expected_dtype = xp_target.full(1, 2.).dtype
     else:
         direct_dtype = getattr(xp_target, direct_dtype_name)
+        direct_dtype_np = getattr(np, direct_dtype_name)
         expected_dtype = direct_dtype
 
     dim = fa.dim("x", n=3, d_pos=0.1, pos_min=0, freq_min=0)
-    ref_values = xp_target.asarray(dim.values(space, xp=np), dtype=direct_dtype)
+    ref_values = np.asarray(dim.values(space, xp=np), dtype=direct_dtype_np)
 
     array_args = {"dtype": direct_dtype}
 
