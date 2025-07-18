@@ -320,10 +320,7 @@ def array_strategy(draw) -> fa.Array:
         .into_eager(eager)
     )
 
-# @pytest.mark.slow
-from hypothesis import reproduce_failure
-
-@reproduce_failure('6.135.16', b'AEEAQQBBBEEAQQEoAAAAAAAAAAA=')
+@pytest.mark.slow
 @settings(max_examples=1000, deadline=None, print_blob=True)
 @given(array_strategy())
 def test_array_lazyness(arr):
@@ -468,14 +465,14 @@ def assert_equal_op(
     non-zero). If it is True, it is tested if they are equal.
     """
     if isinstance(ops, tuple):
-        np_op, fa_op = ops
+        arr_api_op, fa_op = ops
     else:
-        np_op = ops
+        arr_api_op = ops
         fa_op = ops
 
     f_arr_op = fa_op(arr)
     arr_op = f_arr_op.values(arr.spaces, xp=np)
-    values_op = np.array(np_op(values))
+    values_op = _convert_xp(arr_api_op(values), old_xp=arr.xp, new_xp=np)
 
     xp = array_api_compat.array_namespace(arr_op, values_op)
     if arr_op.dtype != values_op.dtype:
