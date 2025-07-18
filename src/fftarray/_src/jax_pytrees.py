@@ -21,15 +21,14 @@ def array_flatten(
 def array_unflatten(aux_data, children) -> Array:
     (values, dims) = children
     (spaces, eager, factors_applied, xp) = aux_data
-    # We explicitly do not want to call the constructor here.
-    # The consistency check fails (needlessly) for PyTreeArrays and other special "tricks".
-    self = Array.__new__(Array)
-    self._values = values
-    self._dims = dims
-    self._spaces = spaces
-    self._eager = eager
-    self._factors_applied = factors_applied
-    self._xp = xp
+    self = Array(
+         values=values,
+         dims=dims,
+         spaces=spaces,
+         eager=eager,
+         factors_applied=factors_applied,
+         xp=xp,
+    )
     return self
 
 def dimension_flatten(v: Dimension) -> Tuple[List[Any], List[Any]]:
@@ -105,22 +104,24 @@ def dimension_unflatten(aux_data, children) -> Dimension:
     # the last element of aux_data is the dynamically_traced_coords flag
     if aux_data[-1]:
         # dynamically traced, _pos_min, _freq_min, _d_pos in children
-        dim = Dimension.__new__(Dimension)
-        dim._name = aux_data[0]
-        dim._n = aux_data[1]
-        dim._pos_min = children[0]
-        dim._freq_min = children[1]
-        dim._d_pos = children[2]
-        dim._dynamically_traced_coords = aux_data[2]
+        dim = Dimension(
+            name=aux_data[0],
+            n=aux_data[1],
+            pos_min=children[0],
+            freq_min=children[1],
+            d_pos=children[2],
+            dynamically_traced_coords=aux_data[2]
+        )
         return dim
     # static, everything in aux_data
-    dim = Dimension.__new__(Dimension)
-    dim._name = aux_data[0]
-    dim._n = aux_data[1]
-    dim._pos_min = aux_data[2]
-    dim._freq_min = aux_data[3]
-    dim._d_pos = aux_data[4]
-    dim._dynamically_traced_coords = aux_data[5]
+    dim = Dimension(
+        name=aux_data[0],
+        n=aux_data[1],
+        pos_min=aux_data[2],
+        freq_min=aux_data[3],
+        d_pos=aux_data[4],
+        dynamically_traced_coords=aux_data[5]
+    )
     return dim
 
 
