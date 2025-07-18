@@ -1,26 +1,12 @@
-name: Build and deploy docs
+name: Build docs to test that they work.
 
 on:
-  push:
-    branches: [ "main" ]
+  pull_request:
   workflow_dispatch: {} # Allows launching this action manually in the GitHub interface
-
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
 
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
@@ -33,13 +19,4 @@ jobs:
         pixi-version: v0.39.5
         cache: true
     - name: Build Docs
-      run: pixi run -e doc doc_all_versions
-    - name: Setup Pages
-      uses: actions/configure-pages@v5
-    - name: Upload artifact
-      uses: actions/upload-pages-artifact@v3
-      with:
-        path: 'docs/build/html'
-    - name: Deploy to GitHub Pages
-      id: deployment
-      uses: actions/deploy-pages@v4
+      run: pixi run -e doc doc_local

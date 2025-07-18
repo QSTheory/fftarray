@@ -6,6 +6,7 @@ name: Run pytest via pip
 on:
   push:
     branches: [ "main" ]
+  pull_request:
   workflow_dispatch: {} # Allows launching this action manually in the GitHub interface
 
 permissions:
