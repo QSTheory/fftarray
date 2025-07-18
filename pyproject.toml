@@ -49,15 +49,18 @@ Issues = "https://github.com/QSTheory/fftarray/issues"
 Changelog = "https://qstheory.github.io/fftarray/main/changelog.html"
 
 [project.optional-dependencies]
-"jax" = [
-    "jax>=0.4.33"
-]
-
 # Required for the constraint solver for dim parameters.
 # Since z3-solver is a native package this is an optional
 # dependency in order to keep FFTArray portable.
 "dimsolver" = [
     "z3-solver",
+]
+
+# These are dependencies which are for development only and are not packaged and published on pypi.
+[dependency-groups]
+
+"jax" = [
+    "jax>=0.4.33"
 ]
 
 # Dependencies which are only needed for the dashboard examples.
@@ -72,8 +75,12 @@ Changelog = "https://qstheory.github.io/fftarray/main/changelog.html"
 
 # Dependencies necessary for development of FFTArray
 "dev" = [
-    "fftarray[jax, torch, dimsolver, dashboards, check, doc]",
+    "fftarray[jax, torch, dimsolver, dashboards, check, doc, deploy]",
+]
+
+"deploy" = [
     "hatch",
+    "twine",
 ]
 
 "torch" = [
@@ -235,9 +242,9 @@ python = "3.13.*"
 [tool.pixi.environments]
 # Recursive optional dependencies are currently ignored by pixi environments: https://github.com/prefix-dev/pixi/issues/2024
 # All dev dependencies including jaxcuda. Therefore this only works in linux at the moment.
-devcuda = ["dev", "check", "doc", "jaxcuda", "torch", "dimsolver", "dashboards"]
+devcuda = ["dev", "check", "doc", "jaxcuda", "torch", "dimsolver", "dashboards", "deploy"]
 # All dev dependencies with jax CPU
-dev = ["dev", "check", "doc", "jax", "torch", "dimsolver", "dashboards"]
+dev = ["dev", "check", "doc", "jax", "torch", "dimsolver", "dashboards", "deploy"]
 # Environment to build the docs.
 doc = ["doc", "jax", "dimsolver"]
 # Environment to run the tests.
