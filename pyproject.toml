@@ -160,9 +160,9 @@ test_doc_md = { cmd = ["python", "-m", "pytest", "docs/source/*", "--markdown-do
 # Test snippets in documentation doc-strings.
 test_src_docstrings = { cmd = ["python", "-m", "pytest", "src/*", "--doctest-modules"]}
 # Run the general tests which are quick enough.
-test = { cmd = ["python", "-m", "pytest"], depends-on = ["test_doc_md", "test_src_docstrings"], env = { PYTHONPATH = "examples:$PYTHONPATH" }}
+test = { cmd = ["python", "-m", "pytest"], depends-on = ["test_doc_md", "test_src_docstrings"]}
 # Run all tests which including the ones with a bit longer runtimes (on the order of minutes)
-test_all = { cmd = ["python", "-m", "pytest", "--include-slow"], depends-on = ["test_doc_md", "test_src_docstrings"], env = { PYTHONPATH = "examples:$PYTHONPATH" }}
+test_all = { cmd = ["python", "-m", "pytest", "--include-slow"], depends-on = ["test_doc_md", "test_src_docstrings"]}
 
 # Test command which allows to split Github CI runs into parallel runners.
 test_all_group = { cmd = ["python", "-m", "pytest", "--include-slow", "--splitting-algorithm", "least_duration", "--splits", "$N_GROUPS", "--group", "$GROUP_ID"]}
@@ -179,7 +179,7 @@ ruff_all = { cmd = ["ruff", "check", "examples", "tests", "src/fftarray"]}
 mypy_fftarray = { cmd = ["mypy", "src/fftarray"]}
 mypy_examples_py = { cmd = ["mypy", "examples"]}
 mypy_examples_nb = { cmd = ["nbqa", "mypy", "examples"]}
-mypy_tests = { cmd = ["mypy", "tests"], env = { MYPYPATH = "examples:$MYPYPATH" } }
+mypy_tests = { cmd = ["mypy", "tests"] }
 mypy_all = { depends-on = ["mypy_fftarray", "mypy_examples_py", "mypy_examples_nb", "mypy_tests"]}
 
 # Convert the README.md into restructured text because only that renders the equations well on PyPi.
@@ -205,8 +205,6 @@ doc_local = { cmd = ["make", "local"], "cwd" = "docs" }
 # TODO: Currently only tested on macOS. Would be nice to make it an --open option like in cargo.
 doc_open = { cmd = ["open", "docs/build/html/local/index.html"], depends-on = ["doc_local"] }
 
-# Create figures from examples for the documentation
-create_example_figures = { cmd = ["python", "-m", "examples.create_examples_figures"]}
 
 # Commands to recreate the requirements.txt file from the current state of pypi
 
