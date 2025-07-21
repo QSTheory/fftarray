@@ -48,7 +48,7 @@ autosummary_import_members = True
 autodoc_typehints = "both"
 autodoc_typehints_format = "short"
 
-nbsphinx_execute = "always"
+nbsphinx_execute = "auto"
 nbsphinx_allow_errors = True
 
 intersphinx_mapping = {
