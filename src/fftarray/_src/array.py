@@ -21,7 +21,7 @@ from .indexing import (
     LocArrayIndexer, check_missing_dim_names,
     tuple_indexers_from_dict_or_tuple, tuple_indexers_from_mapping,
 )
-from .helpers import norm_param, norm_space
+from .helpers import norm_space, norm_bool
 from .op_lazy_luts import (
     TwoOperandTransforms,
     default_transforms_lut,
@@ -752,7 +752,7 @@ class Array:
 
     def values(
             self: Array,
-            space: Union[Space, Iterable[Space]],
+            space: Union[Space, Iterable[Space], Dict[str, Space]],
             /,
             *,
             xp: Optional[Any] = None,
@@ -786,7 +786,7 @@ class Array:
             xp = self.xp
         else:
             xp = get_compat_namespace(xp)
-        space_norm: Tuple[Space, ...] = norm_space(space, len(self.dims))
+        space_norm: Tuple[Space, ...] = norm_space(space, self._dims, self._spaces)
         if space_norm != self.spaces or not all(self._factors_applied):
             # Setting eager before-hand allows copy-elision without the move option.
             arr = self.into_eager(True).into_space(space).into_factors_applied(True)
@@ -876,7 +876,7 @@ class Array:
         """
         return self._factors_applied
 
-    def into_factors_applied(self, factors_applied: Union[bool, Iterable[bool]], /) -> Array:
+    def into_factors_applied(self, factors_applied: Union[bool, Iterable[bool], Dict[str, bool]], /) -> Array:
         """Change the factors_applied state.
         Note that the values of the returned Array will be of dtype complex, no
         matter if the factors_applied state changed.
@@ -892,7 +892,7 @@ class Array:
             A new Array whose values correspond to the new factors_applied
             state.
         """
-        factors_applied_norm = norm_param(factors_applied, len(self._dims), bool)
+        factors_applied_norm = norm_bool(factors_applied, self._dims, self._factors_applied, "factors_applied")
 
         signs = get_transform_signs(
             input_factors_applied=self._factors_applied,
@@ -936,7 +936,7 @@ class Array:
         """
         return self._eager
 
-    def into_eager(self, eager: Union[bool, Iterable[bool]], /) -> Array:
+    def into_eager(self, eager: Union[bool, Iterable[bool], Dict[str, bool]], /) -> Array:
         """Change the eager state.
 
         Parameters
@@ -949,7 +949,7 @@ class Array:
         Array
             A new Array with the new eager settings.
         """
-        eager_norm = norm_param(eager, len(self.dims), bool)
+        eager_norm = norm_bool(eager, self._dims, self._eager, "eager")
 
         # Can just reuse everything since all attributes are immutable.
         return Array(
@@ -966,7 +966,7 @@ class Array:
         """The spaces in which the values currently are in, per dimension."""
         return self._spaces
 
-    def into_space(self, space: Union[Space, Iterable[Space]], /) -> Array:
+    def into_space(self, space: Union[Space, Iterable[Space], Dict[str, Space]], /) -> Array:
         """Transform the space(s) of the Array's values.
 
         Parameters
@@ -997,9 +997,7 @@ class Array:
             values = self.xp.astype(values, complex_type(self.xp, values.dtype), copy=True)
             are_values_owned = True
 
-        dims = self._dims
-        n_dims = len(dims)
-        space_after = norm_space(space, n_dims)
+        space_after = norm_space(space, self._dims, self._spaces)
 
         needs_fft = [old != new for old, new in zip(self._spaces, space_after, strict=True)]
         if not any(needs_fft):
@@ -1027,7 +1025,7 @@ class Array:
             )
 
         return Array(
-            dims=dims,
+            dims=self._dims,
             values=values,
             spaces=space_after,
             eager=self.eager,

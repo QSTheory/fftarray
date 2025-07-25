@@ -242,13 +242,13 @@ def check_integrate(
         attribute_inversion: bool,
     ) -> None:
 
-    space_norm = norm_space(val=space, n=ndims)
     source_dtype = getattr(xp, source_dtype_name)
     if acc_dtype_name is None:
         acc_dtype = None
     else:
         acc_dtype = getattr(xp, acc_dtype_name)
     dims = get_dims(ndims)
+    space_norm = norm_space(val=space, dims=tuple(dims), old_val=None)
     arr = get_arr_from_dims(xp, dims, spaces=space_norm).into_dtype(source_dtype)
     # Just set alternating attributes in order to save on iterations.
     arr_attributes = [((i%2)==0)^attribute_inversion for i in range(ndims)]
