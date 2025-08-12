@@ -23,7 +23,7 @@ acceleration via GPUs.
 
 Below we give a quick introduction to the basic functionality of the
 library. For a more thorough description of FFTArray, we recommend
-reading the `publication <todo>`__ and the
+reading the `publication <https://arxiv.org/abs/2508.03697>`__ and the
 `documentation <https://qstheory.github.io/fftarray/main>`__.
 
 Adding Coordinate Grids to the FFT
