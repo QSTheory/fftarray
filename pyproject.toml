@@ -123,6 +123,10 @@ Changelog = "https://qstheory.github.io/fftarray/main/changelog.html"
     "scipy",
 ]
 
+"build_pip_deps" = [
+    "pip"
+]
+
 [tool.pixi.feature.doc.dependencies]
 # Pandoc is not on pypi, therefore add it as a conda-forge depdency.
 pandoc = ">=3.5,<4"
@@ -204,6 +208,19 @@ doc_open = { cmd = ["open", "docs/build/html/local/index.html"], depends-on = ["
 # Create figures from examples for the documentation
 create_example_figures = { cmd = ["python", "-m", "examples.create_examples_figures"]}
 
+# Commands to recreate the requirements.txt file from the current state of pypi
+
+clean_build_pip_deps = { cmd = ["pixi", "clean", "-e", "build-pip-deps"] }
+install_pip_check_deps = { cmd = ["python", "-m", "pip", "install", "-e", ".[check]"] }
+create_requirements_txt = { cmd = ["python", "-m", "pip", "freeze", "--exclude", "fftarray", ">", "requirements.txt"] }
+
+[tool.pixi.tasks.update_requirements_txt]
+depends-on = [
+    { task = "clean_build_pip_deps" },
+    { task = "install_pip_check_deps", environment = "build-pip-deps" },
+    { task = "create_requirements_txt", environment = "build-pip-deps" },
+]
+
 [tool.pixi.project]
 channels = ["conda-forge"]
 # "osx-64" is incompatible with PyTorch on Python 3.13.
@@ -266,6 +283,9 @@ check311 = ["py311", "check", "jax", "torch", "dimsolver", "dashboards"]
 check312 = ["py312", "check", "jax", "torch", "dimsolver", "dashboards"]
 # Environment to run the tests under CPython 3.13
 check313 = ["py313", "check", "jax", "torch", "dimsolver", "dashboards"]
+
+# Environment to create the requirements.txt used in the pip CI test
+build-pip-deps = ["build_pip_deps"]
 
 # Environments to run the examples with and without JAX CUDA
 examplescuda = ["dashboards", "jaxcuda", "dimsolver"]
