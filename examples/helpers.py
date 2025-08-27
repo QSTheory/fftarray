@@ -225,6 +225,7 @@ def plt_integrated_1d_densities(
     red_dim_names: List[str],
     x_range_pos: Optional[Tuple[float, float]] = None,
     x_range_freq: Optional[Tuple[float, float]] = None,
+    y_label_prefix: str = "",
 ) -> GridPlot:
     """
     Plot the 1D projection of ``fa.abs(arr)**2`` in both position and frequency space,
@@ -266,7 +267,7 @@ def plt_integrated_1d_densities(
             width=370,
             height=360,
             x_axis_label = f"$${x_symbol} \\, [{x_unit}]$$",
-            y_axis_label = f"$$N|\\Psi({x_symbol})|^2 \\, [{y_unit}]$$",
+            y_axis_label = f"$${y_label_prefix}|\\Psi({x_symbol})|^2 \\, [{y_unit}]$$",
             min_border=50,
         )
         for i, (data_name, arr_density_1d) in enumerate(density_arrs.items()):
@@ -300,7 +301,7 @@ def plt_integrated_2d_density(
         filename: Optional[str] = None,
         single_width: int = plt_width,
         single_height: int = plt_height,
-        scale: str = "",
+        title_prefix: str = "",
     ) -> GridPlot:
     """
     Plot the 2D projection of ``fa.abs(arr)**2`` in both position and frequency space,
@@ -359,7 +360,7 @@ def plt_integrated_2d_density(
             y_range=tuple(getattr(arr_density_2d.dims[0], f"{space}_{prop}") for prop in ["min", "max"]),
             x_axis_label=f"$${x1_symbol} \\, [{x_unit}]$$",
             y_axis_label=f"$${x2_symbol} \\, [{x_unit}]$$",
-            title=f"$${scale}|\\Psi({x2_symbol},{x1_symbol})|^2$$ of {data_name or 'Array values'} $$[{color_unit}]$$", # type: ignore
+            title=f"$${title_prefix}|\\Psi({x2_symbol},{x1_symbol})|^2$$ of {data_name or 'Array values'} $$[{color_unit}]$$", # type: ignore
         )
 
         image = fig.image(
