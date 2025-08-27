@@ -767,7 +767,7 @@ class Array:
 
         Parameters
         ----------
-        space : Union[Space, Iterable[Space]]
+        space : Union[Space, Iterable[Space], Dict[str, Space]]
             The space in which the values should be returned. Can be specified
             per dimension.
         xp:
@@ -883,7 +883,7 @@ class Array:
 
         Parameters
         ----------
-        factors_applied : Union[bool, Iterable[bool]]
+        factors_applied:
             The new factors_applied state.
 
         Returns
@@ -941,7 +941,7 @@ class Array:
 
         Parameters
         ----------
-        eager : Union[bool, Iterable[bool]]
+        eager:
             New eager state.
 
         Returns
@@ -971,7 +971,7 @@ class Array:
 
         Parameters
         ----------
-        space : Union[Space, Iterable[Space]]
+        space : Union[Space, Iterable[Space], Dict[str, Space]]
             The new space(s).
 
         Returns
