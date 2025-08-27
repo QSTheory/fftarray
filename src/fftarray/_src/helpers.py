@@ -6,8 +6,6 @@ from .space import Space
 
 T = TypeVar("T")
 
-# We pass in a tuple of dimensions
-# since the list of dimension names is not often needed.
 if TYPE_CHECKING:
     from .dimension import Dimension
 
@@ -62,14 +60,37 @@ def norm_bool(
 
 
 def _norm_param(
-        val: Union[Iterable[Any], dict[str, T]],
+        val: Union[Iterable[T], dict[str, T]],
         dims: tuple["Dimension", ...],
         old_val: Optional[tuple[T, ...]],
         check_fun: Callable[[T, str], T],
         arg_name: str,
     ) -> tuple[T, ...]:
     """
-       `val` has to be immutable.
+        Normalize one of the per dimension parameters (``space``, ``eager``, ``factors_applied``) f
+        from an ``Iterable`` or a ``dict`` into a tuple.
+
+        Parameters
+        ----------
+        val:
+            The user-specified ``Iterable`` or ``dict`` to set the new values
+        dims:
+            Dimensions of the array which also determine the order of the values in the tuple.
+        old_val:
+            If applicable the old values of the parameter which is normalized.
+            This allows the user to list in a dict only a subset of all dimensions
+            which then only overrides those specific dimensions.
+        check_fun:
+            Function which checks whether the given value is valid for the passed in parameter type.
+            It also takes the name of the parameter (``space``, ``eager``, ``factors_applied``) in order
+            to throw an appropiate error message.
+        arg_name:
+            Name of the parameter (``space``, ``eager``, ``factors_applied``) which is normalized.
+
+        Returns
+        -------
+        tuple[T, ...]
+            The parameter values per dim as a tuple.
     """
 
     n = len(dims)
@@ -81,6 +102,15 @@ def _norm_param(
 
         if old_val is None:
             res: list[Optional[T]] = [None,] * n
+            # Since we were not passed an old value,
+            # all dimensions of the array need to be in the dict.
+            missing_dims = [
+                dim.name
+                for dim in dims
+                if dim.name not in val
+            ]
+            if len(missing_dims) > 0:
+                raise ValueError(f"Missing {arg_name} value for dims {missing_dims}.")
         else:
             res = list(old_val)
 
@@ -94,13 +124,7 @@ def _norm_param(
             res[dim_idx] = x
 
 
-        missing_dims = [
-            dim.name
-            for (dim, x) in zip(dims, res, strict=True)
-            if x is None
-        ]
-        if len(missing_dims) > 0:
-            raise ValueError(f"Missing {arg_name} value for dims {missing_dims}.")
+
         # Mypy does not understand the above check.
         return tuple(res) # type: ignore
 
