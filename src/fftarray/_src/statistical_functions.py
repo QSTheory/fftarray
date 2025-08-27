@@ -361,7 +361,7 @@ def integrate(
         dtype = x.dtype
 
     reduced_values = x.xp.sum(x.values(x.spaces), axis=tuple(res_meta.axis), dtype=dtype)
-    reduced_values *= x.xp.asarray(integration_element, dtype=dtype)
+    reduced_values *= x.xp.asarray(integration_element, dtype=dtype, device=x.device)
 
     return Array(
         values=reduced_values,
