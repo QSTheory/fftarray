@@ -129,4 +129,5 @@ nbsphinx_thumbnails = {
     'examples/Derivative': '_static/thumbmails/examples/Derivative.jpg',
     'examples/Gaussians': '_static/thumbmails/examples/Gaussians.jpg',
     'examples/multi_dimensional': '_static/thumbmails/examples/multi_dimensional.jpg',
+    'examples/two_species_groundstate': '_static/thumbmails/examples/two_species_groundstate.jpg',
 }
