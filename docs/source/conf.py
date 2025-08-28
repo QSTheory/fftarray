@@ -48,7 +48,7 @@ autosummary_import_members = True
 autodoc_typehints = "both"
 autodoc_typehints_format = "short"
 
-nbsphinx_execute = "always"
+nbsphinx_execute = "auto"
 nbsphinx_allow_errors = True
 
 intersphinx_mapping = {
@@ -129,4 +129,5 @@ nbsphinx_thumbnails = {
     'examples/Derivative': '_static/thumbmails/examples/Derivative.jpg',
     'examples/Gaussians': '_static/thumbmails/examples/Gaussians.jpg',
     'examples/multi_dimensional': '_static/thumbmails/examples/multi_dimensional.jpg',
+    'examples/two_species_groundstate': '_static/thumbmails/examples/two_species_groundstate.jpg',
 }

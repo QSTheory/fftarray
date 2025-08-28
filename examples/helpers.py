@@ -1,9 +1,10 @@
-from typing import Optional, get_args, Any, Tuple
+from typing import Optional, get_args, Any, Tuple, Dict, List
 from typing_extensions import assert_never
 
 import numpy as np
-from bokeh.plotting import figure, row, column, show, curdoc, gridplot
-from bokeh.models import LinearColorMapper, PrintfTickFormatter
+from bokeh.plotting import figure, row, column, show, gridplot
+from bokeh.models import LinearColorMapper, PrintfTickFormatter, Range1d, GridPlot
+from bokeh.models.tickers import BasicTicker
 from bokeh.io import export_png
 from PIL import Image
 
@@ -219,12 +220,89 @@ def plt_array_values_space_time(
     row_plot = row(plots, sizing_mode="stretch_width")
     show(row_plot)
 
+def plt_integrated_1d_densities(
+    arrs: Dict[str, fa.Array],
+    red_dim_names: List[str],
+    x_range_pos: Optional[Tuple[float, float]] = None,
+    x_range_freq: Optional[Tuple[float, float]] = None,
+    y_label_prefix: str = "",
+) -> GridPlot:
+    """
+    Plot the 1D projection of ``fa.abs(arr)**2`` in both position and frequency space,
+    obtained via integration from potentially higher-dimensional ``fa.Array`` objects.
+    The integration is performed along the provided red_dim_names.
+    """
+
+    if x_range_pos is not None:
+        x_range_pos = Range1d(*x_range_pos)
+
+    if x_range_freq is not None:
+        x_range_freq = Range1d(*x_range_freq)
+
+    plots = []
+    for space in get_args(fa.Space):
+
+        density_arrs = {
+            data_name: fa.integrate(
+                fa.abs(arr.into_xp(np).into_space(space))**2,
+                dim_name=red_dim_names
+            ) for data_name, arr in arrs.items()
+        }
+
+        dim_names = [arr.dims[0].name for arr in list(density_arrs.values())]
+        # Check dim_names all same, raise ValueError if not
+        if len(set(dim_names)) != 1:
+            raise ValueError("All density arrays must have the same dimension name.")
+        match space:
+            case "pos":
+                x_unit = "m"
+                y_unit = "1/m"
+                x_symbol = f"{dim_names[0]}"
+            case "freq":
+                x_unit = "1/m"
+                y_unit = "m"
+                x_symbol = f"f_{dim_names[0]}"
+
+        fig = figure(
+            width=370,
+            height=360,
+            x_axis_label = f"$${x_symbol} \\, [{x_unit}]$$",
+            y_axis_label = f"$${y_label_prefix}|\\Psi({x_symbol})|^2 \\, [{y_unit}]$$",
+            min_border=50,
+        )
+        for i, (data_name, arr_density_1d) in enumerate(density_arrs.items()):
+            density_values = arr_density_1d.values(space)
+            assert len(arr_density_1d.dims) == 1, "Reduced array must have only one dimension."
+            dim_values = arr_density_1d.dims[0].values(space, xp=np)
+            fig.line(
+                dim_values, density_values,
+                line_width=2, legend_label=data_name, color=COLORS[i % len(COLORS)]
+            )
+
+        match space:
+            case "pos":
+                fig.x_range = x_range_pos
+            case "freq":
+                fig.x_range = x_range_freq
+
+        fig.xaxis[0].formatter = PrintfTickFormatter(format="%.1e")
+        fig.yaxis[0].formatter = PrintfTickFormatter(format="%.1e")
+        fig.xaxis.ticker = BasicTicker(desired_num_ticks=5)
+        plots.append(fig)
+
+    grid = gridplot(plots, ncols=2) # type: ignore
+
+    return grid
+
 def plt_integrated_2d_density(
         arr: fa.Array,
         red_dim_name: str,
         data_name: Optional[str] = None,
         filename: Optional[str] = None,
-    ) -> None:
+        single_width: int = plt_width,
+        single_height: int = plt_height,
+        title_prefix: str = "",
+    ) -> GridPlot:
     """
     Plot the 2D projection of ``fa.abs(arr)**2`` in both position and frequency space,
     obtained via integration from a 3D ``fa.Array`` object.
@@ -275,12 +353,14 @@ def plt_integrated_2d_density(
 
         # Create bokeh density plots
         fig = figure(
-            width=500, height=400, min_border=50,
+            width=single_width,
+            height=single_height,
+            min_border=50,
             x_range=tuple(getattr(arr_density_2d.dims[1], f"{space}_{prop}") for prop in ["min", "max"]),
             y_range=tuple(getattr(arr_density_2d.dims[0], f"{space}_{prop}") for prop in ["min", "max"]),
             x_axis_label=f"$${x1_symbol} \\, [{x_unit}]$$",
             y_axis_label=f"$${x2_symbol} \\, [{x_unit}]$$",
-            title=f"$$|\\Psi({x2_symbol},{x1_symbol})|^2$$ of {data_name or 'Array values'} $$[{color_unit}]$$", # type: ignore
+            title=f"$${title_prefix}|\\Psi({x2_symbol},{x1_symbol})|^2$$ of {data_name or 'Array values'} $$[{color_unit}]$$", # type: ignore
         )
 
         image = fig.image(
@@ -303,12 +383,12 @@ def plt_integrated_2d_density(
 
     grid = gridplot(plots, ncols=2) # type: ignore
 
-    curdoc().add_root(grid)
-
     if filename:
         grid.toolbar.logo = None # type: ignore
         grid.toolbar_location = None # type: ignore
         export_png(grid, filename=f"{filename}.png", scale_factor=2)
+
+    return grid
 
 def plt_deriv_sampling(
         plt_title: str,
