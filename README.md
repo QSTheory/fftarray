@@ -9,7 +9,7 @@ FFTArray is a Python library that handles multidimensional arrays and their repr
 - **High performance**: Avoidable scale and phase factors in the Fourier transform are automatically skipped. Via the [Python Array API Standard](https://data-apis.org/array-api/latest/), FFTArray supports many different array libraries to enable for example hardware acceleration via GPUs.
 
 Below we give a quick introduction to the basic functionality of the library.
-For a more thorough description of FFTArray, we recommend reading the [publication](todo) and the [documentation](https://qstheory.github.io/fftarray/main).
+For a more thorough description of FFTArray, we recommend reading the [publication](https://arxiv.org/abs/2508.03697) and the [documentation](https://qstheory.github.io/fftarray/main).
 
 ### Adding Coordinate Grids to the FFT
 
@@ -68,7 +68,7 @@ Arrays with sampled values are combined with the dimension metadata as well as i
 import fftarray as fa
 
 dim_x = fa.dim_from_constraints(name="x", n=1024, pos_middle=0., d_pos=0.01, freq_middle=0)
-dim_y = fa.dim_from_constraints(name="y", n=2048, pos_min=-5., pos_max=6.,freq_middle=0)
+dim_y = fa.dim_from_constraints(name="y", n=2048, pos_min=-5., pos_max=6., freq_middle=0)
 
 arr_x = fa.coords_from_dim(dim_x, "pos")
 arr_y = fa.coords_from_dim(dim_y, "pos")
@@ -82,7 +82,7 @@ For a quick getting started, see [First steps](https://qstheory.github.io/fftarr
 
 Spectral Fourier solvers like the split-step method require many consecutive (inverse) Fourier transforms.
 In these cases the additional scale and phase factors can be optimized out.
-By only applying these phase factors lazily, FFTArray handles this use-case with minimal performance impact while still providing the comfort of ensuring the application of all required phase factors.
+By only applying these phase factors lazily, FFTArray handles this use case with minimal performance impact while still providing the comfort of ensuring the application of all required phase factors.
 For quantum mechanics, especially for simulating matter waves, the [matterwave package](https://github.com/QSTheory/matterwave) provides a collection of helpers built on top of FFTArray.
 
 ## Installation
@@ -97,4 +97,17 @@ Any array library besides NumPy like for example [JAX](https://github.com/jax-ml
 Since each of them have different approaches on how to handle for example GPU support on different operating systems we do not recommend installing them via the optional dependency groups of FFTArray.
 
 
+## Citing FFTArray
 
+To cite FFTArray:
+```
+@misc{seckmeyer2025,
+    title={FFTArray: A Python Library for the Implementation of Discretized Multi-Dimensional Fourier Transforms},
+    author={Stefan J. Seckmeyer and Christian Struckmann and Gabriel Müller and Jan-Niclas Kirsten-Siemß and Naceur Gaaloul},
+    year={2025},
+    eprint={2508.03697},
+    archivePrefix={arXiv},
+    primaryClass={physics.comp-ph},
+    url={https://arxiv.org/abs/2508.03697},
+}
+```

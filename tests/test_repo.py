@@ -6,7 +6,7 @@ def test_readme_consistency():
     """Ensure README.rst matches converted README.md content"""
     # Convert Markdown to RST using pandoc
     result = subprocess.run(
-        ["pandoc", "-f", "markdown", "-t", "rst", "README.md", "-o", "-"],
+        ["pandoc", "-f", "markdown+lists_without_preceding_blankline", "-t", "rst", "README.md", "-o", "-"],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
