@@ -183,7 +183,7 @@ mypy_tests = { cmd = ["mypy", "tests"], env = { MYPYPATH = "examples:$MYPYPATH" 
 mypy_all = { depends-on = ["mypy_fftarray", "mypy_examples_py", "mypy_examples_nb", "mypy_tests"]}
 
 # Convert the README.md into restructured text because only that renders the equations well on PyPi.
-update_readme_rst = { cmd = ['pandoc', '-f', 'markdown', '-t', 'rst', "README.md", "-o", "README.rst"] }
+update_readme_rst = { cmd = ['pandoc', '-f', 'markdown+lists_without_preceding_blankline', '-t', 'rst', "README.md", "-o", "README.rst"] }
 
 # Run all tests and linters
 check = { depends-on = ["mypy_all", "ruff_all", "test"]}
