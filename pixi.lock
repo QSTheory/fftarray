@@ -5495,7 +5495,7 @@ packages:
   timestamp: 1734873425804
 - pypi: ./
   name: fftarray
-  version: 0.5.1.dev9+g044146911.d20250828
+  version: 0.5.1.dev16+g3e66cbdcc
   sha256: 7dd170d8a70be6aa553402ea4d3934f0797103e97c95fffcab37980eafe61b6f
   requires_dist:
   - array-api-compat>=1.11.0

@@ -1,4 +1,4 @@
-from typing import Any, Optional, Union, Iterable, Tuple, get_args
+from typing import Any, Optional, Union, Iterable, Tuple, Dict, get_args
 
 from .dimension import Dimension
 from .array import Array
@@ -11,7 +11,7 @@ from .helpers import norm_space, norm_xp, norm_xp_with_values
 def array(
         values,
         dim: Union[Dimension, Iterable[Dimension]],
-        space: Union[Space, Iterable[Space]],
+        space: Union[Space, Iterable[Space], Dict[str, Space]],
         /,
         *,
         xp: Optional[Any] = None,
@@ -24,23 +24,24 @@ def array(
 
         Parameters
         ----------
-        values :
+        values:
             The values to initialize the ``Array`` with.
             They can be of any Python Arrray API v2023.12 compatible library.
             By default they are copied to make sure an external alias cannot influence the created ``Array``.
-        dim : Union[Dimension, Iterable[Dimension]]
+        dim:
             The Dimension(s) for each dimension of the passed in values.
-        space: Union[Space, Iterable[Space]]
+        space:
             Specify the space(s) of the values with which the returned ``Array`` intialized.
-        xp: Optional[Any]
+            If given as a dictionary it must contain all dimensions passed into ``dim``.
+        xp:
             The Array API namespace to use for the created ``Array``.
             If it is None, ``array_api_compat.array_namespace(values)`` is used.
             If that fails the default namespace from ``get_default_xp()`` is used.
-        dtype: Optional[Any]
+        dtype:
             Directly passed on to the ``xp.asarray`` of the determined xp.
             If None the ``dtype`` of values or the defaults for the passed in scalar of the underlying
             array library are used.
-        defensive_copy:  bool
+        defensive_copy:
             If ``True`` the values array is always copied in order to ensure no external alias to it exists.
             This ensures the immutability of the created ``Array``.
             If this is unnecessary, this defensive copy can be prevented by setting this argument to ``False``.
@@ -84,14 +85,15 @@ def array(
         else:
             raise exc
 
-    n_dims = len(dims_tuple)
-    spaces_normalized: Tuple[Space, ...] = norm_space(space, n_dims)
+    spaces_normalized: Tuple[Space, ...] = norm_space(space, dims_tuple, None)
     for sub_space in spaces_normalized:
         assert sub_space in get_args(Space)
 
     for i, (length, dim) in enumerate(zip(values.shape, dims_tuple, strict=True)):
         if length != dim.n:
             raise ValueError(f"The dimension `{dim.name}' has length {dim.n} but axis {i} of the passed in `values` array has length {length}.")
+
+    n_dims = len(dims_tuple)
 
     arr = Array(
         dims=dims_tuple,
@@ -223,7 +225,7 @@ def coords_from_arr(
 
 def full(
         dim: Union[Dimension, Iterable[Dimension]],
-        space: Union[Space, Iterable[Space]],
+        space: Union[Space, Iterable[Space], Dict[str, Space]],
         fill_value: Union[bool, int, float, complex, Any],
         /,
         *,
@@ -235,10 +237,11 @@ def full(
 
     Parameters
     ----------
-    dim : Union[Dimension, Iterable[Dimension]]
+    dim:
         The dimension(s) of the created array. They also imply the shape.
-    space : Union[Space, Iterable[Space]]
+    space:
         Specify the space(s) in which the returned Array is intialized.
+        If given as a dictionary it must contain all dimensions passed into ``dim``.
     xp:
         The Array API namespace to use for the created ``Array``.
         If it is None, ``array_api_compat.array_namespace(fill_value)`` is used.
@@ -276,7 +279,7 @@ def full(
     arr = Array(
         values=values,
         dims=dims,
-        spaces=norm_space(space, n_dims),
+        spaces=norm_space(space, dims, None),
         eager=(get_default_eager(),)*n_dims,
         factors_applied=(True,)*n_dims,
         xp=xp,
