@@ -19,8 +19,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        fetch-depth: 0
-        fetch-tags: true
+        lfs: true
     - name: Set up Python 3.12
       uses: actions/setup-python@v5
       with:
@@ -32,4 +31,4 @@ jobs:
         python -m pip install -e ".[check]"
     - name: Test with pytest
       run: |
-        PYTHONPATH="examples:$PYTHONPATH" python -m pytest --skip-pandoc
+        python -m pytest --skip-pandoc
