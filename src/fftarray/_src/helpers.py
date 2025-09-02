@@ -67,7 +67,7 @@ def _norm_param(
         arg_name: str,
     ) -> tuple[T, ...]:
     """
-        Normalize one of the per dimension parameters (``space``, ``eager``, ``factors_applied``) f
+        Normalize one of the per dimension parameters (``space``, ``eager``, ``factors_applied``)
         from an ``Iterable`` or a ``dict`` into a tuple.
 
         Parameters
@@ -75,7 +75,7 @@ def _norm_param(
         val:
             The user-specified ``Iterable`` or ``dict`` to set the new values
         dims:
-            Dimensions of the array which also determine the order of the values in the tuple.
+            Dimensions of the Array which also determine the order of the values in the tuple.
         old_val:
             If applicable the old values of the parameter which is normalized.
             This allows the user to list in a dict only a subset of all dimensions
