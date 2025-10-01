@@ -1,6 +1,6 @@
 # FFTArray: A Python Library for the Implementation of Discretized Multi-Dimensional Fourier Transforms
 
-[**Intro**](#intro) | [**Installation**](#installation)
+[**Intro**](#intro) | [**Installation**](#installation) | [**Documentation**](https://qstheory.github.io/fftarray/main) | [**Publication (arXiv)**](https://arxiv.org/abs/2508.03697) | [**Change log**](https://qstheory.github.io/fftarray/main/changelog.html)
 
 ## Intro
 FFTArray is a Python library that handles multidimensional arrays and their representation in dual spaces (original and frequency domain) and provides the following highlight features:
