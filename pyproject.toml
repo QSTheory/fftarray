@@ -67,10 +67,19 @@ Changelog = "https://qstheory.github.io/fftarray/main/changelog.html"
     "scipy",
     "ipykernel",
     "matplotlib",
+    # pixi does currently not handle repeated dependencies via groups correctly
+    # (https://github.com/prefix-dev/pixi/issues/3456)
+    # {include-group = "dimsolver"},
 ]
 
 # Dependencies necessary for development of FFTArray
 "dev" = [
+    # {include-group = "check"},
+    # {include-group = "deploy"},
+    # {include-group = "dimsolver"},
+    # {include-group = "doc"},
+    # {include-group = "jax"},
+    # {include-group = "torch"},
 ]
 
 "deploy" = [
@@ -99,6 +108,10 @@ Changelog = "https://qstheory.github.io/fftarray/main/changelog.html"
     "array-api-strict>=2.3.0",
     "ruff",
     "xarray",
+    # {include-group = "dashboards"},
+    # {include-group = "dimsolver"},
+    # {include-group = "jax"},
+    # {include-group = "torch"},
 ]
 
 # Dependencies necessary to build the docs.
@@ -117,6 +130,8 @@ Changelog = "https://qstheory.github.io/fftarray/main/changelog.html"
     "ipython",
     "bokeh",
     "scipy",
+    # {include-group = "dimsolver"},
+    # {include-group = "jax"},
 ]
 
 "build_pip_deps" = [
