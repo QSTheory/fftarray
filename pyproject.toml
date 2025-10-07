@@ -48,7 +48,7 @@ Repository = "https://github.com/QSTheory/fftarray"
 Issues = "https://github.com/QSTheory/fftarray/issues"
 Changelog = "https://qstheory.github.io/fftarray/main/changelog.html"
 
-[project.optional-dependencies]
+[dependency-groups]
 "jax" = [
     "jax>=0.4.33"
 ]
@@ -62,7 +62,6 @@ Changelog = "https://qstheory.github.io/fftarray/main/changelog.html"
 
 # Dependencies which are only needed for the dashboard examples.
 "dashboards" = [
-    "fftarray[dimsolver]",
     "ipython",
     "bokeh",
     "scipy",
@@ -72,7 +71,6 @@ Changelog = "https://qstheory.github.io/fftarray/main/changelog.html"
 
 # Dependencies necessary for development of FFTArray
 "dev" = [
-    "fftarray[jax, torch, dimsolver, dashboards, check, doc, deploy]",
 ]
 
 "deploy" = [
@@ -86,7 +84,6 @@ Changelog = "https://qstheory.github.io/fftarray/main/changelog.html"
 
 # Dependencies necessary for CI suite checks and tests.
 "check" = [
-    "fftarray[jax, torch, dimsolver, dashboards]",
     "mypy>=0.910",
     "pytest",
     "pytest-markdown-docs",
@@ -106,7 +103,6 @@ Changelog = "https://qstheory.github.io/fftarray/main/changelog.html"
 
 # Dependencies necessary to build the docs.
 "doc" = [
-    "fftarray[jax, dimsolver]",
     "sphinx>=6.1",
     "sphinx-book-theme>=1.0.1",
     "sphinx-design",
