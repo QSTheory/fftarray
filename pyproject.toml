@@ -220,7 +220,15 @@ doc_open = { cmd = ["open", "docs/build/html/local/index.html"], depends-on = ["
 # Commands to recreate the requirements.txt file from the current state of pypi
 
 clean_build_pip_deps = { cmd = ["pixi", "clean", "-e", "build-pip-deps"] }
-install_pip_check_deps = { cmd = ["python", "-m", "pip", "install", "-e", ".[check]"] }
+install_pip_check_deps = { cmd = [
+    "python", "-m",
+    "pip", "install", "-e", ".",
+    "--group", "check",
+    "--group", "jax",
+    "--group", "torch",
+    "--group", "dimsolver",
+    "--group", "dashboards",
+] }
 create_requirements_txt = { cmd = ["python", "-m", "pip", "freeze", "--exclude", "fftarray", ">", "requirements.txt"] }
 
 [tool.pixi.tasks.update_requirements_txt]
