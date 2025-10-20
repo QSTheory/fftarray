@@ -67,19 +67,17 @@ Changelog = "https://qstheory.github.io/fftarray/main/changelog.html"
     "scipy",
     "ipykernel",
     "matplotlib",
-    # pixi does currently not handle repeated dependencies via groups correctly
-    # (https://github.com/prefix-dev/pixi/issues/3456)
-    # {include-group = "dimsolver"},
+    {include-group = "dimsolver"},
 ]
 
 # Dependencies necessary for development of FFTArray
 "dev" = [
-    # {include-group = "check"},
-    # {include-group = "deploy"},
-    # {include-group = "dimsolver"},
-    # {include-group = "doc"},
-    # {include-group = "jax"},
-    # {include-group = "torch"},
+    {include-group = "check"},
+    {include-group = "deploy"},
+    {include-group = "dimsolver"},
+    {include-group = "doc"},
+    {include-group = "jax"},
+    {include-group = "torch"},
 ]
 
 "deploy" = [
@@ -108,10 +106,10 @@ Changelog = "https://qstheory.github.io/fftarray/main/changelog.html"
     "array-api-strict>=2.3.0",
     "ruff",
     "xarray",
-    # {include-group = "dashboards"},
-    # {include-group = "dimsolver"},
-    # {include-group = "jax"},
-    # {include-group = "torch"},
+    {include-group = "dashboards"},
+    {include-group = "dimsolver"},
+    {include-group = "jax"},
+    {include-group = "torch"},
 ]
 
 # Dependencies necessary to build the docs.
@@ -130,8 +128,8 @@ Changelog = "https://qstheory.github.io/fftarray/main/changelog.html"
     "ipython",
     "bokeh",
     "scipy",
-    # {include-group = "dimsolver"},
-    # {include-group = "jax"},
+    {include-group = "dimsolver"},
+    {include-group = "jax"},
 ]
 
 "build_pip_deps" = [
@@ -222,12 +220,7 @@ doc_open = { cmd = ["open", "docs/build/html/local/index.html"], depends-on = ["
 clean_build_pip_deps = { cmd = ["pixi", "clean", "-e", "build-pip-deps"] }
 install_pip_check_deps = { cmd = [
     "python", "-m",
-    "pip", "install", "-e", ".",
-    "--group", "check",
-    "--group", "jax",
-    "--group", "torch",
-    "--group", "dimsolver",
-    "--group", "dashboards",
+    "pip", "install", "-e", ".", "--group", "check",
 ] }
 create_requirements_txt = { cmd = ["python", "-m", "pip", "freeze", "--exclude", "fftarray", ">", "requirements.txt"] }
 
@@ -238,7 +231,7 @@ depends-on = [
     { task = "create_requirements_txt", environment = "build-pip-deps" },
 ]
 
-[tool.pixi.project]
+[tool.pixi.workspace]
 channels = ["conda-forge"]
 # "osx-64" is incompatible with PyTorch on Python 3.13.
 # "linux-aarch64" is incompatible with the Selenium driver.
@@ -285,21 +278,21 @@ python = "3.12.*"
 python = "3.13.*"
 
 [tool.pixi.environments]
-# Recursive optional dependencies are currently ignored by pixi environments: https://github.com/prefix-dev/pixi/issues/2024
-# All dev dependencies including jaxcuda. Therefore this only works in linux at the moment.
-devcuda = ["dev", "check", "doc", "jaxcuda", "torch", "cupycuda", "dimsolver", "dashboards", "deploy"]
+# All dev dependencies including the cuda version of jax and cupy.
+# Therefore this only works in linux at the moment.
+devcuda = ["dev", "jaxcuda", "cupycuda"]
 # All dev dependencies with jax CPU
-dev = ["dev", "check", "doc", "jax", "torch", "dimsolver", "dashboards", "deploy"]
+dev = ["dev"]
 # Environment to build the docs.
-doc = ["doc", "jax", "dimsolver"]
+doc = ["doc"]
 # Environment to run the tests.
-check = ["check", "jax", "torch", "dimsolver", "dashboards"]
+check = ["check"]
 # Environment to run the tests under CPython 3.11
-check311 = ["py311", "check", "jax", "torch", "dimsolver", "dashboards"]
+check311 = ["py311", "check"]
 # Environment to run the tests under CPython 3.12
-check312 = ["py312", "check", "jax", "torch", "dimsolver", "dashboards"]
+check312 = ["py312", "check"]
 # Environment to run the tests under CPython 3.13
-check313 = ["py313", "check", "jax", "torch", "dimsolver", "dashboards"]
+check313 = ["py313", "check"]
 
 # Environment to create the requirements.txt used in the pip CI test
 build-pip-deps = ["build_pip_deps"]

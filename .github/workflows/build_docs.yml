@@ -17,7 +17,7 @@ jobs:
         lfs: true
     - uses: prefix-dev/setup-pixi@v0.8.1
       with:
-        pixi-version: v0.53.0
+        pixi-version: v0.57.0
         cache: true
     - name: Build Docs
       run: pixi run -e doc doc_local
