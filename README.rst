@@ -3,7 +3,7 @@ FFTArray: A Python Library for the Implementation of Discretized Multi-Dimension
 
 `Intro <#intro>`__ \| `Installation <#installation>`__ \|
 `Documentation <https://qstheory.github.io/fftarray/main>`__ \|
-`Publication (arXiv) <https://arxiv.org/abs/2508.03697>`__ \| `Change
+`Preprint (arXiv) <https://arxiv.org/abs/2508.03697>`__ \| `Change
 log <https://qstheory.github.io/fftarray/main/changelog.html>`__
 
 Intro
@@ -28,7 +28,7 @@ provides the following highlight features:
 
 Below we give a quick introduction to the basic functionality of the
 library. For a more thorough description of FFTArray, we recommend
-reading the `publication <https://arxiv.org/abs/2508.03697>`__ and the
+reading the `preprint <https://arxiv.org/abs/2508.03697>`__ and the
 `documentation <https://qstheory.github.io/fftarray/main>`__.
 
 Adding Coordinate Grids to the FFT

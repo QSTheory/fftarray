@@ -83,7 +83,7 @@ If the sampling is too coarse, high frequencies appear as wrong low frequency al
 Additionally each discretely sampled function is periodic in the other space.
 Depending on what operations are done with such a sampled function this periodicity can appear as boundary effects where for example a moving wave function which exits during propagation the domain on one side appears again on the other side.
 This can also happen in frequency space, if it is for example accelerated by a potential.
-For more notes and further literature about the sampling theorem we refer to the second chapter of the [FFTArray publication](https://arxiv.org/abs/2508.03697)
+For more notes and further literature about the sampling theorem we refer to the second chapter of the [FFTArray preprint](https://arxiv.org/abs/2508.03697)
 
 ## Next steps
 
