@@ -2,7 +2,7 @@
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
 # This workflow uses a frozen requirements.txt which is updated manually.
 
-name: Run pytest via pip
+name: Run pytest via pip with new dependency solve
 
 on:
   push:
@@ -27,8 +27,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install -r requirements.txt
-        python -m pip install -e "."
+        python -m pip install -e "." --group check
     - name: Test with pytest
       run: |
         python -m pytest --skip-pandoc
