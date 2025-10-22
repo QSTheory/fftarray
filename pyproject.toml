@@ -48,11 +48,9 @@ Repository = "https://github.com/QSTheory/fftarray"
 Issues = "https://github.com/QSTheory/fftarray/issues"
 Changelog = "https://qstheory.github.io/fftarray/main/changelog.html"
 
-[dependency-groups]
-"jax" = [
-    "jax>=0.4.33"
-]
 
+
+[project.optional-dependencies]
 # Required for the constraint solver for dim parameters.
 # Since z3-solver is a native package this is an optional
 # dependency in order to keep FFTArray portable.
@@ -60,21 +58,27 @@ Changelog = "https://qstheory.github.io/fftarray/main/changelog.html"
     "z3-solver",
 ]
 
+
+[dependency-groups]
+"jax" = [
+    "jax>=0.4.33"
+]
+
 # Dependencies which are only needed for the dashboard examples.
 "dashboards" = [
+    "fftarray[dimsolver]",
     "ipython",
     "bokeh",
     "scipy",
     "ipykernel",
     "matplotlib",
-    {include-group = "dimsolver"},
 ]
 
 # Dependencies necessary for development of FFTArray
 "dev" = [
+    "fftarray[dimsolver]",
     {include-group = "check"},
     {include-group = "deploy"},
-    {include-group = "dimsolver"},
     {include-group = "doc"},
     {include-group = "jax"},
     {include-group = "torch"},
@@ -91,6 +95,7 @@ Changelog = "https://qstheory.github.io/fftarray/main/changelog.html"
 
 # Dependencies necessary for CI suite checks and tests.
 "check" = [
+    "fftarray[dimsolver]",
     "mypy>=0.910",
     "pytest",
     "pytest-markdown-docs",
@@ -107,13 +112,13 @@ Changelog = "https://qstheory.github.io/fftarray/main/changelog.html"
     "ruff",
     "xarray",
     {include-group = "dashboards"},
-    {include-group = "dimsolver"},
     {include-group = "jax"},
     {include-group = "torch"},
 ]
 
 # Dependencies necessary to build the docs.
 "doc" = [
+    "fftarray[dimsolver]",
     "sphinx>=6.1",
     "sphinx-book-theme>=1.0.1",
     "sphinx-design",
@@ -128,7 +133,6 @@ Changelog = "https://qstheory.github.io/fftarray/main/changelog.html"
     "ipython",
     "bokeh",
     "scipy",
-    {include-group = "dimsolver"},
     {include-group = "jax"},
 ]
 
@@ -136,11 +140,7 @@ Changelog = "https://qstheory.github.io/fftarray/main/changelog.html"
     "pip"
 ]
 
-[tool.pixi.feature.doc.dependencies]
-# Pandoc is not on pypi, therefore add it as a conda-forge depdency.
-pandoc = ">=3.5,<4"
-
-[tool.pixi.feature.check.dependencies]
+[tool.pixi.feature.pandoc.dependencies]
 # Pandoc is not on pypi, therefore add it as a conda-forge depdency.
 pandoc = ">=3.5,<4"
 
@@ -280,26 +280,26 @@ python = "3.13.*"
 [tool.pixi.environments]
 # All dev dependencies including the cuda version of jax and cupy.
 # Therefore this only works in linux at the moment.
-devcuda = ["dev", "jaxcuda", "cupycuda"]
+devcuda = ["dev", "jaxcuda", "cupycuda", "pandoc"]
 # All dev dependencies with jax CPU
-dev = ["dev"]
+dev = ["dev", "pandoc"]
 # Environment to build the docs.
-doc = ["doc"]
+doc = ["doc", "pandoc"]
 # Environment to run the tests.
-check = ["check"]
+check = ["check", "pandoc"]
 # Environment to run the tests under CPython 3.11
-check311 = ["py311", "check"]
+check311 = ["py311", "check", "pandoc"]
 # Environment to run the tests under CPython 3.12
-check312 = ["py312", "check"]
+check312 = ["py312", "check", "pandoc"]
 # Environment to run the tests under CPython 3.13
-check313 = ["py313", "check"]
+check313 = ["py313", "check", "pandoc"]
 
 # Environment to create the requirements.txt used in the pip CI test
 build-pip-deps = ["build_pip_deps"]
 
 # Environments to run the examples with and without JAX CUDA
-examplescuda = ["dashboards", "jaxcuda", "dimsolver"]
-examples = ["dashboards", "jax", "dimsolver"]
+examplescuda = ["dashboards", "jaxcuda"]
+examples = ["dashboards", "jax"]
 
 [tool.pixi.feature.dashboards.dependencies]
 selenium = "*"

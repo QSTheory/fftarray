@@ -17,7 +17,7 @@ fastjsonschema==2.21.2
 filelock==3.20.0
 fonttools==4.60.1
 fsspec==2025.9.0
-hypothesis==6.142.1
+hypothesis==6.142.2
 iniconfig==2.3.0
 ipykernel==7.0.1
 ipython==9.6.0
@@ -45,7 +45,7 @@ nbformat==5.10.4
 nbqa==1.9.1
 nest-asyncio==1.6.0
 networkx==3.5
-numpy==2.3.3
+numpy==2.3.4
 opt_einsum==3.4.0
 packaging==25.0
 pandas==2.3.3
