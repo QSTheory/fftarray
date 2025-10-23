@@ -1,6 +1,6 @@
 # FFTArray: A Python Library for the Implementation of Discretized Multi-Dimensional Fourier Transforms
 
-[**Intro**](#intro) | [**Installation**](#installation) | [**Documentation**](https://qstheory.github.io/fftarray/main) | [**Publication (arXiv)**](https://arxiv.org/abs/2508.03697) | [**Change log**](https://qstheory.github.io/fftarray/main/changelog.html)
+[**Intro**](#intro) | [**Installation**](#installation) | [**Documentation**](https://qstheory.github.io/fftarray/main) | [**Preprint (arXiv)**](https://arxiv.org/abs/2508.03697) | [**Change log**](https://qstheory.github.io/fftarray/main/changelog.html)
 
 ## Intro
 FFTArray is a Python library that handles multidimensional arrays and their representation in dual spaces (original and frequency domain) and provides the following highlight features:
@@ -9,7 +9,7 @@ FFTArray is a Python library that handles multidimensional arrays and their repr
 - **High performance**: Avoidable scale and phase factors in the Fourier transform are automatically skipped. Via the [Python Array API Standard](https://data-apis.org/array-api/latest/), FFTArray supports many different array libraries to enable for example hardware acceleration via GPUs.
 
 Below we give a quick introduction to the basic functionality of the library.
-For a more thorough description of FFTArray, we recommend reading the [publication](https://arxiv.org/abs/2508.03697) and the [documentation](https://qstheory.github.io/fftarray/main).
+For a more thorough description of FFTArray, we recommend reading the [preprint](https://arxiv.org/abs/2508.03697) and the [documentation](https://qstheory.github.io/fftarray/main).
 
 ### Adding Coordinate Grids to the FFT
 
