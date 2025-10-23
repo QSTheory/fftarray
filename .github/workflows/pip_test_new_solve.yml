@@ -1,6 +1,7 @@
 # This workflow will install Python dependencies, run tests and lint with a single version of Python
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
-# This workflow uses a frozen requirements.txt which is updated manually.
+# This workflow solves the required dependencies when it runs with the then current state of pypi.
+# This ensures that an installation still works with the current state of package registries.
 
 name: Run pytest via pip with new dependency solve
 
