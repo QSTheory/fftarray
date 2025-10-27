@@ -143,10 +143,7 @@ definition with the ``dimsolver`` option:
 
 Any array library besides NumPy like for example
 `JAX <https://github.com/jax-ml/jax?tab=readme-ov-file#installation>`__
-should be installed following their respective documentation. Since each
-of them have different approaches on how to handle for example GPU
-support on different operating systems we do not recommend installing
-them via the optional dependency groups of FFTArray.
+should be installed following their respective documentation.
 
 Citing FFTArray
 ---------------
