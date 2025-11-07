@@ -78,6 +78,7 @@ Changelog = "https://qstheory.github.io/fftarray/main/changelog.html"
 "dev" = [
     "fftarray[dimsolver]",
     {include-group = "check"},
+    {include-group = "dashboards"},
     {include-group = "deploy"},
     {include-group = "doc"},
     {include-group = "jax"},
