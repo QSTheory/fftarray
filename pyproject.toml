@@ -48,16 +48,20 @@ Repository = "https://github.com/QSTheory/fftarray"
 Issues = "https://github.com/QSTheory/fftarray/issues"
 Changelog = "https://qstheory.github.io/fftarray/main/changelog.html"
 
-[project.optional-dependencies]
-"jax" = [
-    "jax>=0.4.33"
-]
 
+
+[project.optional-dependencies]
 # Required for the constraint solver for dim parameters.
 # Since z3-solver is a native package this is an optional
 # dependency in order to keep FFTArray portable.
 "dimsolver" = [
     "z3-solver",
+]
+
+
+[dependency-groups]
+"jax" = [
+    "jax>=0.4.33"
 ]
 
 # Dependencies which are only needed for the dashboard examples.
@@ -72,7 +76,13 @@ Changelog = "https://qstheory.github.io/fftarray/main/changelog.html"
 
 # Dependencies necessary for development of FFTArray
 "dev" = [
-    "fftarray[jax, torch, dimsolver, dashboards, check, doc, deploy]",
+    "fftarray[dimsolver]",
+    {include-group = "check"},
+    {include-group = "dashboards"},
+    {include-group = "deploy"},
+    {include-group = "doc"},
+    {include-group = "jax"},
+    {include-group = "torch"},
 ]
 
 "deploy" = [
@@ -86,7 +96,7 @@ Changelog = "https://qstheory.github.io/fftarray/main/changelog.html"
 
 # Dependencies necessary for CI suite checks and tests.
 "check" = [
-    "fftarray[jax, torch, dimsolver, dashboards]",
+    "fftarray[dimsolver]",
     "mypy>=0.910",
     "pytest",
     "pytest-markdown-docs",
@@ -102,11 +112,14 @@ Changelog = "https://qstheory.github.io/fftarray/main/changelog.html"
     "array-api-strict>=2.3.0",
     "ruff",
     "xarray",
+    {include-group = "dashboards"},
+    {include-group = "jax"},
+    {include-group = "torch"},
 ]
 
 # Dependencies necessary to build the docs.
 "doc" = [
-    "fftarray[jax, dimsolver]",
+    "fftarray[dimsolver]",
     "sphinx>=6.1",
     "sphinx-book-theme>=1.0.1",
     "sphinx-design",
@@ -121,17 +134,14 @@ Changelog = "https://qstheory.github.io/fftarray/main/changelog.html"
     "ipython",
     "bokeh",
     "scipy",
+    {include-group = "jax"},
 ]
 
 "build_pip_deps" = [
     "pip"
 ]
 
-[tool.pixi.feature.doc.dependencies]
-# Pandoc is not on pypi, therefore add it as a conda-forge depdency.
-pandoc = ">=3.5,<4"
-
-[tool.pixi.feature.check.dependencies]
+[tool.pixi.feature.pandoc.dependencies]
 # Pandoc is not on pypi, therefore add it as a conda-forge depdency.
 pandoc = ">=3.5,<4"
 
@@ -209,7 +219,10 @@ doc_open = { cmd = ["open", "docs/build/html/local/index.html"], depends-on = ["
 # Commands to recreate the requirements.txt file from the current state of pypi
 
 clean_build_pip_deps = { cmd = ["pixi", "clean", "-e", "build-pip-deps"] }
-install_pip_check_deps = { cmd = ["python", "-m", "pip", "install", "-e", ".[check]"] }
+install_pip_check_deps = { cmd = [
+    "python", "-m",
+    "pip", "install", "-e", ".", "--group", "check",
+] }
 create_requirements_txt = { cmd = ["python", "-m", "pip", "freeze", "--exclude", "fftarray", ">", "requirements.txt"] }
 
 [tool.pixi.tasks.update_requirements_txt]
@@ -219,7 +232,7 @@ depends-on = [
     { task = "create_requirements_txt", environment = "build-pip-deps" },
 ]
 
-[tool.pixi.project]
+[tool.pixi.workspace]
 channels = ["conda-forge"]
 # "osx-64" is incompatible with PyTorch on Python 3.13.
 # "linux-aarch64" is incompatible with the Selenium driver.
@@ -266,28 +279,28 @@ python = "3.12.*"
 python = "3.13.*"
 
 [tool.pixi.environments]
-# Recursive optional dependencies are currently ignored by pixi environments: https://github.com/prefix-dev/pixi/issues/2024
-# All dev dependencies including jaxcuda. Therefore this only works in linux at the moment.
-devcuda = ["dev", "check", "doc", "jaxcuda", "torch", "cupycuda", "dimsolver", "dashboards", "deploy"]
+# All dev dependencies including the cuda version of jax and cupy.
+# Therefore this only works in linux at the moment.
+devcuda = ["dev", "jaxcuda", "cupycuda", "pandoc"]
 # All dev dependencies with jax CPU
-dev = ["dev", "check", "doc", "jax", "torch", "dimsolver", "dashboards", "deploy"]
+dev = ["dev", "pandoc"]
 # Environment to build the docs.
-doc = ["doc", "jax", "dimsolver"]
+doc = ["doc", "pandoc"]
 # Environment to run the tests.
-check = ["check", "jax", "torch", "dimsolver", "dashboards"]
+check = ["check", "pandoc"]
 # Environment to run the tests under CPython 3.11
-check311 = ["py311", "check", "jax", "torch", "dimsolver", "dashboards"]
+check311 = ["py311", "check", "pandoc"]
 # Environment to run the tests under CPython 3.12
-check312 = ["py312", "check", "jax", "torch", "dimsolver", "dashboards"]
+check312 = ["py312", "check", "pandoc"]
 # Environment to run the tests under CPython 3.13
-check313 = ["py313", "check", "jax", "torch", "dimsolver", "dashboards"]
+check313 = ["py313", "check", "pandoc"]
 
 # Environment to create the requirements.txt used in the pip CI test
 build-pip-deps = ["build_pip_deps"]
 
 # Environments to run the examples with and without JAX CUDA
-examplescuda = ["dashboards", "jaxcuda", "dimsolver"]
-examples = ["dashboards", "jax", "dimsolver"]
+examplescuda = ["dashboards", "jaxcuda"]
+examples = ["dashboards", "jax"]
 
 [tool.pixi.feature.dashboards.dependencies]
 selenium = "*"
