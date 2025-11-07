@@ -1,0 +1,34 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+# This workflow solves the required dependencies when it runs with the then current state of pypi.
+# This ensures that an installation still works with the current state of package registries.
+
+name: Run pytest via pip with new dependency solve
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+  workflow_dispatch: {} # Allows launching this action manually in the GitHub interface
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        lfs: true
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install -e "." --group check
+    - name: Test with pytest
+      run: |
+        python -m pytest --skip-pandoc
