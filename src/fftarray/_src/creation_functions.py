@@ -177,10 +177,10 @@ def coords_from_arr(
     ----------
     x : Array
         The array from which to construct the coordinate array.
-    space : Space
-        Specify the space of the returned Array is intialized.
     dim_name : str
         The name of the dimension from which to construct the coordinate array.
+    space : Space
+        Specify the space of the returned Array is intialized.
     xp : Optional[Any]
         The array namespace to use for the returned Array. ``None`` uses the array namespace of ``x``.
     dtype : Optional[Any]
