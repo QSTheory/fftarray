@@ -1,5 +1,4 @@
-from typing import Optional, get_args, Any, Tuple, Dict, List
-from typing_extensions import assert_never
+from typing import Optional, get_args, Any, Tuple, Dict, List, assert_never
 
 import numpy as np
 from bokeh.plotting import figure, row, column, show, gridplot

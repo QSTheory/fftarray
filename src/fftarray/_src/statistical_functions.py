@@ -1,6 +1,5 @@
 from dataclasses import dataclass
-from typing import Iterable, Optional, Union, List, Tuple
-from typing_extensions import assert_never
+from typing import Iterable, Optional, Union, List, Tuple, assert_never
 
 from .dimension import Dimension
 from .array import Array
