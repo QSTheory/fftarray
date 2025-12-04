@@ -1,5 +1,4 @@
-from typing import Literal, Tuple, Optional, Any
-from typing_extensions import assert_never
+from typing import Literal, Tuple, Optional, Any, assert_never
 
 import numpy as np
 import xarray as xr

@@ -1,6 +1,5 @@
 from __future__ import annotations
-from typing import Optional, Union, Literal, Any
-from typing_extensions import assert_never
+from typing import Optional, Union, Literal, Any, assert_never
 from dataclasses import dataclass
 
 import numpy as np
