@@ -60,7 +60,7 @@ Changelog = "https://qstheory.github.io/fftarray/main/changelog.html"
 
 [dependency-groups]
 "jax" = [
-    "jax>=0.4.33"
+    "jax>=0.4.33,<0.8.2" # 0.8.2 breaks is_jax_array in array_api_compat https://github.com/data-apis/array-api-compat/issues/368
 ]
 
 # Dependencies which are only needed for the dashboard examples.
