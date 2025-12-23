@@ -4,7 +4,7 @@ Best viewed [here](https://qstheory.github.io/fftarray/main/changelog.html).
 
 ## Unreleased
 
-## FFTArray 0.5.2 (19 December 2025)
+## FFTArray 0.5.2 (23 December 2025)
 - Remove `typing_extensions` as a dependency because it is no longer necessary.
 
 ## FFTArray 0.5.1 (03 September 2025)
