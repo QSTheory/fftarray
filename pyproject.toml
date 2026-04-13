@@ -28,12 +28,13 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering",
 ]
 
 dependencies = [
     "numpy>=2.0",
-    "array-api-compat>=1.11.0",
+    "array-api-compat>=1.13.0",
 ]
 
 [build-system]
@@ -60,7 +61,7 @@ Changelog = "https://qstheory.github.io/fftarray/main/changelog.html"
 
 [dependency-groups]
 "jax" = [
-    "jax>=0.4.33,<0.8.2" # 0.8.2 breaks is_jax_array in array_api_compat https://github.com/data-apis/array-api-compat/issues/368
+    "jax>=0.4.33"
 ]
 
 # Dependencies which are only needed for the dashboard examples.
@@ -127,6 +128,8 @@ Changelog = "https://qstheory.github.io/fftarray/main/changelog.html"
     "nbsphinx",
     "nbconvert>=7.16.5",
     "nbsphinx-link",
+    # Pin docutils to work around https://github.com/vidartf/nbsphinx-link/issues/25
+    "docutils<0.22",
     "myst-nb",
     "m2r2",
     "matplotlib",
@@ -258,16 +261,12 @@ system-requirements = {cuda = "12"}
 # platforms = ["linux-64"]
 system-requirements = {cuda = "12"}
 
-# Install cupy from conda-forge because that takes care of setting up CUDA correctly.
-[tool.pixi.feature.cupycuda.target.linux-64.dependencies]
-"cupy" = "*"
+[tool.pixi.feature.cupycuda.target.linux-64.pypi-dependencies]
+"cupy-cuda12x" = {version="*", extras=["ctk"]}
 
 # Specific feature to allow testing under python 3.11
 [tool.pixi.feature.py311.dependencies]
 python = "3.11.*"
-# array-api-strict 2.4.0 does not support NumPy interoperability with Python 3.11.
-# Therefore we need to stay on 2.3.1 for Python 3.11.
-array-api-strict = "==2.3.1"
 
 # Specific feature to allow testing under python 3.12
 [tool.pixi.feature.py312.dependencies]
@@ -276,6 +275,10 @@ python = "3.12.*"
 # Specific feature to allow testing under python 3.13
 [tool.pixi.feature.py313.dependencies]
 python = "3.13.*"
+
+# Specific feature to allow testing under python 3.14
+[tool.pixi.feature.py314.dependencies]
+python = "3.14.*"
 
 [tool.pixi.environments]
 # All dev dependencies including the cuda version of jax and cupy.
@@ -293,6 +296,8 @@ check311 = ["py311", "check", "pandoc"]
 check312 = ["py312", "check", "pandoc"]
 # Environment to run the tests under CPython 3.13
 check313 = ["py313", "check", "pandoc"]
+# Environment to run the tests under CPython 3.13
+check314 = ["py314", "check", "pandoc"]
 
 # Environment to create the requirements.txt used in the pip CI test
 build-pip-deps = ["build_pip_deps"]
