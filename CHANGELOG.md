@@ -3,6 +3,7 @@
 Best viewed [here](https://qstheory.github.io/fftarray/main/changelog.html).
 
 ## Unreleased
+- Breaking change: Indexing operations do not change `factors_applied` along axes where no indexing is done.
 
 ## FFTArray 0.5.2 (23 December 2025)
 - Remove `typing_extensions` as a dependency because it is no longer necessary.
