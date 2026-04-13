@@ -139,7 +139,7 @@ definition with the ``dimsolver`` option:
 
 .. code:: shell
 
-   pip install fftarray[dimsolver]
+   pip install "fftarray[dimsolver]"
 
 Any array library besides NumPy like for example
 `JAX <https://github.com/jax-ml/jax?tab=readme-ov-file#installation>`__
