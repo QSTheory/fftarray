@@ -226,7 +226,7 @@ def coords_from_arr(
 def full(
         dim: Union[Dimension, Iterable[Dimension]],
         space: Union[Space, Iterable[Space], Dict[str, Space]],
-        fill_value: Union[bool, int, float, complex, Any],
+        fill_value: Union[bool, int, float, complex],
         /,
         *,
         xp: Optional[Any] = None,

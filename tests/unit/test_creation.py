@@ -253,38 +253,6 @@ def test_full_scalar(
         eager=eager,
     )
 
-@pytest.mark.parametrize("xp, device_param, device_res", XPS_DEVICE_PAIRS)
-@pytest.mark.parametrize("init_dtype_name, direct_dtype_name", dtypes_names_pairs)
-@pytest.mark.parametrize("ndims", [0,1,2])
-@pytest.mark.parametrize("eager", [True, False])
-def test_full_array(
-        xp,
-        device_param: Optional[Any],
-        device_res: Any,
-        init_dtype_name: DTYPE_NAME,
-        direct_dtype_name: Optional[DTYPE_NAME],
-        ndims: int,
-        eager: bool,
-    ) -> None:
-    # Define xp array according to xp with fill_value using init_dtype_name
-    fill_value = xp.asarray(5, dtype=getattr(xp, init_dtype_name))
-
-    if direct_dtype_name is None:
-        direct_dtype = None
-    else:
-        # dtype is explicity specified in array creation,
-        # overwrites the default dtype of the array library.
-        direct_dtype = getattr(xp, direct_dtype_name)
-
-    check_full(
-        xp=xp,
-        device_param=device_param,
-        device_res=device_res,
-        fill_value=fill_value,
-        direct_dtype=direct_dtype,
-        ndims=ndims,
-        eager=eager,
-    )
 
 def check_full(
         xp,
