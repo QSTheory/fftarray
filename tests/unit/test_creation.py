@@ -11,9 +11,17 @@ import fftarray as fa
 from fftarray._src.compat_namespace import convert_xp
 
 from tests.helpers import (
-    XPS_WITH_DEFAULT_DEVICE_PAIRS, XPS_ROTATED_PAIRS, XPS_DEVICE_PAIRS, XPS_NON_DEFAULT_DEVICE_PAIRS,
-    get_dims, dtypes_names_pairs, dtype_names_numeric_core, DTYPE_NAME, get_test_array,
     assert_fa_array_exact_equal,
+    DTYPE_NAME,
+    dtype_names_numeric_core,
+    dtypes_names_pairs,
+    get_dims,
+    get_test_array,
+    XPS_DEVICE_PAIRS_NO_STRICT,
+    XPS_DEVICE_PAIRS,
+    XPS_NON_DEFAULT_DEVICE_PAIRS,
+    XPS_ROTATED_PAIRS,
+    XPS_WITH_DEFAULT_DEVICE_PAIRS,
 )
 
 def test_no_xp_conversion() -> None:
@@ -253,7 +261,9 @@ def test_full_scalar(
         eager=eager,
     )
 
-@pytest.mark.parametrize("xp, device_param, device_res", XPS_DEVICE_PAIRS)
+# This excludes array-api-strict since passing an array library scalar as fill-value is not mandated by the standard.
+# However all other libraries support this behavior, for which we test here.
+@pytest.mark.parametrize("xp, device_param, device_res", XPS_DEVICE_PAIRS_NO_STRICT)
 @pytest.mark.parametrize("init_dtype_name, direct_dtype_name", dtypes_names_pairs)
 @pytest.mark.parametrize("ndims", [0,1,2])
 @pytest.mark.parametrize("eager", [True, False])
