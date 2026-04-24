@@ -96,6 +96,12 @@ XPS_DEVICE_PAIRS = [
     *XPS_NON_DEFAULT_DEVICE_PAIRS,
 ]
 
+XPS_DEVICE_PAIRS_NO_STRICT = [
+    (xp, device_param, res)
+    for xp, device_param, res in XPS_DEVICE_PAIRS
+    if xp != array_api_strict
+]
+
 def get_other_space(space: Union[fa.Space, Tuple[fa.Space, ...]]):
     """Returns the other space. If input space is "pos", "freq" is returned and
     vice versa. If space is a `Tuple[Space]`, a tuple is returned.
