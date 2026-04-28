@@ -242,15 +242,23 @@ def full(
     space:
         Specify the space(s) in which the returned Array is intialized.
         If given as a dictionary it must contain all dimensions passed into ``dim``.
+    fill_value:
+        Value which is written into the created array. This may also be an array API library
+        scalar from which xp is then deduced. This only works if the underlying library
+        supports this case which is not mandated by the standard but still in practice
+        supported by numpy, jax, cupy and torch.
     xp:
-        The Array API namespace to use for the created ``Array``.
+        The array API namespace to use for the created ``Array``.
         If it is None, ``array_api_compat.array_namespace(fill_value)`` is used.
         If that fails the default namespace from ``get_default_xp()`` is used.
-    dtype : Optional[Any]
+    dtype:
         The dtype to use for the returned Array.
         If the value is `None`, the dtype is inferred from ``fill_value``
-        according to the rules of the underlying Array API.
-
+        according to the rules of the underlying array API implementation.
+        Note that the Python array API standard does not define the exact precision
+        of the inferred dtype which is therefore defined by the underlying implementation.
+    device:
+        The device on which the created array is placed.
 
     Returns
     -------
