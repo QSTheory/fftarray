@@ -90,7 +90,7 @@ For quantum mechanics, especially for simulating matter waves, the [matterwave p
 The required dependencies of FFTArray are kept minimal to ensure compatibility with different environments.
 For most use cases we recommend installing the optional constraint solver for easy Dimension definition with the `dimsolver` option:
 ```shell
-pip install fftarray[dimsolver]
+pip install "fftarray[dimsolver]"
 ```
 
 Any array library besides NumPy like for example [JAX](https://github.com/jax-ml/jax?tab=readme-ov-file#installation) should be installed following their respective documentation.
