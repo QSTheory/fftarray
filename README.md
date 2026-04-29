@@ -1,6 +1,6 @@
 # FFTArray: A Python Library for the Implementation of Discretized Multi-Dimensional Fourier Transforms
 
-[**Intro**](#intro) | [**Installation**](#installation) | [**Documentation**](https://qstheory.github.io/fftarray/main) | [**Preprint (arXiv)**](https://arxiv.org/abs/2508.03697) | [**Change log**](https://qstheory.github.io/fftarray/main/changelog.html)
+[**Intro**](#intro) | [**Installation**](#installation) | [**Documentation**](https://qstheory.github.io/fftarray/main) | [**Publication**](https://scipost.org/SciPostPhysCodeb.66) | [**Change log**](https://qstheory.github.io/fftarray/main/changelog.html)
 
 ## Intro
 FFTArray is a Python library that handles multidimensional arrays and their representation in dual spaces (original and frequency domain) and provides the following highlight features:
@@ -9,7 +9,7 @@ FFTArray is a Python library that handles multidimensional arrays and their repr
 - **High performance**: Avoidable scale and phase factors in the Fourier transform are automatically skipped. Via the [Python Array API Standard](https://data-apis.org/array-api/latest/), FFTArray supports many different array libraries to enable for example hardware acceleration via GPUs.
 
 Below we give a quick introduction to the basic functionality of the library.
-For a more thorough description of FFTArray, we recommend reading the [preprint](https://arxiv.org/abs/2508.03697) and the [documentation](https://qstheory.github.io/fftarray/main).
+For a more thorough description of FFTArray, we recommend reading the [publication](https://scipost.org/SciPostPhysCodeb.66) and the [documentation](https://qstheory.github.io/fftarray/main).
 
 ### Adding Coordinate Grids to the FFT
 
@@ -99,13 +99,25 @@ Any array library besides NumPy like for example [JAX](https://github.com/jax-ml
 
 To cite FFTArray:
 ```
-@misc{seckmeyer2025,
-    title={FFTArray: A Python Library for the Implementation of Discretized Multi-Dimensional Fourier Transforms},
-    author={Stefan J. Seckmeyer and Christian Struckmann and Gabriel Müller and Jan-Niclas Kirsten-Siemß and Naceur Gaaloul},
-    year={2025},
-    eprint={2508.03697},
-    archivePrefix={arXiv},
-    primaryClass={physics.comp-ph},
-    url={https://arxiv.org/abs/2508.03697},
+@Article{10.21468/SciPostPhysCodeb.66,
+	title={{FFTArray: A Python library for the implementation of discretized multi-dimensional Fourier transforms}},
+	author={Stefan J. Seckmeyer and Christian Struckmann and Gabriel Müller and Jan-Niclas Kirsten-Siemß and Naceur Gaaloul},
+	journal={SciPost Phys. Codebases},
+	pages={66},
+	year={2026},
+	publisher={SciPost},
+	doi={10.21468/SciPostPhysCodeb.66},
+	url={https://scipost.org/10.21468/SciPostPhysCodeb.66},
+}
+
+@Article{10.21468/SciPostPhysCodeb.66-r0.5,
+	title={{Codebase release 0.5 for FFTArray}},
+	author={Stefan J. Seckmeyer and Christian Struckmann and Gabriel Müller and Jan-Niclas Kirsten-Siemß and Naceur Gaaloul},
+	journal={SciPost Phys. Codebases},
+	pages={66-r0.5},
+	year={2026},
+	publisher={SciPost},
+	doi={10.21468/SciPostPhysCodeb.66-r0.5},
+	url={https://scipost.org/10.21468/SciPostPhysCodeb.66-r0.5},
 }
 ```
