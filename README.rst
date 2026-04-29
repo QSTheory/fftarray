@@ -3,7 +3,7 @@ FFTArray: A Python Library for the Implementation of Discretized Multi-Dimension
 
 `Intro <#intro>`__ \| `Installation <#installation>`__ \|
 `Documentation <https://qstheory.github.io/fftarray/main>`__ \|
-`Preprint (arXiv) <https://arxiv.org/abs/2508.03697>`__ \| `Change
+`Publication <https://scipost.org/SciPostPhysCodeb.66>`__ \| `Change
 log <https://qstheory.github.io/fftarray/main/changelog.html>`__
 
 Intro
@@ -28,8 +28,8 @@ provides the following highlight features:
 
 Below we give a quick introduction to the basic functionality of the
 library. For a more thorough description of FFTArray, we recommend
-reading the `preprint <https://arxiv.org/abs/2508.03697>`__ and the
-`documentation <https://qstheory.github.io/fftarray/main>`__.
+reading the `publication <https://scipost.org/SciPostPhysCodeb.66>`__
+and the `documentation <https://qstheory.github.io/fftarray/main>`__.
 
 Adding Coordinate Grids to the FFT
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -152,12 +152,24 @@ To cite FFTArray:
 
 ::
 
-   @misc{seckmeyer2025,
-       title={FFTArray: A Python Library for the Implementation of Discretized Multi-Dimensional Fourier Transforms},
+   @Article{10.21468/SciPostPhysCodeb.66,
+       title={{FFTArray: A Python library for the implementation of discretized multi-dimensional Fourier transforms}},
        author={Stefan J. Seckmeyer and Christian Struckmann and Gabriel Müller and Jan-Niclas Kirsten-Siemß and Naceur Gaaloul},
-       year={2025},
-       eprint={2508.03697},
-       archivePrefix={arXiv},
-       primaryClass={physics.comp-ph},
-       url={https://arxiv.org/abs/2508.03697},
+       journal={SciPost Phys. Codebases},
+       pages={66},
+       year={2026},
+       publisher={SciPost},
+       doi={10.21468/SciPostPhysCodeb.66},
+       url={https://scipost.org/10.21468/SciPostPhysCodeb.66},
+   }
+
+   @Article{10.21468/SciPostPhysCodeb.66-r0.5,
+       title={{Codebase release 0.5 for FFTArray}},
+       author={Stefan J. Seckmeyer and Christian Struckmann and Gabriel Müller and Jan-Niclas Kirsten-Siemß and Naceur Gaaloul},
+       journal={SciPost Phys. Codebases},
+       pages={66-r0.5},
+       year={2026},
+       publisher={SciPost},
+       doi={10.21468/SciPostPhysCodeb.66-r0.5},
+       url={https://scipost.org/10.21468/SciPostPhysCodeb.66-r0.5},
    }
