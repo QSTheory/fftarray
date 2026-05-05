@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        environment: [check311, check312, check313]
+        environment: [check311, check312, check313, check314]
         command: [ruff_all, mypy_all, test_all]
         # An option to run with multiple CI runners, currently saves 20s,
         # not worth the increased CI minutes usage.
