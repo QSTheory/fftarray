@@ -455,8 +455,8 @@ class Array:
             all dimensions.
             The indexing is performed in the current state of the Array,
             i.e., each dimension is indexed in its respective state (pos or freq).
-            When the returned Array object is effectively indexed,
-            its internal state will always have all fft factors applied.
+            If an axis is changed by indexing, its fft factors are applied.
+            Otherwise `factors_applied` is unchanged.
 
             Example usage:
             arr_2d = (
@@ -502,16 +502,19 @@ class Array:
         )
 
         new_dims = []
-        for index, orig_dim, space in zip(tuple_indexers, self._dims, self.spaces, strict=True):
-            if index == slice(None, None, None):
+        new_factors_applied = []
+        for index, orig_dim, space, factors_applied in zip(tuple_indexers, self._dims, self.spaces, self._factors_applied, strict=True):
+            if index == slice(None, None, None) or index == slice(0, orig_dim.n, None):
                 # No selection, just keep the old dim.
                 new_dims.append(orig_dim)
+                new_factors_applied.append(factors_applied)
                 continue
             if not isinstance(index, slice):
                 index = slice(index, index+1, None)
             try:
                 # We perform all index sanity checks in _dim_from_slice
                 new_dims.append(orig_dim._dim_from_slice(index, space))
+                new_factors_applied.append(True)
             # Do not specifically catch jax.errors.ConcretizationTypeError in order to not have to import jax here.
             except Exception as e:
                 # This condition is fullfilled when the index is a traced object
@@ -528,7 +531,7 @@ class Array:
                     ) from e
 
 
-        selected_values = self.values(self.spaces).__getitem__(tuple_indexers)
+        selected_values = self.into_factors_applied(new_factors_applied)._values.__getitem__(tuple_indexers)
         # Dimensions with the length 1 are dropped in numpy indexing.
         # We decided against this and keeping even dimensions of length 1.
         # So we have to reintroduce those dropped dimensions via reshape.
@@ -539,7 +542,7 @@ class Array:
             dims=tuple(new_dims),
             spaces=self.spaces,
             eager=self.eager,
-            factors_applied=(True,)*len(new_dims),
+            factors_applied=tuple(new_factors_applied),
             xp=self._xp,
         )
 

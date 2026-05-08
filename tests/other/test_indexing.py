@@ -474,10 +474,14 @@ def test_array_state_management(
         arr_indexed_values = arr_indexed.values(arr_indexed.spaces)
 
         np.testing.assert_allclose(arr_raw_values, arr_indexed_values, atol=1e-16)
-        assert (
-            all(arr_indexed._factors_applied) or
-            (len(indexers) == 0 and arr_indexed._factors_applied == arr_different_internal._factors_applied)
-        )
+        for i, dim in enumerate(arr_indexed.dims):
+            # Only if the dim changed an actual selection happened
+            # and therefore the factors should be applied.
+            if dim != arr_2d.dims_dict[dim.name]:
+                assert arr_indexed.factors_applied[i]
+            else:
+                assert arr_different_internal.factors_applied[i] == arr_indexed.factors_applied[i]
+
         assert arr_2d.eager == arr_indexed.eager
         assert arr_different_internal.spaces == arr_indexed.spaces
 
@@ -488,10 +492,12 @@ def test_array_state_management(
         arr_indexed_values = arr_indexed.values(arr_indexed.spaces)
 
         np.testing.assert_allclose(arr_raw_values, arr_indexed_values, atol=1e-16)
-        assert (
-            all(arr_indexed._factors_applied) or
-            (len(indexers) == 0 and arr_indexed._factors_applied == arr_different_internal._factors_applied)
-        )
+        for i, dim in enumerate(arr_indexed.dims):
+            if dim != arr_2d.dims_dict[dim.name]:
+                assert arr_indexed.factors_applied[i]
+            else:
+                assert arr_different_internal.factors_applied[i] == arr_indexed.factors_applied[i]
+
         assert arr_2d.eager == arr_indexed.eager
         assert arr_different_internal.spaces == arr_indexed.spaces
 
@@ -502,10 +508,12 @@ def test_array_state_management(
         arr_indexed_values = arr_indexed.values(arr_indexed.spaces)
 
         np.testing.assert_allclose(arr_raw_values, arr_indexed_values, atol=1e-16)
-        assert (
-            all(arr_indexed._factors_applied) or
-            (len(indexers) == 0 and arr_indexed._factors_applied == arr_different_internal._factors_applied)
-        )
+        for i, dim in enumerate(arr_indexed.dims):
+            if dim != arr_2d.dims_dict[dim.name]:
+                assert arr_indexed.factors_applied[i]
+            else:
+                assert arr_different_internal.factors_applied[i] == arr_indexed.factors_applied[i]
+
         assert arr_2d.eager == arr_indexed.eager
         assert arr_different_internal.spaces == arr_indexed.spaces
 
@@ -516,10 +524,12 @@ def test_array_state_management(
         arr_indexed_values = arr_indexed.values(arr_indexed.spaces)
 
         np.testing.assert_allclose(arr_raw_values, arr_indexed_values, atol=1e-16)
-        assert (
-            all(arr_indexed._factors_applied) or
-            (len(indexers) == 0 and arr_indexed._factors_applied == arr_different_internal._factors_applied)
-        )
+        for i, dim in enumerate(arr_indexed.dims):
+            if dim.name in indexers and indexers[dim.name] != slice(None, None):
+                assert arr_indexed.factors_applied[i]
+            else:
+                assert arr_different_internal.factors_applied[i] == arr_indexed.factors_applied[i]
+
         assert arr_2d.eager == arr_2d.eager
         assert arr_different_internal.spaces == arr_2d.spaces
     except (KeyError, NotImplementedError):
